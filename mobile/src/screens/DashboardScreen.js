@@ -10,7 +10,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getProtectedProfile } from "../services/auth";
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
   const { user, signOut } = useAuth();
   const [protectedMessage, setProtectedMessage] = useState("");
   const [isFetching, setIsFetching] = useState(false);
@@ -56,17 +56,26 @@ export default function DashboardScreen() {
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-        <Pressable
-          style={[styles.button, isFetching && styles.buttonDisabled]}
-          onPress={handleProtectedCheck}
-          disabled={isFetching}
-        >
-          {isFetching ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.buttonText}>Test Protected Route</Text>
-          )}
-        </Pressable>
+        {user?.role === "student" ? (
+          <Pressable
+            style={styles.button}
+            onPress={() => navigation.navigate("StudentScanner")}
+          >
+            <Text style={styles.buttonText}>Scan Attendance QR</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            style={[styles.button, isFetching && styles.buttonDisabled]}
+            onPress={handleProtectedCheck}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.buttonText}>Test Protected Route</Text>
+            )}
+          </Pressable>
+        )}
 
         <Pressable style={styles.secondaryButton} onPress={signOut}>
           <Text style={styles.secondaryButtonText}>Logout</Text>

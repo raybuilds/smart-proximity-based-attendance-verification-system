@@ -151,9 +151,10 @@ export default function ActiveSessionScreen({ navigation, route }) {
 
     return JSON.stringify({
       sessionId: session.id,
+      sessionCode: session.sessionCode,
       nonce: qrData.nonce,
     });
-  }, [qrData?.nonce, session?.id]);
+  }, [qrData?.nonce, session?.id, session?.sessionCode]);
 
   const progressWidth = progressAnimation.interpolate({
     inputRange: [0, 1],

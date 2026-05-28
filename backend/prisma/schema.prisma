@@ -68,6 +68,7 @@ model Attendance {
   id                 Int               @id @default(autoincrement())
   studentId          Int
   sessionId          Int
+  status             String            @default("present")
   markedAt           DateTime          @default(now())
   verificationMethod String
   createdAt          DateTime          @default(now())

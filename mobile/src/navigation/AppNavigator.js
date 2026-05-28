@@ -7,6 +7,7 @@ import ActiveSessionScreen from "../screens/ActiveSessionScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import LoginScreen from "../screens/LoginScreen";
 import StartSessionScreen from "../screens/StartSessionScreen";
+import StudentScannerScreen from "../screens/StudentScannerScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -45,11 +46,18 @@ export default function AppNavigator() {
             />
           </>
         ) : (
-          <Stack.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={{ title: "Dashboard", headerBackVisible: false }}
-          />
+          <>
+            <Stack.Screen
+              name="Dashboard"
+              component={DashboardScreen}
+              options={{ title: "Dashboard", headerBackVisible: false }}
+            />
+            <Stack.Screen
+              name="StudentScanner"
+              component={StudentScannerScreen}
+              options={{ title: "Scan Attendance" }}
+            />
+          </>
         )
       ) : (
         <Stack.Screen

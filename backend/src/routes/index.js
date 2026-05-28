@@ -5,6 +5,7 @@ const attendanceRoutes = require("../modules/attendance/attendance.routes");
 const authRoutes = require("../modules/auth/auth.routes");
 const healthRoutes = require("../modules/health/health.routes");
 const qrRoutes = require("../modules/qr/qr.routes");
+const studentAttendanceRoutes = require("../modules/studentAttendance/studentAttendance.routes");
 
 const router = express.Router();
 
@@ -34,5 +35,6 @@ router.use("/attendance", attendanceRoutes);
 router.use("/auth", authRoutes);
 router.use("/health", healthRoutes);
 router.use("/qr", qrRoutes);
+router.use("/student-attendance", studentAttendanceRoutes);
 
 module.exports = router;
