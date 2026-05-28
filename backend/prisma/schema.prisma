@@ -22,8 +22,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  student Student?
-  teacher Teacher?
+  student            Student?
+  teacher            Teacher?
+  attendanceSessions AttendanceSession[] @relation("TeacherSessions")
+  attendances        Attendance[]        @relation("StudentAttendances")
 }
 
 model Student {
@@ -46,4 +48,31 @@ model Teacher {
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceSession {
+  id          Int          @id @default(autoincrement())
+  teacherId   Int
+  sessionCode String       @unique
+  isActive    Boolean      @default(true)
+  startedAt   DateTime     @default(now())
+  endedAt     DateTime?
+  createdAt   DateTime     @default(now())
+
+  teacher           User         @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
+  attendanceRecords Attendance[]
+}
+
+model Attendance {
+  id                 Int               @id @default(autoincrement())
+  studentId          Int
+  sessionId          Int
+  markedAt           DateTime          @default(now())
+  verificationMethod String
+  createdAt          DateTime          @default(now())
+
+  student User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sessionId])
 }

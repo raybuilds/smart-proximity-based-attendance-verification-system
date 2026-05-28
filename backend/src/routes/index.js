@@ -1,6 +1,7 @@
 const express = require("express");
 
 const { authenticate } = require("../middleware/auth.middleware");
+const attendanceRoutes = require("../modules/attendance/attendance.routes");
 const authRoutes = require("../modules/auth/auth.routes");
 const healthRoutes = require("../modules/health/health.routes");
 
@@ -28,6 +29,7 @@ router.get("/protected", authenticate, (req, res) => {
   });
 });
 
+router.use("/attendance", attendanceRoutes);
 router.use("/auth", authRoutes);
 router.use("/health", healthRoutes);
 

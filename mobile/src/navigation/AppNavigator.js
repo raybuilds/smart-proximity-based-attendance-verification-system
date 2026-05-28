@@ -3,13 +3,15 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
+import ActiveSessionScreen from "../screens/ActiveSessionScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import LoginScreen from "../screens/LoginScreen";
+import StartSessionScreen from "../screens/StartSessionScreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -29,11 +31,26 @@ export default function AppNavigator() {
       }}
     >
       {isAuthenticated ? (
-        <Stack.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{ title: "Dashboard", headerBackVisible: false }}
-        />
+        user?.role === "teacher" ? (
+          <>
+            <Stack.Screen
+              name="StartSession"
+              component={StartSessionScreen}
+              options={{ title: "Teacher Dashboard", headerBackVisible: false }}
+            />
+            <Stack.Screen
+              name="ActiveSession"
+              component={ActiveSessionScreen}
+              options={{ title: "Active Session", headerBackVisible: false }}
+            />
+          </>
+        ) : (
+          <Stack.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+            options={{ title: "Dashboard", headerBackVisible: false }}
+          />
+        )
       ) : (
         <Stack.Screen
           name="Login"

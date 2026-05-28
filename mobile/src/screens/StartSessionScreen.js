@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -6,65 +6,81 @@ import {
   Text,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { useAuth } from "../context/AuthContext";
-import { getProtectedProfile } from "../services/auth";
+import { getActiveSession, startSession } from "../services/attendance";
 
-export default function DashboardScreen() {
+export default function StartSessionScreen({ navigation }) {
   const { user, signOut } = useAuth();
-  const [protectedMessage, setProtectedMessage] = useState("");
-  const [isFetching, setIsFetching] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleProtectedCheck() {
+  useFocusEffect(
+    useCallback(() => {
+      async function checkActiveSession() {
+        try {
+          const response = await getActiveSession();
+
+          if (response.session) {
+            navigation.replace("ActiveSession", {
+              session: response.session,
+            });
+          }
+        } catch (error) {
+          setErrorMessage(
+            error.response?.data?.message ||
+              "Could not load the current attendance session."
+          );
+        }
+      }
+
+      checkActiveSession();
+    }, [navigation])
+  );
+
+  async function handleStartSession() {
     try {
-      setIsFetching(true);
+      setIsLoading(true);
       setErrorMessage("");
-      const response = await getProtectedProfile();
-      setProtectedMessage(
-        `${response.message} (${response.user.email} - ${response.user.role})`
-      );
+      const response = await startSession();
+      navigation.replace("ActiveSession", {
+        session: response.session,
+      });
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message ||
-          "Could not verify protected route access."
+          "Could not start the attendance session."
       );
     } finally {
-      setIsFetching(false);
+      setIsLoading(false);
     }
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Attendance Dashboard</Text>
+        <Text style={styles.title}>Teacher Dashboard</Text>
         <Text style={styles.subtitle}>
-          {user?.role === "student"
-            ? "You are signed in as a student."
-            : "You are now logged in."}
+          Welcome, {user?.name}. Start a live attendance session when your class begins.
         </Text>
 
-        <View style={styles.detailsBox}>
-          <Text style={styles.detailText}>Name: {user?.name}</Text>
-          <Text style={styles.detailText}>Email: {user?.email}</Text>
-          <Text style={styles.detailText}>Role: {user?.role}</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>Role: {user?.role}</Text>
+          <Text style={styles.infoText}>Email: {user?.email}</Text>
         </View>
-
-        {protectedMessage ? (
-          <Text style={styles.successText}>{protectedMessage}</Text>
-        ) : null}
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.button, isFetching && styles.buttonDisabled]}
-          onPress={handleProtectedCheck}
-          disabled={isFetching}
+          style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+          onPress={handleStartSession}
+          disabled={isLoading}
         >
-          {isFetching ? (
+          {isLoading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.buttonText}>Test Protected Route</Text>
+            <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
           )}
         </Pressable>
 
@@ -90,10 +106,7 @@ const styles = StyleSheet.create({
     shadowColor: "#0f172a",
     shadowOpacity: 0.08,
     shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
+    shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
   title: {
@@ -103,46 +116,37 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   subtitle: {
-    marginTop: 8,
-    color: "#475569",
-    textAlign: "center",
+    marginTop: 10,
     marginBottom: 20,
+    textAlign: "center",
+    color: "#475569",
+    fontSize: 15,
+    lineHeight: 22,
   },
-  detailsBox: {
+  infoBox: {
     backgroundColor: "#eff6ff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 18,
   },
-  detailText: {
+  infoText: {
     color: "#1e293b",
     fontSize: 15,
     marginBottom: 6,
-  },
-  successText: {
-    marginBottom: 12,
-    color: "#15803d",
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 20,
   },
   errorText: {
     marginBottom: 12,
     color: "#dc2626",
     textAlign: "center",
-    fontSize: 14,
     lineHeight: 20,
   },
-  button: {
+  primaryButton: {
     backgroundColor: "#0f172a",
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
+  primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
@@ -159,5 +163,8 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 16,
     fontWeight: "700",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 });
