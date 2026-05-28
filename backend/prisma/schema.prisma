@@ -61,6 +61,7 @@ model AttendanceSession {
 
   teacher           User         @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
   attendanceRecords Attendance[]
+  qrCodes           SessionQRCode[]
 }
 
 model Attendance {
@@ -75,4 +76,14 @@ model Attendance {
   session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, sessionId])
+}
+
+model SessionQRCode {
+  id        Int      @id @default(autoincrement())
+  sessionId Int
+  nonce     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

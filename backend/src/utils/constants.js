@@ -22,8 +22,14 @@ const APP = {
   DEFAULT_PORT: 5000,
 };
 
+const QR = {
+  EXPIRY_MS: 15000,
+  NONCE_LENGTH: 16,
+};
+
 module.exports = {
   HTTP_STATUS,
   ROLES,
   APP,
+  QR,
 };
