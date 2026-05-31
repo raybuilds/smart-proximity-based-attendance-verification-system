@@ -5,6 +5,13 @@ import api from "./api";
 const AUTH_TOKEN_KEY = "auth_token";
 const AUTH_USER_KEY = "auth_user";
 
+export async function storeAuthSession(token, user) {
+  await AsyncStorage.multiSet([
+    [AUTH_TOKEN_KEY, token],
+    [AUTH_USER_KEY, JSON.stringify(user)],
+  ]);
+}
+
 export async function loginUser({ email, password }) {
   const response = await api.post("/auth/login", {
     email,
@@ -13,10 +20,17 @@ export async function loginUser({ email, password }) {
 
   const { token, user } = response.data;
 
-  await AsyncStorage.multiSet([
-    [AUTH_TOKEN_KEY, token],
-    [AUTH_USER_KEY, JSON.stringify(user)],
-  ]);
+  await storeAuthSession(token, user);
+
+  return { token, user };
+}
+
+export async function registerUser(registrationData) {
+  const response = await api.post("/auth/register", registrationData);
+
+  const { token, user } = response.data;
+
+  await storeAuthSession(token, user);
 
   return { token, user };
 }

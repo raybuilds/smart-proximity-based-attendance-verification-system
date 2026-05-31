@@ -13,13 +13,25 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Location access is required to scan nearby WiFi for attendance verification."
       }
     },
+"android": {
+  "permissions": [
+    "ACCESS_FINE_LOCATION",
+    "ACCESS_WIFI_STATE",
+    "CHANGE_WIFI_STATE",
+    "NEARBY_WIFI_DEVICES",
+    "BLUETOOTH_SCAN",
+    "BLUETOOTH_CONNECT"
+  ],
+  "adaptiveIcon": {
+    "backgroundColor": "#ffffff"
+  },
+  "package": "com.anonymous.attendancesystemapp"
+},
     "web": {
       "bundler": "metro"
     }
