@@ -1,5 +1,5 @@
 const { prisma } = require("../../config/database");
-const { HTTP_STATUS } = require("../../utils/constants");
+const { HTTP_STATUS, WIFI } = require("../../utils/constants");
 
 function generateSessionCode(length = 6) {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -60,6 +60,8 @@ async function startSession(teacherId) {
     data: {
       teacherId,
       sessionCode,
+      teacherSSID: WIFI.DEMO_SSID,
+      teacherBSSID: WIFI.DEMO_BSSID,
       isActive: true,
     },
     include: {

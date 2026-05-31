@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-
+import { getTeacherOverview } from "../services/reports";
 import { useAuth } from "../context/AuthContext";
 import { getActiveSession, startSession } from "../services/attendance";
 
@@ -15,25 +15,31 @@ export default function StartSessionScreen({ navigation }) {
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
+  const [overview, setOverview] = useState(null);
   useFocusEffect(
     useCallback(() => {
       async function checkActiveSession() {
-        try {
-          const response = await getActiveSession();
+  try {
+    const [sessionResponse, overviewResponse] =
+      await Promise.all([
+        getActiveSession(),
+        getTeacherOverview(),
+      ]);
 
-          if (response.session) {
-            navigation.replace("ActiveSession", {
-              session: response.session,
-            });
-          }
-        } catch (error) {
-          setErrorMessage(
-            error.response?.data?.message ||
-              "Could not load the current attendance session."
-          );
-        }
-      }
+    setOverview(overviewResponse.data);
+
+    if (sessionResponse.session) {
+      navigation.replace("ActiveSession", {
+        session: sessionResponse.session,
+      });
+    }
+  } catch (error) {
+    setErrorMessage(
+      error.response?.data?.message ||
+        "Could not load dashboard information."
+    );
+  }
+}
 
       checkActiveSession();
     }, [navigation])
@@ -66,6 +72,29 @@ export default function StartSessionScreen({ navigation }) {
         </Text>
 
         <View style={styles.infoBox}>
+          {overview ? (
+  <View style={styles.analyticsBox}>
+    <Text style={styles.analyticsTitle}>
+      Attendance Analytics
+    </Text>
+
+    <Text style={styles.analyticsText}>
+      Students: {overview.totalStudents}
+    </Text>
+
+    <Text style={styles.analyticsText}>
+      Sessions: {overview.totalSessions}
+    </Text>
+
+    <Text style={styles.analyticsText}>
+      Records: {overview.totalAttendanceRecords}
+    </Text>
+
+    <Text style={styles.analyticsText}>
+      Attendance: {overview.attendancePercentage}%
+    </Text>
+  </View>
+) : null}
           <Text style={styles.infoText}>Role: {user?.role}</Text>
           <Text style={styles.infoText}>Email: {user?.email}</Text>
         </View>
@@ -83,7 +112,16 @@ export default function StartSessionScreen({ navigation }) {
             <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
           )}
         </Pressable>
-
+        <Pressable
+         style={styles.secondaryButton}
+         onPress={() =>
+         navigation.navigate("TeacherReports")
+        }
+       >
+        <Text style={styles.secondaryButtonText}>
+              View Student Reports
+        </Text>
+        </Pressable>
         <Pressable style={styles.secondaryButton} onPress={signOut}>
           <Text style={styles.secondaryButtonText}>Logout</Text>
         </Pressable>
@@ -167,4 +205,25 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7,
   },
+  analyticsBox: {
+  backgroundColor: "#f8fafc",
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 18,
+  borderWidth: 1,
+  borderColor: "#e2e8f0",
+},
+
+analyticsTitle: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a",
+  marginBottom: 10,
+},
+
+analyticsText: {
+  fontSize: 15,
+  color: "#334155",
+  marginBottom: 6,
+},
 });

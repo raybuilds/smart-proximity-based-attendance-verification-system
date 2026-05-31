@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,12 +9,36 @@ import {
 
 import { useAuth } from "../context/AuthContext";
 import { getProtectedProfile } from "../services/auth";
+import {
+  getStudentSelfReport,
+} from "../services/reports";
 
 export default function DashboardScreen({ navigation }) {
   const { user, signOut } = useAuth();
   const [protectedMessage, setProtectedMessage] = useState("");
   const [isFetching, setIsFetching] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [attendanceReport, setAttendanceReport] =
+  useState(null);
+
+   useEffect(() => {
+    async function loadReport() {
+      try {
+        const response =
+          await getStudentSelfReport();
+
+        setAttendanceReport(
+          response.data
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    if (user?.role === "student") {
+      loadReport();
+    }
+  }, [user]);
 
   async function handleProtectedCheck() {
     try {
@@ -56,27 +80,69 @@ export default function DashboardScreen({ navigation }) {
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-        {user?.role === "student" ? (
-          <Pressable
-            style={styles.button}
-            onPress={() => navigation.navigate("StudentScanner")}
-          >
-            <Text style={styles.buttonText}>Scan Attendance QR</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[styles.button, isFetching && styles.buttonDisabled]}
-            onPress={handleProtectedCheck}
-            disabled={isFetching}
-          >
-            {isFetching ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Test Protected Route</Text>
-            )}
-          </Pressable>
-        )}
+ {user?.role === "student" ? (
+  <>
+    {attendanceReport ? (
+      <View style={styles.detailsBox}>
+        <Text style={styles.detailText}>
+          Attendance: {attendanceReport.attendancePercentage}%
+        </Text>
 
+        <Text style={styles.detailText}>
+          Present: {attendanceReport.presentCount}
+        </Text>
+
+        <Text style={styles.detailText}>
+          Absent: {attendanceReport.absentCount}
+        </Text>
+
+        <Text style={styles.detailText}>
+          Total Sessions: {attendanceReport.totalSessions}
+        </Text>
+      </View>
+    ) : null}
+
+    <Pressable
+      style={styles.button}
+      onPress={() => navigation.navigate("StudentScanner")}
+    >
+      <Text style={styles.buttonText}>Scan Attendance QR</Text>
+    </Pressable>
+<Pressable
+  style={[
+    styles.button,
+    { marginTop: 12 },
+  ]}
+  onPress={() =>
+    navigation.navigate(
+      "AttendanceHistory"
+    )
+  }
+>
+  <Text style={styles.buttonText}>
+    Attendance History
+  </Text>
+</Pressable>
+    <Pressable
+      style={[styles.button, { marginTop: 12 }]}
+      onPress={() => navigation.navigate("BleTest")}
+    >
+      <Text style={styles.buttonText}>BLE Test</Text>
+    </Pressable>
+  </>
+) : (
+  <Pressable
+    style={[styles.button, isFetching && styles.buttonDisabled]}
+    onPress={handleProtectedCheck}
+    disabled={isFetching}
+  >
+    {isFetching ? (
+      <ActivityIndicator color="#ffffff" />
+    ) : (
+      <Text style={styles.buttonText}>Test Protected Route</Text>
+    )}
+  </Pressable>
+)}
         <Pressable style={styles.secondaryButton} onPress={signOut}>
           <Text style={styles.secondaryButtonText}>Logout</Text>
         </Pressable>

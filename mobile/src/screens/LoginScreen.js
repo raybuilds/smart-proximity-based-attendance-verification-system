@@ -10,7 +10,7 @@ import {
 
 import { useAuth } from "../context/AuthContext";
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("admin@attendance.local");
   const [password, setPassword] = useState("Password@123");
@@ -71,6 +71,13 @@ export default function LoginScreen() {
           ) : (
             <Text style={styles.buttonText}>Login</Text>
           )}
+        </Pressable>
+
+        <Pressable
+          style={styles.registerButton}
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Text style={styles.registerButtonText}>Register</Text>
         </Pressable>
 
         <Text style={styles.helperText}>
@@ -153,5 +160,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
+  },
+  registerButton: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#0f172a",
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+  registerButtonText: {
+    color: "#0f172a",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

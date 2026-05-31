@@ -29,6 +29,64 @@ async function login(req, res, next) {
   }
 }
 
+const registerSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters long"),
+  email: z.string().trim().email("Valid email is required"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+  role: z.enum(["student", "teacher"], {
+    errorMap: () => ({ message: "Role must be either student or teacher" }),
+  }),
+  rollNumber: z.string().optional(),
+  department: z.string().trim().min(1, "Department is required"),
+  semester: z.number().optional(),
+  section: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.role === "student") {
+    if (!data.rollNumber || data.rollNumber.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Roll number is required for students",
+        path: ["rollNumber"],
+      });
+    }
+    if (data.semester === undefined || data.semester === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Semester is required for students",
+        path: ["semester"],
+      });
+    }
+    if (!data.section || data.section.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Section is required for students",
+        path: ["section"],
+      });
+    }
+  }
+});
+
+async function register(req, res, next) {
+  try {
+    const registrationData = registerSchema.parse(req.body);
+    const result = await authService.registerUser(registrationData);
+
+    res.status(201).json({
+      success: true,
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      error.statusCode = 400;
+      error.message = error.issues[0]?.message || "Invalid registration payload";
+    }
+
+    next(error);
+  }
+}
+
 module.exports = {
   login,
+  register,
 };

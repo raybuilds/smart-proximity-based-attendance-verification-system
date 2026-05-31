@@ -6,6 +6,8 @@ const authRoutes = require("../modules/auth/auth.routes");
 const healthRoutes = require("../modules/health/health.routes");
 const qrRoutes = require("../modules/qr/qr.routes");
 const studentAttendanceRoutes = require("../modules/studentAttendance/studentAttendance.routes");
+const wifiRoutes = require("../modules/wifi/wifi.routes");
+const reportsRoutes = require("../modules/reports/reports.routes");
 
 const router = express.Router();
 
@@ -36,5 +38,7 @@ router.use("/auth", authRoutes);
 router.use("/health", healthRoutes);
 router.use("/qr", qrRoutes);
 router.use("/student-attendance", studentAttendanceRoutes);
+router.use("/wifi", wifiRoutes);
+router.use("/reports", reportsRoutes);
 
 module.exports = router;

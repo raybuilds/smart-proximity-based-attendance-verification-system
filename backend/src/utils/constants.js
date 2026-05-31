@@ -27,9 +27,16 @@ const QR = {
   NONCE_LENGTH: 16,
 };
 
+const WIFI = {
+  DEMO_SSID: "ATTENDANCE_TEACHER",
+  DEMO_BSSID: "AA:BB:CC:DD:EE:FF",
+  MIN_RSSI: -70,
+};
+
 module.exports = {
   HTTP_STATUS,
   ROLES,
   APP,
   QR,
+  WIFI,
 };

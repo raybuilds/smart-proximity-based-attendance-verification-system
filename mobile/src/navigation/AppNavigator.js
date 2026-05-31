@@ -8,6 +8,12 @@ import DashboardScreen from "../screens/DashboardScreen";
 import LoginScreen from "../screens/LoginScreen";
 import StartSessionScreen from "../screens/StartSessionScreen";
 import StudentScannerScreen from "../screens/StudentScannerScreen";
+import WifiDetectionScreen from "../screens/WifiDetectionScreen";
+import BleTestScreen from "../screens/BleTestScreen";
+import TeacherReportsScreen from "../screens/TeacherReportsScreen";
+import StudentDetailScreen from "../screens/StudentDetailScreen";
+import AttendanceHistoryScreen from "../screens/AttendanceHistoryScreen";
+import RegisterScreen from "../screens/RegisterScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +50,16 @@ export default function AppNavigator() {
               component={ActiveSessionScreen}
               options={{ title: "Active Session", headerBackVisible: false }}
             />
+            <Stack.Screen
+              name="TeacherReports"
+              component={TeacherReportsScreen}
+              options={{ title: "Student Reports" }}
+            />
+            <Stack.Screen
+             name="StudentDetail"
+             component={StudentDetailScreen}
+             options={{ title: "Student Details" }}
+             />
           </>
         ) : (
           <>
@@ -57,14 +73,38 @@ export default function AppNavigator() {
               component={StudentScannerScreen}
               options={{ title: "Scan Attendance" }}
             />
+            <Stack.Screen
+              name="WifiDetection"
+              component={WifiDetectionScreen}
+              options={{ title: "WiFi Detection" }}
+            />
+             <Stack.Screen
+  name="AttendanceHistory"
+  component={AttendanceHistoryScreen}
+  options={{
+    title: "Attendance History",
+  }}
+/>
+            <Stack.Screen
+              name="BleTest"
+              component={BleTestScreen}
+              options={{ title: "BLE Test" }}
+            />
           </>
         )
       ) : (
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ title: "Login", headerBackVisible: false }}
-        />
+        <>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ title: "Login", headerBackVisible: false }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ title: "Register" }}
+          />
+        </>
       )}
     </Stack.Navigator>
   );

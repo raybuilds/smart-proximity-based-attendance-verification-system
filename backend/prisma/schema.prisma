@@ -54,6 +54,8 @@ model AttendanceSession {
   id          Int          @id @default(autoincrement())
   teacherId   Int
   sessionCode String       @unique
+  teacherSSID String?
+  teacherBSSID String?
   isActive    Boolean      @default(true)
   startedAt   DateTime     @default(now())
   endedAt     DateTime?

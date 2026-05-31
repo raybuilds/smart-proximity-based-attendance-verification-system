@@ -8,8 +8,6 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
-import { submitScannedAttendance } from "../services/studentAttendance";
-
 export default function StudentScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,13 +39,12 @@ export default function StudentScannerScreen({ navigation }) {
         throw new Error("Invalid QR payload");
       }
 
-      const response = await submitScannedAttendance({
+      setIsSuccess(true);
+      setMessage("QR scanned successfully");
+      navigation.replace("WifiDetection", {
         sessionCode,
         nonce,
       });
-
-      setIsSuccess(true);
-      setMessage(response.message);
     } catch (error) {
       setIsSuccess(false);
       setMessage(

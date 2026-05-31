@@ -5,6 +5,7 @@ import {
   getStoredUser,
   loginUser,
   logoutUser,
+  registerUser,
 } from "../services/auth";
 
 const AuthContext = createContext(null);
@@ -41,6 +42,13 @@ export function AuthProvider({ children }) {
     return result;
   }
 
+  async function signUp(registrationData) {
+    const result = await registerUser(registrationData);
+    setToken(result.token);
+    setUser(result.user);
+    return result;
+  }
+
   async function signOut() {
     await logoutUser();
     setToken(null);
@@ -54,6 +62,7 @@ export function AuthProvider({ children }) {
       isLoading,
       isAuthenticated: Boolean(token && user),
       signIn,
+      signUp,
       signOut,
     }),
     [isLoading, token, user]
