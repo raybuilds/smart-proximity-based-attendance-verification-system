@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE_URL = "http://10.200.130.104:5000/api";
+const API_BASE_URL = "https://attendance-system-backend-unu2.onrender.com/api";
 const AUTH_TOKEN_KEY = "auth_token";
 
 export const api = axios.create({
