@@ -18,22 +18,27 @@
         "NSLocationWhenInUseUsageDescription": "Location access is required to scan nearby WiFi for attendance verification."
       }
     },
-"android": {
-  "permissions": [
-    "ACCESS_FINE_LOCATION",
-    "ACCESS_WIFI_STATE",
-    "CHANGE_WIFI_STATE",
-    "NEARBY_WIFI_DEVICES",
-    "BLUETOOTH_SCAN",
-    "BLUETOOTH_CONNECT"
-  ],
-  "adaptiveIcon": {
-    "backgroundColor": "#ffffff"
-  },
-  "package": "com.anonymous.attendancesystemapp"
-},
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_WIFI_STATE",
+        "NEARBY_WIFI_DEVICES",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anonymous.attendancesystemapp"
+    },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6ded8001-6b7f-4d32-a675-f463aa7ef600"
+      }
     }
   }
 }
