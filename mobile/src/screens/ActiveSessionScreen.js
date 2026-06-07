@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -180,85 +182,93 @@ export default function ActiveSessionScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Active Session</Text>
-        <Text style={styles.subtitle}>
-          Share this session code with students to mark attendance later.
-        </Text>
-
-        <View style={styles.qrCard}>
-          <Text style={styles.qrTitle}>Live QR</Text>
-          <View style={styles.qrWrapper}>
-            {qrData ? (
-              <QRCode value={qrPayload} size={220} />
-            ) : (
-              <ActivityIndicator size="large" color="#0f172a" />
-            )}
-          </View>
-
-          <Text style={styles.codeLabel}>Session Code</Text>
-          <Text style={styles.codeValue}>{session.sessionCode}</Text>
-
-          <Text
-            style={[
-              styles.countdownText,
-              isExpiryWarning && styles.countdownWarning,
-            ]}
-          >
-            Refreshing in {countdown}s
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Active Session</Text>
+          <Text style={styles.subtitle}>
+            Share this session code with students to mark attendance later.
           </Text>
 
-          <View style={styles.progressTrack}>
-            <Animated.View
+          <View style={styles.qrCard}>
+            <Text style={styles.qrTitle}>Live QR</Text>
+            <View style={styles.qrWrapper}>
+              {qrData ? (
+                <QRCode value={qrPayload} size={220} />
+              ) : (
+                <ActivityIndicator size="large" color="#0f172a" />
+              )}
+            </View>
+
+            <Text style={styles.codeLabel}>Session Code</Text>
+            <Text style={styles.codeValue}>{session.sessionCode}</Text>
+
+            <Text
               style={[
-                styles.progressBar,
-                isExpiryWarning && styles.progressBarWarning,
-                { width: progressWidth },
+                styles.countdownText,
+                isExpiryWarning && styles.countdownWarning,
               ]}
-            />
+            >
+              Refreshing in {countdown}s
+            </Text>
+
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressBar,
+                  isExpiryWarning && styles.progressBarWarning,
+                  { width: progressWidth },
+                ]}
+              />
+            </View>
+
+            {isRefreshingQr ? (
+              <Text style={styles.refreshText}>Refreshing QR...</Text>
+            ) : null}
           </View>
 
-          {isRefreshingQr ? (
-            <Text style={styles.refreshText}>Refreshing QR...</Text>
-          ) : null}
-        </View>
-
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>Status: {session.isActive ? "Active" : "Inactive"}</Text>
-          <Text style={styles.infoText}>
-            Started: {new Date(session.startedAt).toLocaleString()}
-          </Text>
-          {qrData ? (
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>Status: {session.isActive ? "Active" : "Inactive"}</Text>
             <Text style={styles.infoText}>
-              Expires: {new Date(qrData.expiresAt).toLocaleTimeString()}
+              Started: {new Date(session.startedAt).toLocaleString()}
             </Text>
-          ) : null}
+            {qrData ? (
+              <Text style={styles.infoText}>
+                Expires: {new Date(qrData.expiresAt).toLocaleTimeString()}
+              </Text>
+            ) : null}
+          </View>
+
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+          <Pressable
+            style={[styles.primaryButton, isEnding && styles.buttonDisabled]}
+            onPress={handleEndSession}
+            disabled={isEnding}
+          >
+            {isEnding ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>End Session</Text>
+            )}
+          </Pressable>
         </View>
-
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-        <Pressable
-          style={[styles.primaryButton, isEnding && styles.buttonDisabled]}
-          onPress={handleEndSession}
-          disabled={isEnding}
-        >
-          {isEnding ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.primaryButtonText}>End Session</Text>
-          )}
-        </Pressable>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 60,
     backgroundColor: "#f8fafc",
   },
   loaderContainer: {
