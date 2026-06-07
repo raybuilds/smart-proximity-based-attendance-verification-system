@@ -79,11 +79,12 @@ export default function WifiDetectionScreen({ navigation, route }) {
       setIsSuccess(true);
       setMessage(attendanceResult.message);
     } catch (error) {
-      setMessage(
-        error.response?.data?.message ||
-          error.message ||
-          "Could not complete WiFi attendance verification."
-      );
+      const errMsg = error.response?.data?.message || error.message || "";
+      if (errMsg.toLowerCase().includes("already marked")) {
+        setMessage("Attendance already marked for this session.");
+      } else {
+        setMessage(errMsg || "Could not complete WiFi attendance verification.");
+      }
     } finally {
       setIsScanning(false);
       setIsValidating(false);
