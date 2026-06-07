@@ -10,6 +10,8 @@ import {
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 import { endSession, getActiveSession } from "../services/attendance";
 import { getCurrentQR } from "../services/qr";
@@ -26,6 +28,8 @@ export default function ActiveSessionScreen({ navigation, route }) {
   const [countdown, setCountdown] = useState(QR_LIFETIME_SECONDS);
   const progressAnimation = useRef(new Animated.Value(1)).current;
   const isFetchingQrRef = useRef(false);
+  const qrRef = useRef(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   useEffect(() => {
     async function loadSession() {
@@ -146,6 +150,45 @@ export default function ActiveSessionScreen({ navigation, route }) {
     }
   }
 
+  async function handleShareQr() {
+    if (isSharing || !qrRef.current) {
+      return;
+    }
+
+    try {
+      setIsSharing(true);
+      setErrorMessage("");
+
+      qrRef.current.toDataURL(async (dataURL) => {
+        try {
+          const tempFilePath = `${FileSystem.cacheDirectory}session_qr.png`;
+          await FileSystem.writeAsStringAsync(tempFilePath, dataURL, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(tempFilePath, {
+              mimeType: "image/png",
+              dialogTitle: "Share Session QR",
+              UTI: "public.png",
+            });
+          } else {
+            setErrorMessage("Sharing is not available on this device.");
+          }
+        } catch (error) {
+          setErrorMessage("Failed to generate and share QR code.");
+          console.error(error);
+        } finally {
+          setIsSharing(false);
+        }
+      });
+    } catch (error) {
+      setErrorMessage("Could not capture the QR code image.");
+      setIsSharing(false);
+      console.error(error);
+    }
+  }
+
   const qrPayload = useMemo(() => {
     if (!session?.id || !qrData?.nonce) {
       return "";
@@ -194,7 +237,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
             <Text style={styles.qrTitle}>Live QR</Text>
             <View style={styles.qrWrapper}>
               {qrData ? (
-                <QRCode value={qrPayload} size={220} />
+                <QRCode value={qrPayload} size={220} getRef={(c) => (qrRef.current = c)} />
               ) : (
                 <ActivityIndicator size="large" color="#0f172a" />
               )}
@@ -240,6 +283,18 @@ export default function ActiveSessionScreen({ navigation, route }) {
           </View>
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+          <Pressable
+            style={[styles.primaryButton, isSharing && styles.buttonDisabled, { marginBottom: 12 }]}
+            onPress={handleShareQr}
+            disabled={isSharing}
+          >
+            {isSharing ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Share QR</Text>
+            )}
+          </Pressable>
 
           <Pressable
             style={[styles.primaryButton, isEnding && styles.buttonDisabled]}

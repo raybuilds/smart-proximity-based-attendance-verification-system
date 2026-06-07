@@ -7,6 +7,11 @@ import {
   View,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import jsQR from "jsqr";
+import jpeg from "jpeg-js";
+import { Buffer } from "buffer";
 
 export default function StudentScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -47,11 +52,11 @@ export default function StudentScannerScreen({ navigation }) {
       });
     } catch (error) {
       setIsSuccess(false);
-      setMessage(
-        error.response?.data?.message ||
-          error.message ||
-          "Could not validate the QR code."
-      );
+      let displayMsg = error.response?.data?.message || error.message || "Could not validate the QR code.";
+      if (error instanceof SyntaxError || displayMsg.includes("Invalid QR payload") || displayMsg.includes("JSON")) {
+        displayMsg = "Invalid QR code format. Please ensure you are importing a valid Attendance Session QR code.";
+      }
+      setMessage(displayMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,6 +66,59 @@ export default function StudentScannerScreen({ navigation }) {
     setIsScanned(false);
     setMessage("");
     setIsSuccess(false);
+  }
+
+  async function handleImportQr() {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        setIsSuccess(false);
+        setMessage("Gallery access is required to import QR images.");
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.5,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        return;
+      }
+
+      setIsSubmitting(true);
+      setMessage("Decoding QR code from image...");
+
+      const pickedAsset = pickerResult.assets[0];
+      const manipResult = await ImageManipulator.manipulateAsync(
+        pickedAsset.uri,
+        [{ resize: { width: 500 } }],
+        { format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+
+      const buffer = Buffer.from(manipResult.base64, "base64");
+      const rawImageData = jpeg.decode(buffer, { useTArray: true });
+      const code = jsQR(rawImageData.data, rawImageData.width, rawImageData.height);
+
+      if (!code || !code.data) {
+        setIsSubmitting(false);
+        setIsSuccess(false);
+        setMessage("Unable to detect a QR code in the selected image.");
+        return;
+      }
+
+      // Reset submitting/scanned states temporarily so handleBarcodeScanned can execute
+      setIsSubmitting(false);
+      setIsScanned(false);
+
+      await handleBarcodeScanned({ data: code.data });
+    } catch (error) {
+      setIsSubmitting(false);
+      setIsSuccess(false);
+      setMessage(error.message || "An error occurred while importing the QR code.");
+      console.error(error);
+    }
   }
 
   if (!permission) {
@@ -81,6 +139,9 @@ export default function StudentScannerScreen({ navigation }) {
           </Text>
           <Pressable style={styles.primaryButton} onPress={requestPermission}>
             <Text style={styles.primaryButtonText}>Grant Permission</Text>
+          </Pressable>
+          <Pressable style={styles.primaryButton} onPress={handleImportQr}>
+            <Text style={styles.primaryButtonText}>Import QR From Gallery</Text>
           </Pressable>
           <Pressable
             style={styles.secondaryButton}
@@ -130,9 +191,11 @@ export default function StudentScannerScreen({ navigation }) {
           </Text>
         )}
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.secondaryButtonText}>Back</Text>
-        </Pressable>
+        {!isScanned ? (
+          <Pressable style={styles.primaryButton} onPress={handleImportQr}>
+            <Text style={styles.primaryButtonText}>Import QR From Gallery</Text>
+          </Pressable>
+        ) : null}
 
         {isScanned ? (
           <Pressable style={styles.primaryButton} onPress={resetScanner}>
@@ -141,6 +204,10 @@ export default function StudentScannerScreen({ navigation }) {
             </Text>
           </Pressable>
         ) : null}
+
+        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.secondaryButtonText}>Back</Text>
+        </Pressable>
       </View>
     </View>
   );
