@@ -69,6 +69,10 @@ export default function StudentScannerScreen({ navigation }) {
   }
 
   async function handleImportQr() {
+    if (isSubmitting || isScanned) {
+      return;
+    }
+
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
@@ -77,6 +81,9 @@ export default function StudentScannerScreen({ navigation }) {
         return;
       }
 
+      // Lock camera scanning immediately while picker is active
+      setIsScanned(true);
+
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
@@ -84,6 +91,7 @@ export default function StudentScannerScreen({ navigation }) {
       });
 
       if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        setIsScanned(false);
         return;
       }
 
@@ -104,11 +112,12 @@ export default function StudentScannerScreen({ navigation }) {
       if (!code || !code.data) {
         setIsSubmitting(false);
         setIsSuccess(false);
+        setIsScanned(false); // Reset lock on decode failure
         setMessage("Unable to detect a QR code in the selected image.");
         return;
       }
 
-      // Reset submitting/scanned states temporarily so handleBarcodeScanned can execute
+      // Reset states so handleBarcodeScanned can process
       setIsSubmitting(false);
       setIsScanned(false);
 
@@ -116,6 +125,7 @@ export default function StudentScannerScreen({ navigation }) {
     } catch (error) {
       setIsSubmitting(false);
       setIsSuccess(false);
+      setIsScanned(false); // Reset lock on error
       setMessage(error.message || "An error occurred while importing the QR code.");
       console.error(error);
     }
@@ -140,8 +150,12 @@ export default function StudentScannerScreen({ navigation }) {
           <Pressable style={styles.primaryButton} onPress={requestPermission}>
             <Text style={styles.primaryButtonText}>Grant Permission</Text>
           </Pressable>
-          <Pressable style={styles.primaryButton} onPress={handleImportQr}>
-            <Text style={styles.primaryButtonText}>Import QR From Gallery</Text>
+          <Pressable
+            style={[styles.secondaryButton, (isSubmitting || isScanned) && styles.buttonDisabled]}
+            onPress={handleImportQr}
+            disabled={isSubmitting || isScanned}
+          >
+            <Text style={styles.secondaryButtonText}>Import QR From Gallery</Text>
           </Pressable>
           <Pressable
             style={styles.secondaryButton}
@@ -192,7 +206,11 @@ export default function StudentScannerScreen({ navigation }) {
         )}
 
         {!isScanned ? (
-          <Pressable style={styles.primaryButton} onPress={handleImportQr}>
+          <Pressable
+            style={[styles.primaryButton, (isSubmitting || isScanned) && styles.buttonDisabled]}
+            onPress={handleImportQr}
+            disabled={isSubmitting || isScanned}
+          >
             <Text style={styles.primaryButtonText}>Import QR From Gallery</Text>
           </Pressable>
         ) : null}
@@ -336,5 +354,8 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 16,
     fontWeight: "700",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

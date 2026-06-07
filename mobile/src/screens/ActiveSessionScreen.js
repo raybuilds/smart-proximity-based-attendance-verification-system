@@ -285,21 +285,21 @@ export default function ActiveSessionScreen({ navigation, route }) {
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
           <Pressable
-            style={[styles.primaryButton, isSharing && styles.buttonDisabled, { marginBottom: 12 }]}
+            style={[styles.secondaryButton, (isSharing || isEnding) && styles.buttonDisabled, { marginBottom: 12 }]}
             onPress={handleShareQr}
-            disabled={isSharing}
+            disabled={isSharing || isEnding}
           >
             {isSharing ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#0f172a" />
             ) : (
-              <Text style={styles.primaryButtonText}>Share QR</Text>
+              <Text style={styles.secondaryButtonText}>Share QR</Text>
             )}
           </Pressable>
 
           <Pressable
-            style={[styles.primaryButton, isEnding && styles.buttonDisabled]}
+            style={[styles.primaryButton, (isEnding || isSharing) && styles.buttonDisabled]}
             onPress={handleEndSession}
-            disabled={isEnding}
+            disabled={isEnding || isSharing}
           >
             {isEnding ? (
               <ActivityIndicator color="#ffffff" />
@@ -447,6 +447,19 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: "#0f172a",
+    backgroundColor: "transparent",
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#0f172a",
     fontSize: 16,
     fontWeight: "700",
   },
