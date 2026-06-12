@@ -16,6 +16,21 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 async function connectDatabase() {
+  // Startup diagnostics for DATABASE_URL
+  const dbUrl = process.env.DATABASE_URL;
+  const urlExists = !!dbUrl && dbUrl.trim().length > 0;
+  logger.info(`DATABASE_URL exists: ${urlExists}`);
+  if (urlExists) {
+    try {
+      const parsed = new URL(dbUrl);
+      const hostname = parsed.hostname;
+      const pathname = parsed.pathname.replace(/^\//, "");
+      logger.info(`DATABASE_URL hostname: ${hostname}`);
+      logger.info(`DATABASE_URL database name: ${pathname}`);
+    } catch (e) {
+      logger.error('Failed to parse DATABASE_URL', e.message);
+    }
+  }
   for (let attempt = 1; attempt <= MAX_CONNECTION_RETRIES; attempt += 1) {
     try {
       logger.info(
