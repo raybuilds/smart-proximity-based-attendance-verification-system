@@ -229,84 +229,58 @@ export default function ActiveSessionScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Active Session</Text>
-          <Text style={styles.subtitle}>
-            Share this session code with students to mark attendance later.
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{session.course?.name ?? "Active Session"}</Text>
+        <Text style={styles.subtitle}>
+          Section {session.course?.section ?? "N/A"}
+        </Text>
 
-          <View style={styles.qrCard}>
-            <View style={styles.courseContainer}>
-              <Text style={styles.courseLabel}>Course</Text>
-              <Text style={styles.courseValue}>
-                {session.course?.name ?? "Not Assigned"}
-              </Text>
-              <View style={{ marginTop: 8, alignItems: "center" }}>
-                <Text style={styles.eligibilityLabel}>Eligible Students:</Text>
-                <EligibilityChips eligibility={getSessionEligibility(session)} />
-              </View>
-            </View>
+        <View style={styles.qrWrapper}>
+          {qrData ? (
+            <QRCode value={qrPayload} size={280} getRef={(c) => (qrRef.current = c)} />
+          ) : (
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          )}
+        </View>
 
-            <Text style={styles.qrTitle}>Live QR</Text>
-            <View style={styles.qrWrapper}>
-              {qrData ? (
-                <QRCode value={qrPayload} size={220} getRef={(c) => (qrRef.current = c)} />
-              ) : (
-                <ActivityIndicator size="large" color="#0f172a" />
-              )}
-            </View>
+        <Text style={styles.codeLabel}>Session Code</Text>
+        <Text style={styles.codeValue}>{session.sessionCode}</Text>
 
-            <Text style={styles.codeLabel}>Session Code</Text>
-            <Text style={styles.codeValue}>{session.sessionCode}</Text>
+        <Text
+          style={[
+            styles.countdownText,
+            isExpiryWarning && styles.countdownWarning,
+          ]}
+        >
+          Refreshing in {countdown}s
+        </Text>
 
-            <Text
-              style={[
-                styles.countdownText,
-                isExpiryWarning && styles.countdownWarning,
-              ]}
-            >
-              Refreshing in {countdown}s
-            </Text>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              isExpiryWarning && styles.progressBarWarning,
+              { width: progressWidth },
+            ]}
+          />
+        </View>
 
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressBar,
-                  isExpiryWarning && styles.progressBarWarning,
-                  { width: progressWidth },
-                ]}
-              />
-            </View>
+        {isRefreshingQr ? (
+          <Text style={styles.refreshText}>Refreshing QR...</Text>
+        ) : null}
 
-            {isRefreshingQr ? (
-              <Text style={styles.refreshText}>Refreshing QR...</Text>
-            ) : null}
-          </View>
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>Status: {session.isActive ? "Active" : "Inactive"}</Text>
-            <Text style={styles.infoText}>
-              Started: {new Date(session.startedAt).toLocaleString()}
-            </Text>
-            {qrData ? (
-              <Text style={styles.infoText}>
-                Expires: {new Date(qrData.expiresAt).toLocaleTimeString()}
-              </Text>
-            ) : null}
-          </View>
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
+        <View style={styles.buttonContainer}>
           <Pressable
             style={[styles.secondaryButton, (isSharing || isEnding) && styles.buttonDisabled, { marginBottom: 12 }]}
             onPress={handleShareQr}
             disabled={isSharing || isEnding}
           >
             {isSharing ? (
-              <ActivityIndicator color="#0f172a" />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
-              <Text style={styles.secondaryButtonText}>Share QR</Text>
+              <Text style={styles.secondaryButtonText}>Share QR Code</Text>
             )}
           </Pressable>
 
@@ -335,9 +309,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 60,
+    paddingTop: 32,
+    paddingBottom: 40,
     backgroundColor: COLORS.background,
   },
   loaderContainer: {
@@ -347,76 +322,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: COLORS.background,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  courseContainer: {
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: LAYOUT.inputRadius,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  courseLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 2,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  courseValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.primary,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-  },
-  eligibilityLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748b",
-    marginBottom: 4,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  qrCard: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  qrTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 16,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-  },
   qrWrapper: {
-    width: 240,
-    height: 240,
+    width: 320,
+    height: 320,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.qrSurface,
     borderRadius: LAYOUT.cardRadius,
     borderWidth: 1,
     borderColor: COLORS.qrBorder,
-    marginBottom: 18,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   title: {
     fontSize: 26,
@@ -424,25 +344,25 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.heading.fontWeight,
     color: COLORS.primary,
     textAlign: "center",
+    marginBottom: 4,
   },
   subtitle: {
-    marginTop: 10,
-    marginBottom: 20,
-    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "600",
     color: "#64748b",
-    fontSize: 14,
-    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 24,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeLabel: {
     color: "#64748b",
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 4,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeValue: {
     color: COLORS.primary,
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: "800",
     letterSpacing: 4,
     marginBottom: 12,
@@ -460,10 +380,11 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     width: "100%",
-    height: 10,
+    height: 8,
     backgroundColor: "#eff6ff",
     borderRadius: 999,
     overflow: "hidden",
+    marginBottom: 16,
   },
   progressBar: {
     height: "100%",
@@ -479,26 +400,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
-  infoBox: {
-    backgroundColor: COLORS.background,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  infoText: {
-    color: COLORS.text,
-    fontSize: 14,
-    marginBottom: 6,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
   errorText: {
-    marginBottom: 12,
+    marginVertical: 12,
     color: COLORS.error,
     textAlign: "center",
     lineHeight: 20,
     fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  buttonContainer: {
+    width: "100%",
+    marginTop: 16,
   },
   primaryButton: {
     backgroundColor: COLORS.error,
@@ -506,6 +417,7 @@ const styles = StyleSheet.create({
     height: LAYOUT.buttonHeight,
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   primaryButtonText: {
     color: "#ffffff",
@@ -516,11 +428,12 @@ const styles = StyleSheet.create({
   secondaryButton: {
     borderWidth: 1,
     borderColor: COLORS.primary,
-    backgroundColor: "transparent",
+    backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.buttonRadius,
     height: LAYOUT.buttonHeight,
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   secondaryButtonText: {
     color: COLORS.primary,

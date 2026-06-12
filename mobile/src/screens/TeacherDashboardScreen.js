@@ -132,50 +132,30 @@ export default function TeacherDashboardScreen({ navigation }) {
           Welcome, {user?.name || "Teacher"}. Manage your courses and attendance sessions.
         </Text>
 
-        {isLoading && !overview ? (
-          <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#0f172a" />
-          </View>
-        ) : (
-          <>
-            {overview ? (
-              <View style={styles.analyticsBox}>
-                <Text style={styles.analyticsTitle}>Attendance Analytics</Text>
-                <View style={styles.analyticsGrid}>
-                  <View style={styles.analyticsItem}>
-                    <Text style={styles.analyticsLabel}>Students</Text>
-                    <Text style={styles.analyticsValue}>{overview.totalStudents}</Text>
-                  </View>
-                  <View style={styles.analyticsItem}>
-                    <Text style={styles.analyticsLabel}>Sessions</Text>
-                    <Text style={styles.analyticsValue}>{overview.totalSessions}</Text>
-                  </View>
-                  <View style={styles.analyticsItem}>
-                    <Text style={styles.analyticsLabel}>Records</Text>
-                    <Text style={styles.analyticsValue}>{overview.totalAttendanceRecords}</Text>
-                  </View>
-                  <View style={styles.analyticsItem}>
-                    <Text style={styles.analyticsLabel}>Attendance</Text>
-                    <Text style={styles.analyticsValue}>{overview.attendancePercentage}%</Text>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            <View style={styles.profileBox}>
-              <Text style={styles.profileText}>Email: {user?.email}</Text>
-              <Text style={styles.profileText}>Role: {user?.role}</Text>
-              {activeSession ? (
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>Live Session Active</Text>
-                </View>
-              ) : (
-                <View style={styles.inactiveBadge}>
-                  <Text style={styles.inactiveBadgeText}>No Active Session</Text>
-                </View>
-              )}
+        {/* 1. Active Session Panel */}
+        {activeSession ? (
+          <Pressable
+            style={styles.activeSessionPanel}
+            onPress={handleActiveSessionPress}
+          >
+            <View style={styles.activeSessionHeader}>
+              <Text style={styles.activeSessionTitle}>Live Session Active</Text>
+              <View style={styles.pulseDot} />
             </View>
-          </>
+            <Text style={styles.activeSessionText}>
+              Course: {activeSession.course?.name ?? "Not Assigned"}
+            </Text>
+            <Text style={styles.activeSessionText}>
+              Code: {activeSession.sessionCode}
+            </Text>
+            <Text style={styles.activeSessionLink}>
+              Tap to view QR / Monitor attendance →
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.profileBox}>
+            <Text style={styles.profileText}>Status: No active session running</Text>
+          </View>
         )}
 
         {errorMessage ? (
@@ -195,33 +175,59 @@ export default function TeacherDashboardScreen({ navigation }) {
           </View>
         ) : null}
 
+        {/* 2. Create Session (Primary Action) */}
         <Pressable
           style={styles.primaryButton}
           onPress={() => navigation.navigate("StartSession")}
         >
-          <Text style={styles.primaryButtonText}>Start Session</Text>
+          <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
         </Pressable>
 
-        <Pressable
-          style={[styles.secondaryButton, !activeSession && styles.buttonDisabled]}
-          onPress={handleActiveSessionPress}
-        >
-          <Text style={styles.secondaryButtonText}>Active Session</Text>
-        </Pressable>
+        {/* 3. Navigation shortcuts */}
+        <View style={styles.navigationSection}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("TeacherReports")}
+          >
+            <Text style={styles.secondaryButtonText}>Attendance Records & Reports</Text>
+          </Pressable>
 
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("TeacherReports")}
-        >
-          <Text style={styles.secondaryButtonText}>Reports</Text>
-        </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("CourseManagement")}
+          >
+            <Text style={styles.secondaryButtonText}>Manage Courses & Sections</Text>
+          </Pressable>
+        </View>
 
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("CourseManagement")}
-        >
-          <Text style={styles.secondaryButtonText}>Manage Courses</Text>
-        </Pressable>
+        {/* 4. Attendance Statistics (Minimally styled, placed at the bottom) */}
+        {isLoading && !overview ? (
+          <View style={styles.loaderBox}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        ) : overview ? (
+          <View style={styles.analyticsBox}>
+            <Text style={styles.analyticsTitle}>Academic Statistics</Text>
+            <View style={styles.analyticsGrid}>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsLabel}>Total Students</Text>
+                <Text style={styles.analyticsValue}>{overview.totalStudents}</Text>
+              </View>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsLabel}>Sessions Conducted</Text>
+                <Text style={styles.analyticsValue}>{overview.totalSessions}</Text>
+              </View>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsLabel}>Total Records</Text>
+                <Text style={styles.analyticsValue}>{overview.totalAttendanceRecords}</Text>
+              </View>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsLabel}>Avg Attendance</Text>
+                <Text style={styles.analyticsValue}>{overview.attendancePercentage}%</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         <Pressable style={styles.logoutButton} onPress={signOut}>
           <Text style={styles.logoutButtonText}>Logout</Text>
@@ -271,16 +277,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  activeSessionPanel: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    padding: 16,
+    marginBottom: 20,
+  },
+  activeSessionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  activeSessionTitle: {
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: "700",
+    color: COLORS.primary,
+    fontSize: 16,
+  },
+  pulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  activeSessionText: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    marginBottom: 4,
+  },
+  activeSessionLink: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: "600",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    marginTop: 8,
+  },
   analyticsBox: {
     backgroundColor: COLORS.background,
     borderRadius: LAYOUT.cardRadius,
     padding: 16,
-    marginBottom: 18,
+    marginVertical: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   analyticsTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.primary,
     marginBottom: 12,
@@ -309,7 +354,7 @@ const styles = StyleSheet.create({
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   analyticsValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.text,
     fontFamily: TYPOGRAPHY.body.fontFamily,
@@ -318,45 +363,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: LAYOUT.inputRadius,
     padding: 16,
-    marginBottom: 18,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
+    alignItems: "center",
   },
   profileText: {
-    color: COLORS.text,
+    color: "#64748b",
     fontSize: 14,
-    marginBottom: 4,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
-  activeBadge: {
-    marginTop: 8,
-    backgroundColor: "rgba(44, 95, 45, 0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  activeBadgeText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  inactiveBadge: {
-    marginTop: 8,
-    backgroundColor: "#e2e8f0",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  inactiveBadgeText: {
-    color: "#475569",
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+  navigationSection: {
+    marginVertical: 8,
   },
   errorText: {
     marginBottom: 12,
@@ -371,7 +389,7 @@ const styles = StyleSheet.create({
     height: LAYOUT.buttonHeight,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginVertical: 12,
   },
   primaryButtonText: {
     color: "#ffffff",
@@ -391,7 +409,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
@@ -399,7 +417,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   logoutButton: {
-    marginTop: 8,
+    marginTop: 12,
     borderRadius: LAYOUT.buttonRadius,
     height: LAYOUT.buttonHeight,
     justifyContent: "center",

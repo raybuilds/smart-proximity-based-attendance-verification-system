@@ -208,11 +208,11 @@ export default function StudentScannerScreen({ navigation }) {
 
         {!isScanned ? (
           <Pressable
-            style={[styles.primaryButton, (isSubmitting || isScanned) && styles.buttonDisabled]}
+            style={[styles.secondaryButton, (isSubmitting || isScanned) && styles.buttonDisabled]}
             onPress={handleImportQr}
             disabled={isSubmitting || isScanned}
           >
-            <Text style={styles.primaryButtonText}>Import QR From Gallery</Text>
+            <Text style={styles.secondaryButtonText}>Import QR From Gallery</Text>
           </Pressable>
         ) : null}
 
