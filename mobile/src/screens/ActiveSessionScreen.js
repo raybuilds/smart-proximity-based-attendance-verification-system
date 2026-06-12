@@ -15,6 +15,9 @@ import * as Sharing from "expo-sharing";
 
 import { endSession, getActiveSession } from "../services/attendance";
 import { getCurrentQR } from "../services/qr";
+import EligibilityChips from "../components/EligibilityChips";
+import { getSessionEligibility } from "../utils/eligibility";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 const QR_LIFETIME_SECONDS = 15;
 
@@ -41,7 +44,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
         const response = await getActiveSession();
 
         if (!response.session) {
-          navigation.replace("StartSession");
+          navigation.replace("TeacherDashboard");
           return;
         }
 
@@ -140,7 +143,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
       setIsEnding(true);
       setErrorMessage("");
       await endSession();
-      navigation.replace("StartSession");
+      navigation.replace("TeacherDashboard");
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message || "Could not end the attendance session."
@@ -234,6 +237,17 @@ export default function ActiveSessionScreen({ navigation, route }) {
           </Text>
 
           <View style={styles.qrCard}>
+            <View style={styles.courseContainer}>
+              <Text style={styles.courseLabel}>Course</Text>
+              <Text style={styles.courseValue}>
+                {session.course?.name ?? "Not Assigned"}
+              </Text>
+              <View style={{ marginTop: 8, alignItems: "center" }}>
+                <Text style={styles.eligibilityLabel}>Eligible Students:</Text>
+                <EligibilityChips eligibility={getSessionEligibility(session)} />
+              </View>
+            </View>
+
             <Text style={styles.qrTitle}>Live QR</Text>
             <View style={styles.qrWrapper}>
               {qrData ? (
@@ -316,7 +330,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -324,30 +338,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 60,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  courseContainer: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.inputRadius,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  courseLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 2,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  courseValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.primary,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+  },
+  eligibilityLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748b",
+    marginBottom: 4,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   qrCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 16,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.cardRadius,
     padding: 20,
     alignItems: "center",
     marginBottom: 18,
@@ -355,113 +403,130 @@ const styles = StyleSheet.create({
   qrTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0f172a",
+    color: COLORS.text,
     marginBottom: 16,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
   },
   qrWrapper: {
     width: 240,
     height: 240,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
+    backgroundColor: COLORS.qrSurface,
+    borderRadius: LAYOUT.cardRadius,
+    borderWidth: 1,
+    borderColor: COLORS.qrBorder,
     marginBottom: 18,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 26,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     textAlign: "center",
   },
   subtitle: {
     marginTop: 10,
     marginBottom: 20,
     textAlign: "center",
-    color: "#475569",
-    fontSize: 15,
-    lineHeight: 22,
+    color: "#64748b",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeLabel: {
     color: "#64748b",
     fontSize: 14,
     marginBottom: 8,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeValue: {
-    color: "#0f172a",
+    color: COLORS.primary,
     fontSize: 32,
     fontWeight: "800",
     letterSpacing: 4,
     marginBottom: 12,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
   },
   countdownText: {
-    color: "#334155",
+    color: COLORS.text,
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 10,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   countdownWarning: {
-    color: "#dc2626",
+    color: COLORS.error,
   },
   progressTrack: {
     width: "100%",
     height: 10,
-    backgroundColor: "#dbeafe",
+    backgroundColor: "#eff6ff",
     borderRadius: 999,
     overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#0f172a",
+    backgroundColor: COLORS.timerActive,
     borderRadius: 999,
   },
   progressBarWarning: {
-    backgroundColor: "#dc2626",
+    backgroundColor: COLORS.error,
   },
   refreshText: {
     marginTop: 10,
     color: "#64748b",
     fontSize: 13,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   infoBox: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.cardRadius,
     padding: 16,
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   infoText: {
-    color: "#1e293b",
-    fontSize: 15,
+    color: COLORS.text,
+    fontSize: 14,
     marginBottom: 6,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   errorText: {
     marginBottom: 12,
-    color: "#dc2626",
+    color: COLORS.error,
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: COLORS.error,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
   },
   primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: "#0f172a",
+    borderColor: COLORS.primary,
     backgroundColor: "transparent",
-    borderRadius: 12,
-    paddingVertical: 15,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#0f172a",
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   buttonDisabled: {
     opacity: 0.7,

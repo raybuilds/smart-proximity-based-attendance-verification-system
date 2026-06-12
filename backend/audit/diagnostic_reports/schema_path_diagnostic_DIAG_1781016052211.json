@@ -1,0 +1,15 @@
+{
+  "auditRunId": "DIAG_1781016052211",
+  "cwd": "C:\\Projects\\AttendanceSystem",
+  "relativeSchemaPath": "../prisma/schema.prisma",
+  "resolvedSchemaPath": "C:\\Projects\\prisma\\schema.prisma",
+  "fileExists": false,
+  "prismaVersion": "prisma               : 7.8.0\n@prisma/client       : Not found\nOperating System     : win32\nArchitecture         : x64\nNode.js              : v24.14.0\nTypeScript           : unknown\nQuery Compiler       : enabled\nPSL                  : @prisma/prisma-schema-wasm 7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a\nSchema Engine        : schema-engine-cli 3c6e192761c0362d496ed980de936e2f3cebcd3a (at ..\\..\\Users\\ASUS\\AppData\\Local\\npm-cache\\_npx\\2778af9cee32ff87\\node_modules\\@prisma\\engines\\schema-engine-windows.exe)\nDefault Engines Hash : 3c6e192761c0362d496ed980de936e2f3cebcd3a\nStudio               : 0.27.3",
+  "migration": {
+    "stdout": null,
+    "stderr": null,
+    "exitCode": null,
+    "errorStack": null
+  },
+  "errors": []
+}

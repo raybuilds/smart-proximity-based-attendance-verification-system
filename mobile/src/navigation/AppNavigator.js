@@ -7,6 +7,8 @@ import ActiveSessionScreen from "../screens/ActiveSessionScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import LoginScreen from "../screens/LoginScreen";
 import StartSessionScreen from "../screens/StartSessionScreen";
+import TeacherDashboardScreen from "../screens/TeacherDashboardScreen";
+import CourseManagementScreen from "../screens/CourseManagementScreen";
 import StudentScannerScreen from "../screens/StudentScannerScreen";
 import WifiDetectionScreen from "../screens/WifiDetectionScreen";
 import BleTestScreen from "../screens/BleTestScreen";
@@ -14,6 +16,10 @@ import TeacherReportsScreen from "../screens/TeacherReportsScreen";
 import StudentDetailScreen from "../screens/StudentDetailScreen";
 import AttendanceHistoryScreen from "../screens/AttendanceHistoryScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import CourseDetailReportScreen from "../screens/CourseDetailReportScreen";
+import StudentAttendanceReportScreen from "../screens/StudentAttendanceReportScreen";
+import DefaulterReportScreen from "../screens/DefaulterReportScreen";
+import CourseTrendScreen from "../screens/CourseTrendScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,8 +38,16 @@ export default function AppNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerTitleAlign: "center",
+        headerStyle: {
+          backgroundColor: "#2C5F2D",
+        },
+        headerTintColor: "#FFFFFF",
+        headerTitleStyle: {
+          fontFamily: "serif",
+          fontWeight: "bold",
+        },
         contentStyle: {
-          backgroundColor: "#f8fafc",
+          backgroundColor: "#F5F1E8",
         },
       }}
     >
@@ -41,9 +55,14 @@ export default function AppNavigator() {
         user?.role === "teacher" ? (
           <>
             <Stack.Screen
+              name="TeacherDashboard"
+              component={TeacherDashboardScreen}
+              options={{ title: "Teacher Dashboard", headerBackVisible: false }}
+            />
+            <Stack.Screen
               name="StartSession"
               component={StartSessionScreen}
-              options={{ title: "Teacher Dashboard", headerBackVisible: false }}
+              options={{ title: "Start Session" }}
             />
             <Stack.Screen
               name="ActiveSession"
@@ -53,13 +72,38 @@ export default function AppNavigator() {
             <Stack.Screen
               name="TeacherReports"
               component={TeacherReportsScreen}
-              options={{ title: "Student Reports" }}
+              options={{ title: "Course Reports" }}
             />
             <Stack.Screen
              name="StudentDetail"
              component={StudentDetailScreen}
              options={{ title: "Student Details" }}
              />
+            <Stack.Screen
+              name="CourseManagement"
+              component={CourseManagementScreen}
+              options={{ title: "Course Management" }}
+            />
+            <Stack.Screen
+              name="CourseDetailReport"
+              component={CourseDetailReportScreen}
+              options={{ title: "Course Details" }}
+            />
+            <Stack.Screen
+              name="StudentAttendanceReport"
+              component={StudentAttendanceReportScreen}
+              options={{ title: "Student Attendance" }}
+            />
+            <Stack.Screen
+              name="DefaulterReport"
+              component={DefaulterReportScreen}
+              options={{ title: "Defaulter Report" }}
+            />
+            <Stack.Screen
+              name="CourseTrend"
+              component={CourseTrendScreen}
+              options={{ title: "Attendance Trends" }}
+            />
           </>
         ) : (
           <>
@@ -118,3 +162,4 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
 });
+

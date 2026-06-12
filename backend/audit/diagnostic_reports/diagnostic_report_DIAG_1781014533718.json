@@ -1,0 +1,9 @@
+{
+  "auditRunId": "DIAG_1781014533718",
+  "testStdout": "Token Collision report generated at: C:\\Projects\\AttendanceSystem\\backend\\audit\\reports\\token_collision_report_DIAG_1781014533718.md\n",
+  "testStderr": "",
+  "attendanceCount": 1,
+  "usedTokenCount": 2,
+  "matchingJtiCount": 0,
+  "studentSessionAttendance": 1
+}

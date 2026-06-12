@@ -1,0 +1,16 @@
+{
+  "auditRunId": "DIAG_1781015957827",
+  "branchId": "br-still-tooth-aq5dlafq",
+  "branchName": "diag-diag_1781015957827",
+  "endpointId": "ep-misty-base-aqo6i25n",
+  "schemaPath": "C:\\Projects\\AttendanceSystem\\backend\\prisma\\schema.prisma",
+  "cwd": "C:\\Projects\\AttendanceSystem",
+  "databaseUrlHost": "ep-misty-base-aqo6i25n.c-8.us-east-1.aws.neon.tech",
+  "migration": {
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "Error: Could not load `--schema` from provided path `..\\prisma\\schema.prisma`: file or directory not found\n",
+    "errorMessage": "Command failed: cmd.exe /c \"npx prisma migrate deploy --schema ../prisma/schema.prisma\"\nError: Could not load `--schema` from provided path `..\\prisma\\schema.prisma`: file or directory not found\n"
+  },
+  "errors": []
+}

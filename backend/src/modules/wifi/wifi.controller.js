@@ -20,7 +20,10 @@ async function validateWifi(req, res, next) {
 
     console.log("PARSED PAYLOAD:", payload);
 
-    const result = await wifiService.validateWifiProximity(payload);
+    const result = await wifiService.validateWifiProximity({
+      ...payload,
+      studentId: req.user.sub,
+    });
 
     console.log("SERVICE RESULT:", result);
 

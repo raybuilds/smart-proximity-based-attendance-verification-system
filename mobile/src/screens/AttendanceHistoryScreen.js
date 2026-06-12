@@ -14,6 +14,7 @@ import {
 import {
   getStudentHistory,
 } from "../services/reports";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function AttendanceHistoryScreen() {
   const [history, setHistory] =
@@ -84,23 +85,39 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.background,
   },
 
   container: {
     padding: 16,
+    backgroundColor: COLORS.background,
   },
 
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 16,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   date: {
-    fontWeight: "700",
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     fontSize: 16,
     marginBottom: 8,
+  },
+  text: {
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.text,
+    fontSize: 14,
+    marginBottom: 4,
   },
 });

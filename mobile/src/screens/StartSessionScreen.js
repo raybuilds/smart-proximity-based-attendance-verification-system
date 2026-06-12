@@ -5,51 +5,75 @@ import {
   StyleSheet,
   Text,
   View,
+  Modal,
+  FlatList,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { getTeacherOverview } from "../services/reports";
 import { useAuth } from "../context/AuthContext";
 import { getActiveSession, startSession } from "../services/attendance";
+import { getCourses } from "../services/courses";
+import EligibilityChips from "../components/EligibilityChips";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function StartSessionScreen({ navigation }) {
-  const { user, signOut } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [overview, setOverview] = useState(null);
+
   useFocusEffect(
     useCallback(() => {
-      async function checkActiveSession() {
-  try {
-    const [sessionResponse, overviewResponse] =
-      await Promise.all([
-        getActiveSession(),
-        getTeacherOverview(),
-      ]);
+      async function checkActiveSessionAndLoadCourses() {
+        try {
+          setIsLoading(true);
+          setErrorMessage("");
+          
+          const [sessionResponse, coursesResponse] = await Promise.all([
+            getActiveSession(),
+            getCourses(),
+          ]);
 
-    setOverview(overviewResponse.data);
+          if (sessionResponse.session) {
+            navigation.replace("ActiveSession", {
+              session: sessionResponse.session,
+            });
+            return;
+          }
 
-    if (sessionResponse.session) {
-      navigation.replace("ActiveSession", {
-        session: sessionResponse.session,
-      });
-    }
-  } catch (error) {
-    setErrorMessage(
-      error.response?.data?.message ||
-        "Could not load dashboard information."
-    );
-  }
-}
+          const teacherCourses = coursesResponse.courses || [];
+          setCourses(teacherCourses);
+          
+          // Pre-select first course if available
+          if (teacherCourses.length > 0 && !selectedCourse) {
+            setSelectedCourse(null); // start with unselected to force explicit choice or set it
+          }
+        } catch (error) {
+          setErrorMessage(
+            error.response?.data?.message ||
+              "Could not load courses or session status."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      }
 
-      checkActiveSession();
+      checkActiveSessionAndLoadCourses();
     }, [navigation])
   );
 
   async function handleStartSession() {
+    if (!selectedCourse) {
+      setErrorMessage("Please select a course first.");
+      return;
+    }
+
     try {
-      setIsLoading(true);
+      setIsStarting(true);
       setErrorMessage("");
-      const response = await startSession();
+      const response = await startSession(selectedCourse.id);
       navigation.replace("ActiveSession", {
         session: response.session,
       });
@@ -59,73 +83,119 @@ export default function StartSessionScreen({ navigation }) {
           "Could not start the attendance session."
       );
     } finally {
-      setIsLoading(false);
+      setIsStarting(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#0f172a" />
+      </View>
+    );
+  }
+
+  // Warning state if teacher has zero courses
+  if (courses.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Start Session</Text>
+          <View style={styles.warningBox}>
+            <Text style={styles.warningText}>
+              You must create a course before starting an attendance session.
+            </Text>
+          </View>
+
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("CourseManagement")}
+          >
+            <Text style={styles.primaryButtonText}>Manage Courses</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Teacher Dashboard</Text>
+        <Text style={styles.title}>Start Session</Text>
         <Text style={styles.subtitle}>
           Welcome, {user?.name}. Start a live attendance session when your class begins.
         </Text>
 
-        <View style={styles.infoBox}>
-          {overview ? (
-  <View style={styles.analyticsBox}>
-    <Text style={styles.analyticsTitle}>
-      Attendance Analytics
-    </Text>
+        <Text style={styles.fieldLabel}>Course</Text>
+        <Pressable
+          style={styles.dropdownSelector}
+          onPress={() => setShowDropdown(true)}
+        >
+          <Text style={styles.dropdownSelectorText}>
+            {selectedCourse ? selectedCourse.name : "Select a Course ▼"}
+          </Text>
+        </Pressable>
 
-    <Text style={styles.analyticsText}>
-      Students: {overview.totalStudents}
-    </Text>
-
-    <Text style={styles.analyticsText}>
-      Sessions: {overview.totalSessions}
-    </Text>
-
-    <Text style={styles.analyticsText}>
-      Records: {overview.totalAttendanceRecords}
-    </Text>
-
-    <Text style={styles.analyticsText}>
-      Attendance: {overview.attendancePercentage}%
-    </Text>
-  </View>
-) : null}
-          <Text style={styles.infoText}>Role: {user?.role}</Text>
-          <Text style={styles.infoText}>Email: {user?.email}</Text>
-        </View>
+        {selectedCourse ? (
+          <View style={styles.previewCard}>
+            <Text style={styles.previewLabel}>Eligible Students:</Text>
+            <EligibilityChips eligibility={selectedCourse} />
+            <Text style={styles.previewCount}>
+              Matching Students: {selectedCourse.eligibleStudentCount !== undefined ? selectedCourse.eligibleStudentCount : 0}
+            </Text>
+          </View>
+        ) : null}
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+          style={[
+            styles.primaryButton,
+            (!selectedCourse || isStarting) && styles.buttonDisabled,
+          ]}
           onPress={handleStartSession}
-          disabled={isLoading}
+          disabled={!selectedCourse || isStarting}
         >
-          {isLoading ? (
+          {isStarting ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
           )}
         </Pressable>
-        <Pressable
-         style={styles.secondaryButton}
-         onPress={() =>
-         navigation.navigate("TeacherReports")
-        }
-       >
-        <Text style={styles.secondaryButtonText}>
-              View Student Reports
-        </Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={signOut}>
-          <Text style={styles.secondaryButtonText}>Logout</Text>
-        </Pressable>
       </View>
+
+      <Modal transparent visible={showDropdown} animationType="fade">
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowDropdown(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select a Course</Text>
+            <FlatList
+              data={courses}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setSelectedCourse(item);
+                    setShowDropdown(false);
+                    setErrorMessage("");
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item.name}</Text>
+                </Pressable>
+              )}
+            />
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setShowDropdown(false)}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -135,95 +205,175 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 26,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     textAlign: "center",
   },
   subtitle: {
     marginTop: 10,
     marginBottom: 20,
     textAlign: "center",
-    color: "#475569",
+    color: "#64748b",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 8,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  dropdownSelector: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.inputRadius,
+    paddingHorizontal: 16,
+    height: 48,
+    backgroundColor: COLORS.surface,
+    marginBottom: 20,
+    justifyContent: "center",
+  },
+  dropdownSelectorText: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  previewCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.cardRadius,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 20,
+  },
+  previewLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 4,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  previewCount: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.primary,
+    marginTop: 8,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  warningBox: {
+    backgroundColor: "#fffbeb",
+    borderRadius: LAYOUT.cardRadius,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    marginBottom: 24,
+  },
+  warningText: {
+    color: "#92400e",
     fontSize: 15,
     lineHeight: 22,
-  },
-  infoBox: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 18,
-  },
-  infoText: {
-    color: "#1e293b",
-    fontSize: 15,
-    marginBottom: 6,
+    textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   errorText: {
     marginBottom: 12,
-    color: "#dc2626",
+    color: COLORS.error,
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: COLORS.primary,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
   },
   primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
-  },
-  secondaryButton: {
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#0f172a",
-    fontSize: 16,
-    fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
-  analyticsBox: {
-  backgroundColor: "#f8fafc",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 18,
-  borderWidth: 1,
-  borderColor: "#e2e8f0",
-},
-
-analyticsTitle: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a",
-  marginBottom: 10,
-},
-
-analyticsText: {
-  fontSize: 15,
-  color: "#334155",
-  marginBottom: 6,
-},
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.modalRadius,
+    width: "100%",
+    maxHeight: "60%",
+    padding: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  modalItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  closeButton: {
+    marginTop: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.buttonRadius,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
 });

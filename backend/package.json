@@ -1,47 +1,31 @@
 {
   "name": "attendance-system-backend",
   "version": "1.0.0",
-  "description": "Phase 1 foundation for Smart Proximity-Based Attendance Verification System backend.",
-  "main": "src/app.js",
+  "description": "Backend for Attendance System",
+  "main": "src/index.js",
   "scripts": {
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset",
-    "dev": "nodemon src/app.js",
-    "start": "node src/app.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed",
-    "prisma:studio": "prisma studio"
+    "audit:snapshot": "node audit/pre_audit_snapshot.js",
+    "audit:verify": "node audit/post_cleanup_verify.js",
+    "audit:test:id": "node audit/tests/generateAuditRunId.test.js",
+    "audit:test:teacher": "node audit/tests/teacher_isolation.test.js",
+    "audit:test:race": "node audit/tests/session_race_condition.test.js",
+    "audit:test:load": "node audit/tests/load_test.js",
+    "audit:test:spike": "node audit/tests/instant_classroom_spike.test.js",
+    "audit:test:coldstart": "node audit/tests/render_cold_start.test.js",
+    "audit:test:replay": "node audit/tests/replay_protection.test.js",
+    "audit:test:collision": "node audit/tests/token_collision.test.js",
+    "audit:test:dashboard": "node audit/tests/dashboard_consistency.test.js",
+    "audit:test:reporting": "node audit/tests/reporting_reliability.test.js",
+    "audit:test:closure": "node audit/tests/session_closure.test.js",
+    "audit:test:integrity": "node audit/tests/database_integrity.test.js",
+    "audit:run": "node audit/run_audit.js"
   },
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
-  "keywords": [
-    "attendance",
-    "express",
-    "prisma",
-    "postgresql"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.8.2",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "prisma": "^6.8.2",
-    "zod": "^3.24.4"
+    "@prisma/client": "^5.0.0",
+    "dotenv": "^16.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "mocha": "^10.0.0",
+    "prisma": "^5.0.0"
   }
 }

@@ -38,6 +38,8 @@ model Student {
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([department, semester, section])
 }
 
 model Teacher {
@@ -47,23 +49,31 @@ model Teacher {
   department String
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses Course[]
 }
 
 model AttendanceSession {
-  id          Int          @id @default(autoincrement())
-  teacherId   Int
-  sessionCode String       @unique
-  teacherSSID String?
-  teacherBSSID String?
-  isActive    Boolean      @default(true)
-  startedAt   DateTime     @default(now())
-  endedAt     DateTime?
-  createdAt   DateTime     @default(now())
+  id                 Int             @id @default(autoincrement())
+  teacherId          Int
+  sessionCode        String          @unique
+  teacherSSID        String?
+  teacherBSSID       String?
+  isActive           Boolean         @default(true)
+  startedAt          DateTime        @default(now())
+  endedAt            DateTime?
+  createdAt          DateTime        @default(now())
+  courseId           Int?
+  departmentSnapshot String?
+  semesterSnapshot   Int?
+  sectionSnapshot    String?
 
-  teacher           User         @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher           User            @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
+  course            Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   attendanceRecords Attendance[]
   qrCodes           SessionQRCode[]
+
+  @@index([courseId, isActive])
 }
 
 model Attendance {
@@ -89,4 +99,31 @@ model SessionQRCode {
   createdAt DateTime @default(now())
 
   session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id            Int                 @id @default(autoincrement())
+  name          String
+  teacherId     Int
+  department    String?
+  semester      Int?
+  section       String?
+  isArchived    Boolean             @default(false)
+  archivedAt    DateTime?
+  archiveReason String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  teacher       Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  sessions      AttendanceSession[]
+
+  @@index([teacherId, isArchived])
+}
+
+model UsedProximityToken {
+  id        Int      @id @default(autoincrement())
+  jti       String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }

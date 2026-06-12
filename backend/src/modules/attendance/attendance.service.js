@@ -1,5 +1,6 @@
 const { prisma } = require("../../config/database");
 const { HTTP_STATUS, WIFI } = require("../../utils/constants");
+const { invalidateTeacherDashboardCache } = require("../reports/reports.service");
 
 function generateSessionCode(length = 6) {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -41,33 +42,213 @@ async function getTeacherActiveSession(teacherId) {
     },
     include: {
       attendanceRecords: true,
+      course: {
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          semester: true,
+          section: true,
+        },
+      },
     },
   });
 }
 
-async function startSession(teacherId) {
-  const existingActiveSession = await getTeacherActiveSession(teacherId);
+async function startSession(userId, courseId) {
+  try {
+    const createdSession = await prisma.$transaction(async (tx) => {
+      // 1. Acquire course lock
+      const courseLock = await tx.$queryRaw`SELECT * FROM "Course" WHERE id = ${courseId} FOR UPDATE`;
+      const course = courseLock[0];
 
-  if (existingActiveSession) {
-    const error = new Error("You already have an active attendance session");
-    error.statusCode = HTTP_STATUS.CONFLICT;
+      if (!course) {
+        const error = new Error("Course not found");
+        error.statusCode = HTTP_STATUS.NOT_FOUND;
+        throw error;
+      }
+
+      // 2. Acquire user/teacher lock
+      const userLock = await tx.$queryRaw`SELECT * FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      const user = userLock[0];
+
+      if (!user) {
+        const error = new Error("Teacher profile not found");
+        error.statusCode = HTTP_STATUS.NOT_FOUND;
+        throw error;
+      }
+
+      const teacher = await tx.teacher.findUnique({
+        where: { userId },
+      });
+
+      if (!teacher) {
+        const error = new Error("Teacher profile not found");
+        error.statusCode = HTTP_STATUS.NOT_FOUND;
+        throw error;
+      }
+
+      if (course.teacherId !== teacher.id) {
+        const error = new Error("You do not have permission to access this course");
+        error.statusCode = HTTP_STATUS.FORBIDDEN;
+        throw error;
+      }
+
+      // Prevent starting sessions for archived courses
+      if (course.isArchived) {
+        const error = new Error("Archived courses cannot be used to start attendance sessions.");
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // Prevent starting sessions for empty eligibility groups
+      if (course.department || course.semester || course.section) {
+        const where = {};
+        if (course.department) {
+          where.department = {
+            equals: course.department,
+            mode: "insensitive",
+          };
+        }
+        if (course.semester) {
+          where.semester = course.semester;
+        }
+        if (course.section) {
+          where.section = {
+            equals: course.section,
+            mode: "insensitive",
+          };
+        }
+
+        const studentCount = await tx.student.count({ where });
+
+        if (studentCount === 0) {
+          const error = new Error("No eligible students exist for this course. Please review the course eligibility settings.");
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
+      const existingCourseActiveSession = await tx.attendanceSession.findFirst({
+        where: {
+          courseId,
+          isActive: true,
+        },
+      });
+
+      if (existingCourseActiveSession) {
+        const error = new Error("An active session already exists for this course.");
+        error.statusCode = HTTP_STATUS.CONFLICT;
+        throw error;
+      }
+
+      const existingActiveSession = await tx.attendanceSession.findFirst({
+        where: {
+          teacherId: userId,
+          isActive: true,
+        },
+        orderBy: {
+          startedAt: "desc",
+        },
+      });
+
+      if (existingActiveSession) {
+        const error = new Error("You already have an active attendance session.");
+        error.statusCode = HTTP_STATUS.CONFLICT;
+        throw error;
+      }
+
+      let sessionCode = null;
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const attemptCode = generateSessionCode();
+        const existingSession = await tx.attendanceSession.findUnique({
+          where: { sessionCode: attemptCode },
+        });
+
+        if (!existingSession) {
+          sessionCode = attemptCode;
+          break;
+        }
+      }
+
+      if (!sessionCode) {
+        const error = new Error("Could not generate a unique session code");
+        error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        throw error;
+      }
+
+      const created = await tx.attendanceSession.create({
+        data: {
+          teacherId: userId,
+          courseId,
+          sessionCode,
+          teacherSSID: WIFI.DEMO_SSID,
+          teacherBSSID: WIFI.DEMO_BSSID,
+          isActive: true,
+          departmentSnapshot: course.department,
+          semesterSnapshot: course.semester,
+          sectionSnapshot: course.section,
+        },
+        include: {
+          attendanceRecords: true,
+          course: {
+            select: {
+              id: true,
+              name: true,
+              department: true,
+              semester: true,
+              section: true,
+            },
+          },
+        },
+      });
+
+      return created;
+    });
+
+    invalidateTeacherDashboardCache(userId);
+    return createdSession;
+  } catch (error) {
+    const isP2002 = error.code === "P2002";
+    const isDb23505 = error.code === "23505" || error.parent?.code === "23505";
+    
+    const message = error.message || "";
+    const constraint = error.constraint || error.parent?.constraint || "";
+
+    const matchesCourseConstraint =
+      constraint === "one_active_session_per_course" ||
+      constraint.includes("one_active_session_per_course") ||
+      message.includes("one_active_session_per_course") ||
+      (isP2002 && message.includes("one_active_session_per_course")) ||
+      (isDb23505 && (
+        message.includes("one_active_session_per_course") ||
+        constraint.includes("one_active_session_per_course")
+      ));
+
+    const matchesTeacherConstraint =
+      constraint === "one_active_session_per_teacher" ||
+      constraint.includes("one_active_session_per_teacher") ||
+      message.includes("one_active_session_per_teacher") ||
+      (isP2002 && message.includes("one_active_session_per_teacher")) ||
+      (isDb23505 && (
+        message.includes("one_active_session_per_teacher") ||
+        constraint.includes("one_active_session_per_teacher")
+      ));
+
+    if (matchesCourseConstraint) {
+      const conflictError = new Error("An active session already exists for this course.");
+      conflictError.statusCode = 409;
+      throw conflictError;
+    }
+
+    if (matchesTeacherConstraint) {
+      const conflictError = new Error("You already have an active attendance session.");
+      conflictError.statusCode = 409;
+      throw conflictError;
+    }
+
     throw error;
   }
-
-  const sessionCode = await generateUniqueSessionCode();
-
-  return prisma.attendanceSession.create({
-    data: {
-      teacherId,
-      sessionCode,
-      teacherSSID: WIFI.DEMO_SSID,
-      teacherBSSID: WIFI.DEMO_BSSID,
-      isActive: true,
-    },
-    include: {
-      attendanceRecords: true,
-    },
-  });
 }
 
 async function endSession(teacherId) {
@@ -79,7 +260,7 @@ async function endSession(teacherId) {
     throw error;
   }
 
-  return prisma.attendanceSession.update({
+  const updatedSession = await prisma.attendanceSession.update({
     where: { id: activeSession.id },
     data: {
       isActive: false,
@@ -87,8 +268,20 @@ async function endSession(teacherId) {
     },
     include: {
       attendanceRecords: true,
+      course: {
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          semester: true,
+          section: true,
+        },
+      },
     },
   });
+
+  invalidateTeacherDashboardCache(teacherId);
+  return updatedSession;
 }
 
 module.exports = {
@@ -96,3 +289,4 @@ module.exports = {
   startSession,
   endSession,
 };
+

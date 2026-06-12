@@ -5,6 +5,7 @@ const studentAttendanceService = require("./studentAttendance.service");
 const scanSchema = z.object({
   sessionCode: z.string().trim().min(1, "Session code is required"),
   nonce: z.string().trim().min(1, "QR nonce is required"),
+  proximityToken: z.string().trim().min(1, "Proximity token is required"),
 });
 
 async function scanAttendance(req, res, next) {
@@ -14,6 +15,7 @@ async function scanAttendance(req, res, next) {
       studentId: req.user.sub,
       sessionCode: payload.sessionCode,
       nonce: payload.nonce,
+      proximityToken: payload.proximityToken,
     });
 
     res.status(200).json(result);

@@ -66,14 +66,15 @@ export default function WifiDetectionScreen({ navigation, route }) {
         rssi: Number(teacherHotspot.level),
       });
 
-      if (!validation.success) {
-        setMessage(validation.message);
+      if (!validation.success || !validation.proximityToken) {
+        setMessage(validation.message || "WiFi validation failed");
         return;
       }
 
       const attendanceResult = await submitScannedAttendance({
         sessionCode,
         nonce,
+        proximityToken: validation.proximityToken,
       });
 
       setIsSuccess(true);
