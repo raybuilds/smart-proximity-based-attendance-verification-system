@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import NetInfo from "@react-native-community/netinfo";
 import { getCourseDefaulters } from "../services/reports";
@@ -22,7 +22,7 @@ export default function DefaulterReportScreen({ route }) {
   const { courseId } = route.params;
   const [data, setData] = useState(null);
   const [threshold, setThreshold] = useState(75);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
