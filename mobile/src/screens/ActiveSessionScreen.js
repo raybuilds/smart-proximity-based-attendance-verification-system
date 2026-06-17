@@ -10,8 +10,7 @@ import {
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import * as FileSystem from "expo-file-system";
-import { EncodingType } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import { endSession, getActiveSession } from "../services/attendance";
@@ -172,7 +171,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
         try {
           const tempFilePath = `${FileSystem.cacheDirectory}session_qr.png`;
           await FileSystem.writeAsStringAsync(tempFilePath, dataURL, {
-            encoding: EncodingType.Base64,
+            encoding: FileSystem.EncodingType.Base64,
           });
 
           if (await Sharing.isAvailableAsync()) {
