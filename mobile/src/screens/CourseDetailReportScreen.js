@@ -20,7 +20,7 @@ import EligibilityChips from "../components/EligibilityChips";
 export default function CourseDetailReportScreen({ route, navigation }) {
   const { courseId } = route.params;
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [exporting, setExporting] = useState(false);
