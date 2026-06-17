@@ -7,25 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  student
-  teacher
-  admin
-}
-
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  role               Role
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  attendances        Attendance[]        @relation("StudentAttendances")
+  attendanceSessions AttendanceSession[] @relation("TeacherSessions")
   student            Student?
   teacher            Teacher?
-  attendanceSessions AttendanceSession[] @relation("TeacherSessions")
-  attendances        Attendance[]        @relation("StudentAttendances")
 }
 
 model Student {
@@ -36,8 +29,7 @@ model Student {
   semester   Int
   section    String
   createdAt  DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([department, semester, section])
 }
@@ -48,30 +40,28 @@ model Teacher {
   employeeId String   @unique
   department String
   createdAt  DateTime @default(now())
-
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courses Course[]
+  courses    Course[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AttendanceSession {
   id                 Int             @id @default(autoincrement())
   teacherId          Int
   sessionCode        String          @unique
-  teacherSSID        String?
-  teacherBSSID       String?
   isActive           Boolean         @default(true)
   startedAt          DateTime        @default(now())
   endedAt            DateTime?
   createdAt          DateTime        @default(now())
+  teacherSSID        String?
+  teacherBSSID       String?
   courseId           Int?
   departmentSnapshot String?
-  semesterSnapshot   Int?
   sectionSnapshot    String?
-
-  teacher           User            @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
-  course            Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  attendanceRecords Attendance[]
-  qrCodes           SessionQRCode[]
+  semesterSnapshot   Int?
+  attendanceRecords  Attendance[]
+  course             Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher            User            @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
+  qrCodes            SessionQRCode[]
 
   @@index([courseId, isActive])
 }
@@ -80,41 +70,39 @@ model Attendance {
   id                 Int               @id @default(autoincrement())
   studentId          Int
   sessionId          Int
-  status             String            @default("present")
   markedAt           DateTime          @default(now())
   verificationMethod String
   createdAt          DateTime          @default(now())
-
-  student User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
-  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status             String            @default("present")
+  session            AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student            User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, sessionId])
 }
 
 model SessionQRCode {
-  id        Int      @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   sessionId Int
-  nonce     String   @unique
+  nonce     String            @unique
   expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model Course {
   id            Int                 @id @default(autoincrement())
   name          String
   teacherId     Int
-  department    String?
-  semester      Int?
-  section       String?
-  isArchived    Boolean             @default(false)
-  archivedAt    DateTime?
-  archiveReason String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
-  teacher       Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  archiveReason String?
+  archivedAt    DateTime?
+  department    String?
+  isArchived    Boolean             @default(false)
+  section       String?
+  semester      Int?
   sessions      AttendanceSession[]
+  teacher       Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@index([teacherId, isArchived])
 }
@@ -126,4 +114,10 @@ model UsedProximityToken {
   createdAt DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+enum Role {
+  student
+  teacher
+  admin
 }

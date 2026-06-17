@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
 
 import {
   getStoredToken,
@@ -17,11 +20,37 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function restoreSession() {
+      if (__DEV__) {
+        console.log("[APP] Started at", new Date().toISOString());
+        console.log("[AUTH] restoreSession invoked");
+      }
       try {
         const [savedToken, savedUser] = await Promise.all([
           getStoredToken(),
           getStoredUser(),
         ]);
+
+        if (__DEV__) {
+          console.log("[AUTH] Raw token exists:", !!savedToken);
+          console.log("[AUTH] Raw user exists:", !!savedUser);
+          console.log("[AUTH] Raw token length:", savedToken?.length);
+          console.log("[AUTH] User restored email:", savedUser?.email);
+          // JWT expiry inspection
+          if (savedToken) {
+            try {
+              const decoded = jwtDecode(savedToken);
+              console.log("[AUTH] JWT exp:", decoded.exp);
+              if (decoded.exp) {
+                console.log("[AUTH] JWT expires at:", new Date(decoded.exp * 1000).toISOString());
+              }
+            } catch (err) {
+              console.log("[AUTH] Failed to decode JWT", err);
+            }
+          }
+          // Storage keys check
+          const keys = await AsyncStorage.getAllKeys();
+          console.log("[AUTH] AsyncStorage keys:", keys);
+        }
 
         if (savedToken && savedUser) {
           setToken(savedToken);
@@ -29,10 +58,20 @@ export function AuthProvider({ children }) {
         }
       } finally {
         setIsLoading(false);
+        if (__DEV__) {
+          console.log("[AUTH] restoreSession complete");
+        }
       }
     }
 
     restoreSession();
+
+    if (__DEV__) {
+      const subscription = AppState.addEventListener("change", state => {
+        console.log("[APPSTATE]", state);
+      });
+      return () => subscription.remove();
+    }
   }, []);
 
   async function signIn(credentials) {

@@ -17,6 +17,7 @@ import EligibilityChips from "../components/EligibilityChips";
 import { formatEligibility } from "../utils/eligibility";
 
 export default function CourseManagementScreen() {
+  console.log("[CourseManagement] render");
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +39,16 @@ export default function CourseManagementScreen() {
   // Show archived toggle state
   const [showArchived, setShowArchived] = useState(false);
 
+  useEffect(() => {
+    console.log("[CourseManagement] mounted");
+
+    return () => {
+      console.log("[CourseManagement] unmounted");
+    };
+  }, []);
+
   const loadCourses = useCallback(async () => {
+    console.trace("[CourseManagement] loadCourses");
     try {
       setLoading(true);
       setErrorMessage("");
@@ -59,11 +69,22 @@ export default function CourseManagementScreen() {
     }, [loadCourses])
   );
 
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("[CourseManagement] focused");
+
+      return () => {
+        console.log("[CourseManagement] blurred");
+      };
+    }, [])
+  );
+
   useEffect(() => {
     loadCourses();
   }, [showArchived, loadCourses]);
 
   async function handleSubmit() {
+    console.trace("[CourseManagement] handleSubmit");
     const trimmed = courseName.trim();
     if (!trimmed) {
       setErrorMessage("Course name is required.");

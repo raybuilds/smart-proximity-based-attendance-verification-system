@@ -68,8 +68,11 @@ const registerSchema = z.object({
 
 async function register(req, res, next) {
   try {
+    console.log("REGISTER INCOMING BODY:", req.body);
     const registrationData = registerSchema.parse(req.body);
+    console.log("REGISTER PARSED ZOD DATA:", registrationData);
     const result = await authService.registerUser(registrationData);
+    console.log("REGISTER SERVICE RESPONSE SUCCESS:", result.user.id);
 
     res.status(201).json({
       success: true,
@@ -77,7 +80,9 @@ async function register(req, res, next) {
       user: result.user,
     });
   } catch (error) {
+    console.error("REGISTER CONTROLLER ERROR:", error);
     if (error.name === "ZodError") {
+      console.error("REGISTER ZOD VALIDATION FAILURE:", error.issues);
       error.statusCode = 400;
       error.message = error.issues[0]?.message || "Invalid registration payload";
     }

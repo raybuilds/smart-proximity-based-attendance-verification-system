@@ -13,11 +13,33 @@ import NetInfo from "@react-native-community/netinfo";
 import { getTeacherCoursesReport, getTeacherDashboard } from "../services/reports";
 import EligibilityChips from "../components/EligibilityChips";
 
-export default function TeacherReportsScreen({ navigation }) {
+export default function TeacherReportsScreen({ navigation, route }) {
+  if (__DEV__) {
+    console.log("[TeacherReports] Screen mounted");
+    console.log("[TeacherReports] route:", route?.name);
+    console.trace("[TeacherReports] mounted from");
+// useEffect moved out of conditional
+  }
+  // Log mount/unmount for TeacherReportsScreen
+  useEffect(() => {
+    console.log('[TeacherReports] mounted');
+    return () => {
+      console.log('[TeacherReports] unmounted');
+    };
+  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("[TeacherReports] focused");
+      return () => {
+        console.log("[TeacherReports] blurred");
+      };
+    }, [])
+  );
+
   const [courses, setCourses] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [range, setRange] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const isMountedRef = useRef(true);
@@ -34,7 +56,9 @@ export default function TeacherReportsScreen({ navigation }) {
   }, []);
 
   const loadReportsData = useCallback(async (options = {}) => {
-    const { isPull = false } = options;
+  const { isPull = false } = options;
+  if (__DEV__) console.log('[Teacher] load start', { isPull, range });
+
 
     if (loading || refreshing) {
       return;
@@ -55,7 +79,9 @@ export default function TeacherReportsScreen({ navigation }) {
     
     try {
       const coursesRes = await getTeacherCoursesReport({ signal });
+      if (__DEV__) console.log('[Teacher] courses report response received', coursesRes?.data?.length);
       const dashboardRes = await getTeacherDashboard(range, { signal });
+      if (__DEV__) console.log('[Teacher] dashboard report response received', dashboardRes?.data?.length);
 
       if (isMountedRef.current) {
         setCourses(coursesRes.data || []);
@@ -69,11 +95,12 @@ export default function TeacherReportsScreen({ navigation }) {
       }
     } finally {
       if (isMountedRef.current) {
+  if (__DEV__) console.log('[Teacher] loading flags cleared');
         setLoading(false);
         setRefreshing(false);
       }
     }
-  }, [range, loading, refreshing]);
+  }, [range]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,7 +124,7 @@ export default function TeacherReportsScreen({ navigation }) {
     return () => {
       unsubscribe();
     };
-  }, [errorMessage, loading, refreshing, loadReportsData]);
+  }, [loadReportsData]);
 
   const renderDashboard = () => {
     if (!dashboard) return null;

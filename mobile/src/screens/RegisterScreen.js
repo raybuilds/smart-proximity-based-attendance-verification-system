@@ -89,11 +89,19 @@ export default function RegisterScreen({ navigation }) {
     try {
       setIsSubmitting(true);
       setErrorMessage("");
-      await signUp(registrationData);
+      console.log("REGISTER PAYLOAD", registrationData);
+      const response = await signUp(registrationData);
+      console.log("REGISTER RESPONSE", response);
     } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        "Registration failed. Please check your details and try again.";
+      console.log("REGISTER ERROR", error);
+      console.log("REGISTER ERROR DATA", error?.response?.data);
+      
+      let message = "Registration failed. Please try again.";
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message === "Network Error" || !error.response) {
+        message = "Unable to connect to server.";
+      }
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);

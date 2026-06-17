@@ -22,6 +22,9 @@ import { getCourseTrends } from "../services/reports";
 const { width: screenWidth } = Dimensions.get("window");
 
 export default function CourseTrendScreen({ route }) {
+  if (__DEV__) {
+    console.log("[CourseTrend] Screen mounted");
+  }
   const { courseId } = route.params;
   const [trends, setTrends] = useState(null);
   const [loading, setLoading] = useState(true);

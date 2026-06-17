@@ -17,6 +17,7 @@ import { getActiveSession } from "../services/attendance";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function TeacherDashboardScreen({ navigation }) {
+  console.log('[Dashboard] render');
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,6 +38,8 @@ export default function TeacherDashboardScreen({ navigation }) {
   }, []);
 
   const loadDashboardData = useCallback(async (options = {}) => {
+  console.log('[Dashboard] loadDashboardData entered');
+    if (__DEV__) console.log('[Dashboard] loadDashboardData recreated');
     const { isPull = false } = options;
 
     if (isLoading || refreshing) {
@@ -67,8 +70,11 @@ export default function TeacherDashboardScreen({ navigation }) {
         setActiveSession(sessionResponse.session);
 
         // Preserve existing navigation behavior: auto-redirect if session is active
+    console.log('[Dashboard] session found:', !!sessionResponse.session);
         if (sessionResponse.session) {
-          navigation.replace("ActiveSession", {
+          console.log('[Dashboard] active session?', !!sessionResponse.session, sessionResponse.session?.id);
+          console.log('[Dashboard] navigating to ActiveSession');
+          navigation.replace('ActiveSession', {
             session: sessionResponse.session,
           });
         }
@@ -86,27 +92,24 @@ export default function TeacherDashboardScreen({ navigation }) {
         setRefreshing(false);
       }
     }
-  }, [navigation, isLoading, refreshing]);
+  console.log('[Dashboard] loadDashboardData exit');
+}, [navigation]);
 
   useFocusEffect(
-    useCallback(() => {
+    useCallback(() => { console.log('[Dashboard] useFocusEffect fired');
       loadDashboardData();
     }, [loadDashboardData])
   );
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('[Dashboard] focused');
+      return () => {
+        console.log('[Dashboard] blurred');
+      };
+    }, [])
+  );
 
-  // Reconnect listener
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const isConnected = state.isConnected && state.isInternetReachable !== false;
-      if (isConnected && errorMessage && !isLoading && !refreshing) {
-        loadDashboardData();
-      }
-    });
 
-    return () => {
-      unsubscribe();
-    };
-  }, [errorMessage, isLoading, refreshing, loadDashboardData]);
 
   function handleActiveSessionPress() {
     if (activeSession) {

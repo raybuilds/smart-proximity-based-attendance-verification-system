@@ -9,6 +9,13 @@ const reportsController = require("./reports.controller");
 
 const router = express.Router();
 
+router.get("/diagnostic-reports-version", (req, res) => {
+  res.json({
+    commit: process.env.RENDER_GIT_COMMIT || "unknown",
+    reportsRoutesLoaded: true
+  });
+});
+
 router.use(authenticate);
 
 // Dashboard routes

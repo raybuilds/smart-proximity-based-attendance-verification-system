@@ -16,6 +16,9 @@ import { getCourseDefaulters } from "../services/reports";
 import api from "../services/api";
 
 export default function DefaulterReportScreen({ route }) {
+  if (__DEV__) {
+    console.log("[DEF] Screen mounted");
+  }
   const { courseId } = route.params;
   const [data, setData] = useState(null);
   const [threshold, setThreshold] = useState(75);
@@ -39,43 +42,48 @@ export default function DefaulterReportScreen({ route }) {
 
   const loadDefaulters = useCallback(async (options = {}) => {
     const { isPull = false } = options;
-
     if (loading || refreshing) {
+      if (__DEV__) console.log('[Defaulter] load skipped: already loading');
       return;
     }
-
+    if (__DEV__) console.log('[Defaulter] load start', { isPull, courseId, threshold });
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      if (__DEV__) console.log('[Defaulter] aborted previous request');
     }
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     if (isPull) {
       setRefreshing(true);
+      if (__DEV__) console.log('[Defaulter] set refreshing true');
     } else {
       setLoading(true);
+      if (__DEV__) console.log('[Defaulter] set loading true');
     }
-    setErrorMessage("");
-    setSuccessMessage("");
+    setErrorMessage('');
+    setSuccessMessage('');
 
     try {
+      if (__DEV__) console.log('[Defaulter] requesting getCourseDefaulters');
       const response = await getCourseDefaulters(courseId, threshold, { signal });
+      if (__DEV__) console.log('[Defaulter] response received', response?.data?.students?.length);
       if (isMountedRef.current) {
         setData(response.data);
       }
     } catch (error) {
-      if (isMountedRef.current && error.name !== "CanceledError" && error.name !== "AbortError") {
-        setErrorMessage(
-          error.response?.data?.message || "Could not load defaulters list."
-        );
+      if (isMountedRef.current && error.name !== 'CanceledError' && error.name !== 'AbortError') {
+        if (__DEV__) console.error('[Defaulter] error', error);
+        setErrorMessage(error.response?.data?.message || 'Could not load defaulters list.');
       }
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
         setRefreshing(false);
+        if (__DEV__) console.log('[Defaulter] loading flags cleared');
       }
     }
-  }, [courseId, threshold, loading, refreshing]);
+  }, [courseId, threshold]);
 
   useEffect(() => {
     loadDefaulters();
@@ -93,7 +101,7 @@ export default function DefaulterReportScreen({ route }) {
     return () => {
       unsubscribe();
     };
-  }, [errorMessage, loading, refreshing, loadDefaulters]);
+  }, [loadDefaulters]);
 
   async function handleExportCSV() {
     if (!data || !data.course) return;

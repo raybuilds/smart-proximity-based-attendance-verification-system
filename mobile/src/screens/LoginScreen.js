@@ -19,6 +19,9 @@ export default function LoginScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleLogin() {
+    if (__DEV__) {
+      console.log('[LOGIN] Attempting login for:', email);
+    }
     try {
       setIsSubmitting(true);
       setErrorMessage("");
@@ -27,6 +30,9 @@ export default function LoginScreen({ navigation }) {
       const message =
         error.response?.data?.message ||
         "Login failed. Please check your credentials and try again.";
+      if (__DEV__) {
+        console.log('[LOGIN] Login failed:', error?.response?.data || error.message);
+      }
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);

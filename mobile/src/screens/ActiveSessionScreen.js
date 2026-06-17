@@ -22,32 +22,31 @@ import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 const QR_LIFETIME_SECONDS = 15;
 
 export default function ActiveSessionScreen({ navigation, route }) {
+  console.log('[ActiveSession] mounted');
   const [session, setSession] = useState(route.params?.session || null);
-  const [isLoading, setIsLoading] = useState(!route.params?.session);
-  const [isEnding, setIsEnding] = useState(false);
-  const [isRefreshingQr, setIsRefreshingQr] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [qrData, setQrData] = useState(null);
   const [countdown, setCountdown] = useState(QR_LIFETIME_SECONDS);
-  const progressAnimation = useRef(new Animated.Value(1)).current;
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(!session);
+  const [isRefreshingQr, setIsRefreshingQr] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const isFetchingQrRef = useRef(false);
   const qrRef = useRef(null);
-  const [isSharing, setIsSharing] = useState(false);
+  const progressAnimation = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     async function loadSession() {
-      if (session) {
-        return;
-      }
+      if (session) return;
 
       try {
+        setIsLoading(true);
         const response = await getActiveSession();
-
         if (!response.session) {
-          navigation.replace("TeacherDashboard");
+          console.log('[ActiveSession] navigating', 'TeacherDashboard');
+          navigation.replace('TeacherDashboard');
           return;
         }
-
         setSession(response.session);
       } catch (error) {
         setErrorMessage(
@@ -95,6 +94,12 @@ export default function ActiveSessionScreen({ navigation, route }) {
       setIsRefreshingQr(false);
     }
   }
+
+  useEffect(() => {
+    return () => {
+      console.log('[ActiveSession] unmounted');
+    };
+  }, []);
 
   useEffect(() => {
     if (!session?.id) {
@@ -294,6 +299,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
             ) : (
               <Text style={styles.primaryButtonText}>End Session</Text>
             )}
+
           </Pressable>
         </View>
       </ScrollView>

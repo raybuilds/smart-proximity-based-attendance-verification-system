@@ -29,6 +29,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
 
   useEffect(() => {
     isMountedRef.current = true;
+if (__DEV__) console.log('[CourseDetailReportScreen] Mounted');
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -39,6 +40,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
 
   const loadCourseDetail = useCallback(async (options = {}) => {
     const { isPull = false } = options;
+if (__DEV__) console.log('[CourseDetailReportScreen] loadCourseDetail – start', { courseId, options });
 
     if (loading || refreshing) {
       return;
@@ -58,9 +60,11 @@ export default function CourseDetailReportScreen({ route, navigation }) {
     setErrorMessage("");
 
     try {
-      const response = await getTeacherCourseDetailReport(courseId, { signal });
+      if (__DEV__) console.log('[CourseDetailReportScreen] API request → getTeacherCourseDetailReport');
+const response = await getTeacherCourseDetailReport(courseId, { signal });
       if (isMountedRef.current) {
         setData(response.data);
+if (__DEV__) console.log('[CourseDetailReportScreen] API response received', response?.data?.course?.id);
       }
     } catch (error) {
       if (isMountedRef.current && error.name !== "CanceledError" && error.name !== "AbortError") {
@@ -74,7 +78,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
         setRefreshing(false);
       }
     }
-  }, [courseId, loading, refreshing]);
+  }, [courseId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,6 +86,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
     }, [loadCourseDetail])
   );
 
+  if (__DEV__) console.error('[CourseDetailReportScreen] error', error);
   // Reconnect listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -94,7 +99,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
     return () => {
       unsubscribe();
     };
-  }, [errorMessage, loading, refreshing, loadCourseDetail]);
+  }, [loadCourseDetail]);
 
   async function handleExport(format) {
     if (!data || !data.course) return;

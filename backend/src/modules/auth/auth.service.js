@@ -86,11 +86,14 @@ async function registerUser({
   semester,
   section,
 }) {
+  console.log("REGISTER SERVICE INCOMING:", { name, email, role, rollNumber, department, semester, section });
+
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
 
   if (existingUser) {
+    console.error("REGISTER SERVICE ERROR: Email already registered:", email);
     const error = new Error("Email is already registered");
     error.statusCode = 400;
     throw error;
@@ -102,6 +105,7 @@ async function registerUser({
     });
 
     if (existingStudent) {
+      console.error("REGISTER SERVICE ERROR: Roll number already registered:", rollNumber);
       const error = new Error("Roll number is already registered");
       error.statusCode = 400;
       throw error;
@@ -113,58 +117,91 @@ async function registerUser({
 
   let employeeId = null;
   if (role === "teacher") {
-    employeeId = await generateUniqueEmployeeId();
+    try {
+      employeeId = await generateUniqueEmployeeId();
+      console.log("REGISTER SERVICE: Generated teacher employeeId:", employeeId);
+    } catch (err) {
+      console.error("REGISTER SERVICE ERROR: Employee ID generation failed:", err);
+      throw err;
+    }
   }
 
-  const newUser = await prisma.$transaction(async (tx) => {
-    return tx.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        role,
-        ...(role === "student" && {
-          student: {
-            create: {
-              rollNumber,
-              department,
-              semester,
-              section,
-            },
+  try {
+    const newUser = await prisma.$transaction(async (tx) => {
+      try {
+        return await tx.user.create({
+          data: {
+            name,
+            email,
+            passwordHash,
+            role,
+            ...(role === "student" && {
+              student: {
+                create: {
+                  rollNumber,
+                  department,
+                  semester,
+                  section,
+                },
+              },
+            }),
+            ...(role === "teacher" && {
+              teacher: {
+                create: {
+                  employeeId,
+                  department,
+                },
+              },
+            }),
           },
-        }),
-        ...(role === "teacher" && {
-          teacher: {
-            create: {
-              employeeId,
-              department,
-            },
+          include: {
+            student: true,
+            teacher: true,
           },
-        }),
-      },
-      include: {
-        student: true,
-        teacher: true,
-      },
+        });
+      } catch (prismaErr) {
+        console.error("REGISTER TRANSACTION PRISMA INNER ERROR:", prismaErr);
+        throw prismaErr;
+      }
     });
-  });
 
-  const token = jwt.sign(
-    {
-      sub: newUser.id,
-      email: newUser.email,
-      role: newUser.role,
-    },
-    config.jwtSecret,
-    {
-      expiresIn: "7d",
+    console.log("REGISTER SERVICE: Transaction completed successfully for user:", newUser.id);
+
+    const token = jwt.sign(
+      {
+        sub: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+      },
+      config.jwtSecret,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return {
+      token,
+      user: buildSafeUser(newUser),
+    };
+  } catch (error) {
+    console.error("REGISTER SERVICE TRANSACTION ERROR:", error);
+    if (error.code === "P2002") {
+      const target = error.meta?.target || [];
+      console.error("PRISMA UNIQUE CONSTRAINT VIOLATION DETECTED on fields:", target);
+      let errMsg = "Unique constraint violation.";
+      if (target.includes("email")) {
+        errMsg = "Email is already registered";
+      } else if (target.includes("rollNumber")) {
+        errMsg = "Roll number is already registered";
+      } else if (target.includes("employeeId")) {
+        errMsg = "Employee ID is already registered";
+      }
+      const dbErr = new Error(errMsg);
+      dbErr.statusCode = 400;
+      throw dbErr;
     }
-  );
-
-  return {
-    token,
-    user: buildSafeUser(newUser),
-  };
+    throw error;
+  }
 }
 
 module.exports = {

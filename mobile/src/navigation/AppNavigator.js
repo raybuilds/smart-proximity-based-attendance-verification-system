@@ -24,6 +24,7 @@ import CourseTrendScreen from "../screens/CourseTrendScreen";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
+  console.log('[Navigator] render');
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
