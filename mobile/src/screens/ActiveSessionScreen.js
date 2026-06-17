@@ -15,36 +15,38 @@ import * as Sharing from "expo-sharing";
 
 import { endSession, getActiveSession } from "../services/attendance";
 import { getCurrentQR } from "../services/qr";
+import EligibilityChips from "../components/EligibilityChips";
+import { getSessionEligibility } from "../utils/eligibility";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 const QR_LIFETIME_SECONDS = 15;
 
 export default function ActiveSessionScreen({ navigation, route }) {
+  console.log('[ActiveSession] mounted');
   const [session, setSession] = useState(route.params?.session || null);
-  const [isLoading, setIsLoading] = useState(!route.params?.session);
-  const [isEnding, setIsEnding] = useState(false);
-  const [isRefreshingQr, setIsRefreshingQr] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [qrData, setQrData] = useState(null);
   const [countdown, setCountdown] = useState(QR_LIFETIME_SECONDS);
-  const progressAnimation = useRef(new Animated.Value(1)).current;
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(!session);
+  const [isRefreshingQr, setIsRefreshingQr] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const isFetchingQrRef = useRef(false);
   const qrRef = useRef(null);
-  const [isSharing, setIsSharing] = useState(false);
+  const progressAnimation = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     async function loadSession() {
-      if (session) {
-        return;
-      }
+      if (session) return;
 
       try {
+        setIsLoading(true);
         const response = await getActiveSession();
-
         if (!response.session) {
-          navigation.replace("StartSession");
+          console.log('[ActiveSession] navigating', 'TeacherDashboard');
+          navigation.replace('TeacherDashboard');
           return;
         }
-
         setSession(response.session);
       } catch (error) {
         setErrorMessage(
@@ -94,6 +96,12 @@ export default function ActiveSessionScreen({ navigation, route }) {
   }
 
   useEffect(() => {
+    return () => {
+      console.log('[ActiveSession] unmounted');
+    };
+  }, []);
+
+  useEffect(() => {
     if (!session?.id) {
       return;
     }
@@ -140,7 +148,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
       setIsEnding(true);
       setErrorMessage("");
       await endSession();
-      navigation.replace("StartSession");
+      navigation.replace("TeacherDashboard");
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message || "Could not end the attendance session."
@@ -226,73 +234,58 @@ export default function ActiveSessionScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Active Session</Text>
-          <Text style={styles.subtitle}>
-            Share this session code with students to mark attendance later.
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{session.course?.name ?? "Active Session"}</Text>
+        <Text style={styles.subtitle}>
+          Section {session.course?.section ?? "N/A"}
+        </Text>
 
-          <View style={styles.qrCard}>
-            <Text style={styles.qrTitle}>Live QR</Text>
-            <View style={styles.qrWrapper}>
-              {qrData ? (
-                <QRCode value={qrPayload} size={220} getRef={(c) => (qrRef.current = c)} />
-              ) : (
-                <ActivityIndicator size="large" color="#0f172a" />
-              )}
-            </View>
+        <View style={styles.qrWrapper}>
+          {qrData ? (
+            <QRCode value={qrPayload} size={280} getRef={(c) => (qrRef.current = c)} />
+          ) : (
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          )}
+        </View>
 
-            <Text style={styles.codeLabel}>Session Code</Text>
-            <Text style={styles.codeValue}>{session.sessionCode}</Text>
+        <Text style={styles.codeLabel}>Session Code</Text>
+        <Text style={styles.codeValue}>{session.sessionCode}</Text>
 
-            <Text
-              style={[
-                styles.countdownText,
-                isExpiryWarning && styles.countdownWarning,
-              ]}
-            >
-              Refreshing in {countdown}s
-            </Text>
+        <Text
+          style={[
+            styles.countdownText,
+            isExpiryWarning && styles.countdownWarning,
+          ]}
+        >
+          Refreshing in {countdown}s
+        </Text>
 
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressBar,
-                  isExpiryWarning && styles.progressBarWarning,
-                  { width: progressWidth },
-                ]}
-              />
-            </View>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              isExpiryWarning && styles.progressBarWarning,
+              { width: progressWidth },
+            ]}
+          />
+        </View>
 
-            {isRefreshingQr ? (
-              <Text style={styles.refreshText}>Refreshing QR...</Text>
-            ) : null}
-          </View>
+        {isRefreshingQr ? (
+          <Text style={styles.refreshText}>Refreshing QR...</Text>
+        ) : null}
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>Status: {session.isActive ? "Active" : "Inactive"}</Text>
-            <Text style={styles.infoText}>
-              Started: {new Date(session.startedAt).toLocaleString()}
-            </Text>
-            {qrData ? (
-              <Text style={styles.infoText}>
-                Expires: {new Date(qrData.expiresAt).toLocaleTimeString()}
-              </Text>
-            ) : null}
-          </View>
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
+        <View style={styles.buttonContainer}>
           <Pressable
             style={[styles.secondaryButton, (isSharing || isEnding) && styles.buttonDisabled, { marginBottom: 12 }]}
             onPress={handleShareQr}
             disabled={isSharing || isEnding}
           >
             {isSharing ? (
-              <ActivityIndicator color="#0f172a" />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
-              <Text style={styles.secondaryButtonText}>Share QR</Text>
+              <Text style={styles.secondaryButtonText}>Share QR Code</Text>
             )}
           </Pressable>
 
@@ -306,6 +299,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
             ) : (
               <Text style={styles.primaryButtonText}>End Session</Text>
             )}
+
           </Pressable>
         </View>
       </ScrollView>
@@ -316,152 +310,142 @@ export default function ActiveSessionScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 60,
-    backgroundColor: "#f8fafc",
+    paddingTop: 32,
+    paddingBottom: 40,
+    backgroundColor: COLORS.background,
   },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#f8fafc",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  qrCard: {
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  qrTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 16,
+    backgroundColor: COLORS.background,
   },
   qrWrapper: {
-    width: 240,
-    height: 240,
+    width: 320,
+    height: 320,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    marginBottom: 18,
+    backgroundColor: COLORS.qrSurface,
+    borderRadius: LAYOUT.cardRadius,
+    borderWidth: 1,
+    borderColor: COLORS.qrBorder,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 26,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     textAlign: "center",
+    marginBottom: 4,
   },
   subtitle: {
-    marginTop: 10,
-    marginBottom: 20,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#64748b",
     textAlign: "center",
-    color: "#475569",
-    fontSize: 15,
-    lineHeight: 22,
+    marginBottom: 24,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeLabel: {
     color: "#64748b",
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 4,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   codeValue: {
-    color: "#0f172a",
-    fontSize: 32,
+    color: COLORS.primary,
+    fontSize: 36,
     fontWeight: "800",
     letterSpacing: 4,
     marginBottom: 12,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
   },
   countdownText: {
-    color: "#334155",
+    color: COLORS.text,
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 10,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   countdownWarning: {
-    color: "#dc2626",
+    color: COLORS.error,
   },
   progressTrack: {
     width: "100%",
-    height: 10,
-    backgroundColor: "#dbeafe",
+    height: 8,
+    backgroundColor: "#eff6ff",
     borderRadius: 999,
     overflow: "hidden",
+    marginBottom: 16,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#0f172a",
+    backgroundColor: COLORS.timerActive,
     borderRadius: 999,
   },
   progressBarWarning: {
-    backgroundColor: "#dc2626",
+    backgroundColor: COLORS.error,
   },
   refreshText: {
     marginTop: 10,
     color: "#64748b",
     fontSize: 13,
-  },
-  infoBox: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 18,
-  },
-  infoText: {
-    color: "#1e293b",
-    fontSize: 15,
-    marginBottom: 6,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   errorText: {
-    marginBottom: 12,
-    color: "#dc2626",
+    marginVertical: 12,
+    color: COLORS.error,
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  buttonContainer: {
+    width: "100%",
+    marginTop: 16,
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: COLORS.error,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: "#0f172a",
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    paddingVertical: 15,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   secondaryButtonText: {
-    color: "#0f172a",
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   buttonDisabled: {
     opacity: 0.7,

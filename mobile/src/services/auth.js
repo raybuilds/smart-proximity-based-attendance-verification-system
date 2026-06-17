@@ -22,6 +22,13 @@ export async function loginUser({ email, password }) {
 
   await storeAuthSession(token, user);
 
+  if (__DEV__) {
+    console.log('[AUTH] Login success');
+    console.log('[AUTH] Token length:', token?.length);
+    console.log('[AUTH] Token prefix:', token?.slice(0, 20));
+    console.log('[AUTH] Login timestamp:', new Date().toISOString());
+  }
+
   return { token, user };
 }
 
@@ -45,6 +52,9 @@ export async function getStoredUser() {
 }
 
 export async function logoutUser() {
+  if (__DEV__) {
+    console.log('[AUTH] logoutUser - removing keys', AUTH_TOKEN_KEY, AUTH_USER_KEY);
+  }
   await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, AUTH_USER_KEY]);
 }
 

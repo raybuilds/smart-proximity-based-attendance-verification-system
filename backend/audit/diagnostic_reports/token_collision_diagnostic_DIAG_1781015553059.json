@@ -1,0 +1,17 @@
+{
+  "auditRunId": "DIAG_1781015553059",
+  "branchId": "br-icy-snow-aqaoxgu2",
+  "branchName": "diag-diag_1781015553059",
+  "endpointId": "ep-misty-base-aqo6i25n",
+  "databaseUrl": "postgresql://neondb_owner:****@ep-misty-base-aqo6i25n.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&connection_limit=1",
+  "non200Responses": [],
+  "prismaErrors": [],
+  "attendanceCount": null,
+  "usedProximityTokenCount": null,
+  "matchingJtiCount": null,
+  "any409FromP2002": false,
+  "cleanupSuccess": true,
+  "errors": [
+    "Command failed: cmd.exe /c \"npx prisma migrate deploy --schema ../prisma/schema.prisma\""
+  ]
+}

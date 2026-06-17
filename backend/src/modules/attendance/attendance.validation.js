@@ -1,6 +1,8 @@
 const { z } = require("zod");
 
-const startSessionSchema = z.object({});
+const startSessionSchema = z.object({
+  courseId: z.number({ required_error: "courseId is required" }),
+});
 const endSessionSchema = z.object({});
 
 module.exports = {

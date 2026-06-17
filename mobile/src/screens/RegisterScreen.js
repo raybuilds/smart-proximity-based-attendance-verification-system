@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function RegisterScreen({ navigation }) {
   const { signUp } = useAuth();
@@ -88,11 +89,19 @@ export default function RegisterScreen({ navigation }) {
     try {
       setIsSubmitting(true);
       setErrorMessage("");
-      await signUp(registrationData);
+      console.log("REGISTER PAYLOAD", registrationData);
+      const response = await signUp(registrationData);
+      console.log("REGISTER RESPONSE", response);
     } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        "Registration failed. Please check your details and try again.";
+      console.log("REGISTER ERROR", error);
+      console.log("REGISTER ERROR DATA", error?.response?.data);
+      
+      let message = "Registration failed. Please try again.";
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message === "Network Error" || !error.response) {
+        message = "Unable to connect to server.";
+      }
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -230,40 +239,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 24,
     paddingVertical: 24,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    elevation: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 26,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     textAlign: "center",
   },
   subtitle: {
     marginTop: 8,
     marginBottom: 20,
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#475569",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#64748b",
     textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   roleContainer: {
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.inputRadius,
     marginBottom: 16,
     overflow: "hidden",
   },
@@ -271,35 +284,38 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.surface,
   },
   roleTabActive: {
-    backgroundColor: "#0f172a",
+    backgroundColor: COLORS.primary,
   },
   roleText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#64748b",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   roleTextActive: {
     color: "#ffffff",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.inputRadius,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    height: 48,
     fontSize: 16,
-    color: "#0f172a",
-    backgroundColor: "#ffffff",
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
     marginBottom: 14,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   button: {
     marginTop: 8,
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: COLORS.primary,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
   },
   buttonDisabled: {
@@ -309,20 +325,23 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   errorText: {
     marginBottom: 8,
-    color: "#dc2626",
+    color: COLORS.error,
     fontSize: 14,
     textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   linkButton: {
     marginTop: 16,
     alignItems: "center",
   },
   linkText: {
-    color: "#0f172a",
+    color: COLORS.primary,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
 });

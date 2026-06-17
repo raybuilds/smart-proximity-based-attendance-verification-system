@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
@@ -18,6 +19,9 @@ export default function LoginScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleLogin() {
+    if (__DEV__) {
+      console.log('[LOGIN] Attempting login for:', email);
+    }
     try {
       setIsSubmitting(true);
       setErrorMessage("");
@@ -26,6 +30,9 @@ export default function LoginScreen({ navigation }) {
       const message =
         error.response?.data?.message ||
         "Login failed. Please check your credentials and try again.";
+      if (__DEV__) {
+        console.log('[LOGIN] Login failed:', error?.response?.data || error.message);
+      }
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -93,51 +100,57 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    elevation: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 26,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    color: COLORS.primary,
     textAlign: "center",
   },
   subtitle: {
     marginTop: 8,
     marginBottom: 24,
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#475569",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#64748b",
     textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.inputRadius,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    height: 48,
     fontSize: 16,
-    color: "#0f172a",
-    backgroundColor: "#ffffff",
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
     marginBottom: 14,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   button: {
     marginTop: 8,
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: COLORS.primary,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
   },
   buttonDisabled: {
@@ -147,12 +160,14 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   errorText: {
     marginBottom: 8,
-    color: "#dc2626",
+    color: COLORS.error,
     fontSize: 14,
     textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   helperText: {
     marginTop: 16,
@@ -160,19 +175,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   registerButton: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
+    borderColor: COLORS.primary,
+    borderRadius: LAYOUT.buttonRadius,
+    height: LAYOUT.buttonHeight,
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.surface,
   },
   registerButtonText: {
-    color: "#0f172a",
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
 });

@@ -1,8 +1,9 @@
 import api from "./api";
 
-export async function getTeacherOverview() {
+export async function getTeacherOverview(config = {}) {
   const response = await api.get(
-    "/reports/teacher/overview"
+    "/reports/teacher/overview",
+    config
   );
 
   return response.data;
@@ -39,5 +40,36 @@ export async function getTeacherStudentHistory(
     `/reports/teacher/student/${studentId}/history`
   );
 
+  return response.data;
+}
+
+export async function getTeacherCoursesReport(config = {}) {
+  const response = await api.get("/reports/courses", config);
+  return response.data;
+}
+
+export async function getTeacherCourseDetailReport(courseId, config = {}) {
+  const response = await api.get(`/reports/courses/${courseId}`, config);
+  return response.data;
+}
+
+export async function getTeacherCourseStudentsReport(courseId) {
+  const response = await api.get(`/reports/courses/${courseId}/students`);
+  return response.data;
+}
+
+// Phase 5 API integrations
+export async function getTeacherDashboard(range = "all", config = {}) {
+  const response = await api.get(`/reports/dashboard?range=${range}`, config);
+  return response.data;
+}
+
+export async function getCourseDefaulters(courseId, threshold = 75, config = {}) {
+  const response = await api.get(`/reports/courses/${courseId}/defaulters?threshold=${threshold}`, config);
+  return response.data;
+}
+
+export async function getCourseTrends(courseId) {
+  const response = await api.get(`/reports/courses/${courseId}/trends`);
   return response.data;
 }

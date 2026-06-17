@@ -3,7 +3,6 @@ const reportsService = require("./reports.service");
 async function teacherOverview(req, res, next) {
   try {
     const data = await reportsService.getTeacherOverview();
-
     res.status(200).json({
       success: true,
       data,
@@ -15,9 +14,7 @@ async function teacherOverview(req, res, next) {
 
 async function teacherStudents(req, res, next) {
   try {
-    const data =
-      await reportsService.getStudentReports();
-
+    const data = await reportsService.getStudentReports();
     res.status(200).json({
       success: true,
       data,
@@ -27,17 +24,9 @@ async function teacherStudents(req, res, next) {
   }
 }
 
-async function studentSelfReport(
-  req,
-  res,
-  next
-) {
+async function studentSelfReport(req, res, next) {
   try {
-    const data =
-      await reportsService.getStudentSelfReport(
-        req.user.id
-      );
-
+    const data = await reportsService.getStudentSelfReport(req.user.id);
     res.status(200).json({
       success: true,
       data,
@@ -47,17 +36,9 @@ async function studentSelfReport(
   }
 }
 
-async function studentHistory(
-  req,
-  res,
-  next
-) {
+async function studentHistory(req, res, next) {
   try {
-    const data =
-      await reportsService.getStudentAttendanceHistory(
-        req.user.id
-      );
-
+    const data = await reportsService.getStudentAttendanceHistory(req.user.id);
     res.status(200).json({
       success: true,
       data,
@@ -67,25 +48,187 @@ async function studentHistory(
   }
 }
 
-async function teacherStudentHistory(
-  req,
-  res,
-  next
-) {
+async function teacherStudentHistory(req, res, next) {
   try {
-    const studentId = Number(
-      req.params.studentId
-    );
-
-    const data =
-      await reportsService.getStudentHistoryById(
-        studentId
-      );
-
+    const studentId = Number(req.params.studentId);
+    const data = await reportsService.getStudentHistoryById(studentId);
     res.status(200).json({
       success: true,
       data,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getTeacherCoursesReport(req, res, next) {
+  try {
+    const data = await reportsService.getTeacherCoursesReport(req.user.sub);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getTeacherCourseDetailReport(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const data = await reportsService.getTeacherCourseDetailReport(req.user.sub, courseId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getTeacherCourseStudentsReport(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const data = await reportsService.getTeacherCourseStudentsReport(req.user.sub, courseId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// New route handlers for Phase 5
+async function getTeacherDashboard(req, res, next) {
+  try {
+    const range = req.query.range || "all";
+    const data = await reportsService.getTeacherDashboard(req.user.sub, range);
+    res.status(200).json({
+      success: true,
+      data,
+      dashboard: data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getCourseDefaulters(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const thresholdVal = req.query.threshold !== undefined ? Number(req.query.threshold) : 75;
+    if (isNaN(thresholdVal) || thresholdVal < 1 || thresholdVal > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Threshold must be between 1 and 100.",
+      });
+    }
+
+    const data = await reportsService.getCourseDefaulters(req.user.sub, courseId, thresholdVal);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getCourseTrends(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const result = await reportsService.getCourseTrends(req.user.sub, courseId);
+    res.status(200).json({
+      success: true,
+      averageAttendance: result.averageAttendance,
+      highestAttendance: result.highestAttendance,
+      lowestAttendance: result.lowestAttendance,
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function exportCourseCSV(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const result = await reportsService.exportCourseCSV(req.user.sub, courseId);
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.status(200).send(result.csvContent);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function exportCourseDefaultersCSV(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const thresholdVal = req.query.threshold !== undefined ? Number(req.query.threshold) : 75;
+    if (isNaN(thresholdVal) || thresholdVal < 1 || thresholdVal > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Threshold must be between 1 and 100.",
+      });
+    }
+
+    const result = await reportsService.exportCourseDefaultersCSV(req.user.sub, courseId, thresholdVal);
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.status(200).send(result.csvContent);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function exportCoursePDF(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await reportsService.exportCoursePDF(req.user.sub, courseId, res);
   } catch (error) {
     next(error);
   }
@@ -97,4 +240,14 @@ module.exports = {
   studentSelfReport,
   studentHistory,
   teacherStudentHistory,
+  getTeacherCoursesReport,
+  getTeacherCourseDetailReport,
+  getTeacherCourseStudentsReport,
+  // New handlers
+  getTeacherDashboard,
+  getCourseDefaulters,
+  getCourseTrends,
+  exportCourseCSV,
+  exportCourseDefaultersCSV,
+  exportCoursePDF,
 };

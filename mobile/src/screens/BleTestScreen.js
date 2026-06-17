@@ -6,10 +6,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { BleManager } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform } from "react-native";
+import { bleManager } from "../services/ble";
 
-const manager = new BleManager();
+let manager = null; // will be set in startScan if BLE supported
 
 export default function BleTestScreen() {
   const [devices, setDevices] = useState([]);
@@ -30,16 +30,23 @@ export default function BleTestScreen() {
     }
   }
 
-async function startScan() {
-  console.log("STARTING BLE SCAN");
+  async function startScan() {
+    console.log("STARTING BLE SCAN");
 
-  await requestPermissions();
+    await requestPermissions();
 
-  setDevices([]);
+    // Use BLE manager from service if available
+    manager = bleManager;
+    if (!manager) {
+      console.log('BLE not supported in this environment');
+      return;
+    }
 
-  const found = {};
+    setDevices([]);
 
-  manager.startDeviceScan(null, null, (error, device) => {
+    const found = {};
+
+    manager.startDeviceScan(null, null, (error, device) => {
     if (error) {
       console.log("BLE ERROR:", error);
       return;
@@ -67,10 +74,10 @@ async function startScan() {
     setDevices(Object.values(found));
   });
 
-  setTimeout(() => {
-    manager.stopDeviceScan();
-    console.log("SCAN STOPPED");
-  }, 10000);
+    setTimeout(() => {
+      if (manager) manager.stopDeviceScan();
+      console.log("SCAN STOPPED");
+    }, 10000);
 }
 
   return (

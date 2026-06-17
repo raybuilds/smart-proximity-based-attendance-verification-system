@@ -1,7 +1,7 @@
 import api from "./api";
 
-export async function startSession() {
-  const response = await api.post("/attendance/session/start");
+export async function startSession(courseId) {
+  const response = await api.post("/attendance/session/start", { courseId });
   return response.data;
 }
 
@@ -10,7 +10,7 @@ export async function endSession() {
   return response.data;
 }
 
-export async function getActiveSession() {
-  const response = await api.get("/attendance/session/active");
+export async function getActiveSession(config = {}) {
+  const response = await api.get("/attendance/session/active", config);
   return response.data;
 }

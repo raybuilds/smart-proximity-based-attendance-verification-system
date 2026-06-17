@@ -1,0 +1,14 @@
+2026-06-08 00:22:42.518 IST [35720] FATAL:  pre-existing shared memory block is still in use
+2026-06-08 00:22:42.518 IST [35720] HINT:  Check if there are any old server processes still running, and terminate them.
+2026-06-08 00:22:42.518 IST [35720] LOG:  database system is shut down
+2026-06-08 00:23:05.168 IST [19660] LOG:  starting PostgreSQL 18.2 on x86_64-windows, compiled by msvc-19.44.35222, 64-bit
+2026-06-08 00:23:05.172 IST [19660] LOG:  listening on IPv6 address "::1", port 5434
+2026-06-08 00:23:05.172 IST [19660] LOG:  listening on IPv4 address "127.0.0.1", port 5434
+2026-06-08 00:23:05.335 IST [19304] LOG:  database system was interrupted; last known up at 2026-06-08 00:22:47 IST
+2026-06-08 00:23:05.458 IST [19304] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-06-08 00:23:05.461 IST [19304] LOG:  redo starts at 0/17F1438
+2026-06-08 00:23:05.461 IST [19304] LOG:  invalid record length at 0/17F1470: expected at least 24, got 0
+2026-06-08 00:23:05.461 IST [19304] LOG:  redo done at 0/17F1438 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-06-08 00:23:05.472 IST [16212] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-06-08 00:23:05.484 IST [16212] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.020 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/17F1470, redo lsn=0/17F1470
+2026-06-08 00:23:05.496 IST [19660] LOG:  database system is ready to accept connections

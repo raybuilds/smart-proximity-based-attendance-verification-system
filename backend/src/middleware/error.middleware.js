@@ -9,10 +9,16 @@ function notFoundMiddleware(req, res) {
 
 function errorMiddleware(error, req, res, next) {
   const statusCode = error.statusCode || 500;
+  let message = error.message || "Internal server error";
+
+  // Mask unexpected 500+ errors in production to avoid leaking sensitive data
+  if (statusCode >= 500 && !isDevelopment) {
+    message = "Internal server error";
+  }
 
   res.status(statusCode).json({
     success: false,
-    message: error.message || "Internal server error",
+    message,
     ...(isDevelopment && { stack: error.stack }),
   });
 }

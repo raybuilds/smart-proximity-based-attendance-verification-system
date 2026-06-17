@@ -6,14 +6,18 @@ const {
 
 async function startSession(req, res, next) {
   try {
-    startSessionSchema.parse(req.body || {});
-    const session = await attendanceService.startSession(req.user.sub);
+    const payload = startSessionSchema.parse(req.body || {});
+    const session = await attendanceService.startSession(req.user.sub, payload.courseId);
 
     res.status(201).json({
       success: true,
       session,
     });
   } catch (error) {
+    if (error.name === "ZodError") {
+      error.statusCode = 400;
+      error.message = error.issues[0]?.message || "Invalid payload";
+    }
     next(error);
   }
 }

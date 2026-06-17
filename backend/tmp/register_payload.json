@@ -1,0 +1,10 @@
+{
+  "name": "Prod Test Student",
+  "email": "prodstudent123@example.com",
+  "password": "Password123",
+  "role": "student",
+  "rollNumber": "ROLL_PROD_001",
+  "department": "CSE",
+  "semester": 5,
+  "section": "C"
+}

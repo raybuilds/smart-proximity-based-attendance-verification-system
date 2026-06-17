@@ -1,0 +1,30 @@
+{
+  "auditRunId": "LOADTEST_20260609_VAL004",
+  "branchName": "load-test-20260608",
+  "tables": {
+    "Attendance": {
+      "count": 7,
+      "minId": null,
+      "maxId": null,
+      "latestCreatedAt": null
+    },
+    "Course": {
+      "count": 3,
+      "minId": null,
+      "maxId": null,
+      "latestCreatedAt": null
+    },
+    "AttendanceSession": {
+      "count": 22,
+      "minId": null,
+      "maxId": null,
+      "latestCreatedAt": null
+    },
+    "UsedProximityToken": {
+      "count": 0,
+      "minId": null,
+      "maxId": null,
+      "latestCreatedAt": null
+    }
+  }
+}

@@ -14,6 +14,7 @@ import {
 import {
   getStudentHistory,
 } from "../services/reports";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
 export default function AttendanceHistoryScreen() {
   const [history, setHistory] =
@@ -50,28 +51,23 @@ export default function AttendanceHistoryScreen() {
   return (
     <FlatList
       data={history}
-      keyExtractor={(item) =>
-        item.id.toString()
-      }
-      contentContainerStyle={
-        styles.container
-      }
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.container}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          <Text style={styles.date}>
-            ✓{" "}
-            {new Date(
-              item.markedAt
-            ).toLocaleDateString()}
+          <View style={styles.row}>
+            <Text style={styles.courseName}>{item.courseName}</Text>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>✓ Present</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.detailText}>
+            Date: {new Date(item.markedAt).toLocaleDateString()} at {new Date(item.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
-
-          <Text>
-            Session: {item.sessionId}
-          </Text>
-
-          <Text>
-            Method:{" "}
-            {item.verificationMethod}
+          
+          <Text style={styles.detailText}>
+            Section: {item.sectionSnapshot || "N/A"}  |  Method: {item.verificationMethod.toUpperCase()}
           </Text>
         </View>
       )}
@@ -84,23 +80,64 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.background,
   },
 
   container: {
     padding: 16,
+    backgroundColor: COLORS.background,
   },
 
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     padding: 16,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
-  date: {
-    fontWeight: "700",
-    fontSize: 16,
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
+  },
+
+  courseName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.primary,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    flex: 1,
+    marginRight: 8,
+  },
+
+  statusBadge: {
+    backgroundColor: "rgba(44, 95, 45, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+
+  statusText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+
+  detailText: {
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: "#64748b",
+    fontSize: 13,
+    marginTop: 4,
   },
 });
