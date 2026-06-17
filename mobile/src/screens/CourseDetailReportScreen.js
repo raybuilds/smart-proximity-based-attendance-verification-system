@@ -86,7 +86,6 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
     }, [loadCourseDetail])
   );
 
-  if (__DEV__) console.error('[CourseDetailReportScreen] error', error);
   // Reconnect listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
