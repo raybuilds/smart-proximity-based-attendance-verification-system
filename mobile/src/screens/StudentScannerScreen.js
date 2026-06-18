@@ -12,7 +12,13 @@ import * as ImageManipulator from "expo-image-manipulator";
 import jsQR from "jsqr";
 import jpeg from "jpeg-js";
 import { Buffer } from "buffer";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import {
+  Camera,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react-native";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function StudentScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -46,16 +52,16 @@ export default function StudentScannerScreen({ navigation }) {
       }
 
       setIsSuccess(true);
-      setMessage("QR scanned successfully");
+      setMessage("QR verified successfully.");
       navigation.replace("WifiDetection", {
         sessionCode,
         nonce,
       });
     } catch (error) {
       setIsSuccess(false);
-      let displayMsg = error.response?.data?.message || error.message || "Could not validate the QR code.";
+      let displayMsg = error.response?.data?.message || error.message || "Verification failed.";
       if (error instanceof SyntaxError || displayMsg.includes("Invalid QR payload") || displayMsg.includes("JSON")) {
-        displayMsg = "Invalid QR code format. Please ensure you are importing a valid Attendance Session QR code.";
+        displayMsg = "Invalid attendance QR code.";
       }
       setMessage(displayMsg);
     } finally {
@@ -78,11 +84,10 @@ export default function StudentScannerScreen({ navigation }) {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         setIsSuccess(false);
-        setMessage("Gallery access is required to import QR images.");
+        setMessage("Gallery access denied.");
         return;
       }
 
-      // Lock camera scanning immediately while picker is active
       setIsScanned(true);
 
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
@@ -97,7 +102,7 @@ export default function StudentScannerScreen({ navigation }) {
       }
 
       setIsSubmitting(true);
-      setMessage("Decoding QR code from image...");
+      setMessage("Decoding QR...");
 
       const pickedAsset = pickerResult.assets[0];
       const manipResult = await ImageManipulator.manipulateAsync(
@@ -113,12 +118,11 @@ export default function StudentScannerScreen({ navigation }) {
       if (!code || !code.data) {
         setIsSubmitting(false);
         setIsSuccess(false);
-        setIsScanned(false); // Reset lock on decode failure
-        setMessage("Unable to detect a QR code in the selected image.");
+        setIsScanned(false);
+        setMessage("No QR code found in selected image.");
         return;
       }
 
-      // Reset states so handleBarcodeScanned can process
       setIsSubmitting(false);
       setIsScanned(false);
 
@@ -126,8 +130,8 @@ export default function StudentScannerScreen({ navigation }) {
     } catch (error) {
       setIsSubmitting(false);
       setIsSuccess(false);
-      setIsScanned(false); // Reset lock on error
-      setMessage(error.message || "An error occurred while importing the QR code.");
+      setIsScanned(false);
+      setMessage("Failed to decode image.");
       console.error(error);
     }
   }
@@ -135,7 +139,7 @@ export default function StudentScannerScreen({ navigation }) {
   if (!permission) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -143,10 +147,13 @@ export default function StudentScannerScreen({ navigation }) {
   if (!permission.granted) {
     return (
       <View style={styles.centeredContainer}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Camera Access Needed</Text>
-          <Text style={styles.subtitle}>
-            Allow camera access to scan your teacher&apos;s live attendance QR.
+        <View style={styles.permissionCard}>
+          <View style={styles.alertIconWrap}>
+            <AlertTriangle size={32} color={COLORS.warning} />
+          </View>
+          <Text style={styles.permissionTitle}>Camera Access Needed</Text>
+          <Text style={styles.permissionSubtitle}>
+            Allow camera access to scan live attendance QR codes.
           </Text>
           <Pressable style={styles.primaryButton} onPress={requestPermission}>
             <Text style={styles.primaryButtonText}>Grant Permission</Text>
@@ -159,10 +166,10 @@ export default function StudentScannerScreen({ navigation }) {
             <Text style={styles.secondaryButtonText}>Import QR From Gallery</Text>
           </Pressable>
           <Pressable
-            style={styles.secondaryButton}
+            style={styles.outlineButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.secondaryButtonText}>Back</Text>
+            <Text style={styles.outlineButtonText}>Cancel</Text>
           </Pressable>
         </View>
       </View>
@@ -171,14 +178,28 @@ export default function StudentScannerScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <Text style={styles.title}>Scan Attendance QR</Text>
-        <Text style={styles.subtitle}>
-          Align the live QR code inside the frame to mark your attendance.
-        </Text>
-      </View>
+      {/* Dynamic Notification Banner Overlay */}
+      {message ? (
+        <View style={[styles.feedbackBox, isSuccess ? BADGES.success : BADGES.danger]}>
+          {isSuccess ? (
+            <CheckCircle size={16} color={COLORS.success} style={styles.feedbackIcon} />
+          ) : (
+            <XCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
+          )}
+          <Text style={[styles.messageText, { color: isSuccess ? COLORS.success : COLORS.error }]}>
+            {message}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.instructionBanner}>
+          <Text style={styles.instructionText}>
+            Point camera at QR code. Attendance will mark automatically.
+          </Text>
+        </View>
+      )}
 
-      <View style={styles.scannerCard}>
+      {/* Dominant Camera Viewport (75% height) */}
+      <View style={styles.scannerViewport}>
         <CameraView
           style={styles.camera}
           facing="back"
@@ -188,23 +209,20 @@ export default function StudentScannerScreen({ navigation }) {
           onBarcodeScanned={isScanned ? undefined : handleBarcodeScanned}
         />
         <View style={styles.overlay}>
-          <View style={styles.scanFrame} />
+          <View style={styles.scanFrame}>
+            <View style={[styles.corner, styles.topLeft]} />
+            <View style={[styles.corner, styles.topRight]} />
+            <View style={[styles.corner, styles.bottomLeft]} />
+            <View style={[styles.corner, styles.bottomRight]} />
+          </View>
         </View>
       </View>
 
-      <View style={styles.footerCard}>
-        {isSubmitting ? <ActivityIndicator color="#0f172a" /> : null}
-        {message ? (
-          <Text
-            style={[styles.messageText, isSuccess ? styles.successText : styles.errorText]}
-          >
-            {message}
-          </Text>
-        ) : (
-          <Text style={styles.helperText}>
-            Point your camera at the teacher&apos;s live QR code.
-          </Text>
-        )}
+      {/* Minimal Footer Deck */}
+      <View style={styles.footerDeck}>
+        {isSubmitting && !message ? (
+          <ActivityIndicator color={COLORS.primary} style={styles.footerLoader} />
+        ) : null}
 
         {!isScanned ? (
           <Pressable
@@ -212,20 +230,20 @@ export default function StudentScannerScreen({ navigation }) {
             onPress={handleImportQr}
             disabled={isSubmitting || isScanned}
           >
-            <Text style={styles.secondaryButtonText}>Import QR From Gallery</Text>
+            <Text style={styles.secondaryButtonText}>Import QR Code</Text>
           </Pressable>
         ) : null}
 
         {isScanned ? (
           <Pressable style={styles.primaryButton} onPress={resetScanner}>
             <Text style={styles.primaryButtonText}>
-              {isSuccess ? "Scan Another Code" : "Try Again"}
+              {isSuccess ? "Scan Another" : "Try Again"}
             </Text>
           </Pressable>
         ) : null}
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.secondaryButtonText}>Back</Text>
+        <Pressable style={styles.outlineButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.outlineButtonText}>Cancel</Text>
         </Pressable>
       </View>
     </View>
@@ -236,55 +254,95 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
+    paddingHorizontal: SPACING.base,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.base,
   },
   centeredContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
-    padding: 24,
+    padding: SPACING.xl,
   },
-  card: {
+  permissionCard: {
     width: "100%",
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
+    alignItems: "center",
+    ...SHADOWS.md,
   },
-  headerCard: {
-    marginTop: 16,
-    marginBottom: 18,
+  alertIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.warningLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: SPACING.base,
+    borderWidth: 1,
+    borderColor: "rgba(193, 127, 36, 0.15)",
   },
-  title: {
-    fontSize: 26,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: TYPOGRAPHY.heading.fontWeight,
+  permissionTitle: {
+    fontSize: TYPOGRAPHY.sizes.screenTitle - 2,
+    fontFamily: FONTS.heading,
+    fontWeight: "bold",
+    color: COLORS.text,
+    textAlign: "center",
+    marginBottom: SPACING.xs,
+  },
+  permissionSubtitle: {
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    fontSize: TYPOGRAPHY.sizes.body,
+    lineHeight: 20,
+    fontFamily: FONTS.body,
+    marginBottom: SPACING.lg,
+  },
+  instructionBanner: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: "rgba(45, 106, 79, 0.15)",
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  instructionText: {
     color: COLORS.primary,
     textAlign: "center",
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: "600",
+    fontFamily: FONTS.body,
   },
-  subtitle: {
-    marginTop: 10,
-    color: "#64748b",
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+  feedbackBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: SPACING.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.sm,
   },
-  scannerCard: {
+  feedbackIcon: {
+    marginRight: SPACING.sm,
+  },
+  messageText: {
     flex: 1,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: "600",
+    fontFamily: FONTS.body,
+  },
+  scannerViewport: {
+    flex: 75, // Occupies ~75% of available height
     overflow: "hidden",
-    borderRadius: 8,
+    borderRadius: RADIUS.lg,
     backgroundColor: "#000000",
     position: "relative",
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.md,
   },
   camera: {
     flex: 1,
@@ -293,82 +351,90 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   scanFrame: {
-    width: 240,
-    height: 240,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-    borderRadius: 8,
+    width: 250,
+    height: 250,
     backgroundColor: "transparent",
+    position: "relative",
   },
-  footerCard: {
-    marginTop: 18,
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 20,
+  corner: {
+    position: "absolute",
+    width: 24,
+    height: 24,
+    borderColor: COLORS.primaryLight,
+  },
+  topLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: RADIUS.xs,
+  },
+  topRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: RADIUS.xs,
+  },
+  bottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: RADIUS.xs,
+  },
+  bottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: RADIUS.xs,
+  },
+  footerDeck: {
+    flex: 25, // Bottom utilities deck
+    justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    paddingTop: SPACING.sm,
   },
-  helperText: {
-    color: "#64748b",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 14,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  messageText: {
-    textAlign: "center",
-    lineHeight: 22,
-    marginTop: 12,
-    marginBottom: 14,
-    fontSize: 15,
-    fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  successText: {
-    color: COLORS.success,
-  },
-  errorText: {
-    color: COLORS.error,
+  footerLoader: {
+    marginBottom: SPACING.xs,
   },
   primaryButton: {
+    ...BUTTON_VARIANTS.primary,
     width: "100%",
-    backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 12,
+    height: 48,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   secondaryButton: {
+    ...BUTTON_VARIANTS.secondary,
     width: "100%",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 12,
+    height: 48,
   },
   secondaryButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
+  },
+  outlineButton: {
+    ...BUTTON_VARIANTS.outline,
+    width: "100%",
+    height: 44,
+    marginTop: SPACING.xs,
+  },
+  outlineButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: "700",
+    fontFamily: FONTS.body,
   },
   buttonDisabled: {
     opacity: 0.5,

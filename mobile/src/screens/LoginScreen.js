@@ -2,14 +2,16 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { GraduationCap, Mail, Lock } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, LAYOUT } from "../utils/theme";
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
@@ -40,157 +42,246 @@ export default function LoginScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>
-          Sign in to access your attendance dashboard.
-        </Text>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.container}>
+        {/* Brand Header */}
+        <View style={styles.headerContainer}>
+          <View style={styles.iconWrapper}>
+            <GraduationCap size={44} color={COLORS.primary} strokeWidth={1.5} />
+          </View>
+          <Text style={styles.portalTitle}>University Portal</Text>
+          <Text style={styles.portalSubtitle}>Attendance & Verification System</Text>
+        </View>
 
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder="Email"
-          placeholderTextColor="#94a3b8"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-        />
+        <View style={styles.card}>
+          {/* Card Title */}
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>
+            Sign in to access your dashboard.
+          </Text>
 
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#94a3b8"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
+          {/* Email Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Email Address</Text>
+            <View style={styles.inputContainer}>
+              <Mail size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="Enter your email"
+                placeholderTextColor={COLORS.textSecondary}
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+          </View>
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          {/* Password Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <View style={styles.inputContainer}>
+              <Lock size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                placeholder="Enter your password"
+                placeholderTextColor={COLORS.textSecondary}
+                secureTextEntry
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+          </View>
 
-        <Pressable
-          style={[styles.button, isSubmitting && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </Pressable>
+          {/* Error Message */}
+          {errorMessage ? (
+            <View style={styles.errorBox}>
+              <View style={styles.errorAccent} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
-        <Pressable
-          style={styles.registerButton}
-          onPress={() => navigation.navigate("Register")}
-        >
-          <Text style={styles.registerButtonText}>Register</Text>
-        </Pressable>
+          {/* Login Button */}
+          <Pressable
+            style={[styles.button, isSubmitting && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={COLORS.textInverse} />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
+          </Pressable>
 
-        <Text style={styles.helperText}>
-          Test with the seeded admin, teacher, or student credentials.
-        </Text>
+          {/* Register Button */}
+          <Pressable
+            style={styles.registerButton}
+            onPress={() => navigation.navigate("Register")}
+          >
+            <Text style={styles.registerButtonText}>Create an Account</Text>
+          </Pressable>
+
+          {/* Helper */}
+          <Text style={styles.helperText}>
+            Test with the seeded admin, teacher, or student credentials.
+          </Text>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: LAYOUT.screenPadding,
+    paddingVertical: SPACING.xxl,
     backgroundColor: COLORS.background,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  headerContainer: {
+    alignItems: "center",
+    marginBottom: SPACING.xl,
   },
-  title: {
-    fontSize: 26,
+  iconWrapper: {
+    width: 72,
+    height: 72,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: SPACING.sm,
+    ...SHADOWS.xs,
+  },
+  portalTitle: {
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
     fontFamily: TYPOGRAPHY.heading.fontFamily,
     fontWeight: TYPOGRAPHY.heading.fontWeight,
     color: COLORS.primary,
     textAlign: "center",
   },
-  subtitle: {
-    marginTop: 8,
-    marginBottom: 24,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#64748b",
-    textAlign: "center",
+  portalSubtitle: {
+    fontSize: TYPOGRAPHY.sizes.label,
     fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginTop: SPACING.xxs,
   },
-  input: {
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: LAYOUT.cardPadding,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: LAYOUT.inputRadius,
-    paddingHorizontal: 16,
-    height: 48,
-    fontSize: 16,
+    ...SHADOWS.md,
+  },
+  title: {
+    fontSize: TYPOGRAPHY.sizes.sectionTitle + 2,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: "bold",
     color: COLORS.text,
-    backgroundColor: COLORS.surface,
-    marginBottom: 14,
+    textAlign: "center",
+    marginBottom: SPACING.xxs,
+  },
+  subtitle: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: SPACING.lg,
+  },
+  inputGroup: {
+    marginBottom: SPACING.base,
+  },
+  inputLabel: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    height: LAYOUT.inputHeight,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SPACING.md,
+  },
+  inputIcon: {
+    marginRight: SPACING.sm,
+  },
+  input: {
+    flex: 1,
+    height: "100%",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    color: COLORS.text,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
+  errorBox: {
+    flexDirection: "row",
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.md,
+    overflow: "hidden",
+  },
+  errorAccent: {
+    width: 4,
+    backgroundColor: COLORS.error,
+    borderTopLeftRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    lineHeight: 20,
+  },
   button: {
-    marginTop: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
+    ...BUTTON_VARIANTS.primary,
+    marginTop: SPACING.xs,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  errorText: {
-    marginBottom: 8,
-    color: COLORS.error,
-    fontSize: 14,
-    textAlign: "center",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  helperText: {
-    marginTop: 16,
-    color: "#64748b",
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: "center",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   registerButton: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
+    ...BUTTON_VARIANTS.secondary,
+    marginTop: SPACING.md,
   },
   registerButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  helperText: {
+    marginTop: SPACING.lg,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    lineHeight: 18,
+    textAlign: "center",
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
 });

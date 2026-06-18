@@ -38,6 +38,9 @@ router.get("/protected", authenticate, (req, res) => {
 router.use("/attendance", attendanceRoutes);
 router.use("/auth", authRoutes);
 router.use("/health", healthRoutes);
+router.use("/ready", (req, res) => {
+  res.redirect("/api/health/ready");
+});
 router.use("/qr", qrRoutes);
 router.use("/student-attendance", studentAttendanceRoutes);
 router.use("/wifi", wifiRoutes);

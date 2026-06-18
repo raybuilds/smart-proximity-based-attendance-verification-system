@@ -29,6 +29,9 @@ async function runVerification() {
     throw new Error("Seed teacher A not found.");
   }
   const teacherUserId = teacherUser.id;
+  const initialCoursesCount = await prisma.course.count({
+    where: { teacherId: teacherUser.teacher.id }
+  });
 
   // 2. Resolve Student (seeded student)
   const studentUser = await prisma.user.findUnique({
@@ -70,6 +73,12 @@ async function runVerification() {
   });
   await prisma.course.deleteMany({
     where: { name: { startsWith: "P5Test_" } }
+  });
+
+  // Temporarily deactivate pre-existing active sessions for teacherUserId to avoid conflicts during the test
+  await prisma.attendanceSession.updateMany({
+    where: { teacherId: teacherUserId, isActive: true },
+    data: { isActive: false }
   });
 
   const uniqueName = `P5Test_${Date.now()}`;
@@ -125,7 +134,7 @@ async function runVerification() {
     // ----------------------------------------------------
     console.log("\n--- TEST 3: Dashboard Cache & Invalidation (Course Lifecycle) ---");
     const dash1 = await reportsService.getTeacherDashboard(teacherUserId, "all");
-    assert.strictEqual(dash1.totalCourses, 1);
+    assert.strictEqual(dash1.totalCourses, initialCoursesCount + 1);
 
     // Cache hit verification: direct update course name via DB bypasses service invalidation
     await prisma.course.update({

@@ -10,7 +10,25 @@ import {
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { getAdminDashboard, getAdminRecentActivity } from "../services/admin";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS } from "../utils/theme";
+import {
+  Shield,
+  Users,
+  GraduationCap,
+  BookOpen,
+  Activity,
+  XCircle,
+  Edit,
+  TrendingUp,
+  ChevronRight,
+  BarChart2,
+  Radio,
+  ClipboardList,
+  Archive,
+  LogOut,
+  AlertCircle,
+  Clock
+} from "lucide-react-native";
 
 export default function AdminDashboardScreen({ navigation }) {
   const { signOut, user } = useAuth();
@@ -51,6 +69,7 @@ export default function AdminDashboardScreen({ navigation }) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading dashboard…</Text>
       </View>
     );
   }
@@ -62,33 +81,48 @@ export default function AdminDashboardScreen({ navigation }) {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
       }
     >
-      <View style={styles.headerBlock}>
+      {/* Welcome Header Card */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerIconWrap}>
+          <Shield size={32} color="#FFFFFF" />
+        </View>
         <Text style={styles.headerTitle}>Institutional Oversight</Text>
-        <Text style={styles.headerSubtitle}>Admin: {user?.name || "Administrator"}</Text>
+        <Text style={styles.headerSubtitle}>
+          Admin: {user?.name || "Administrator"}
+        </Text>
       </View>
 
+      {/* Error Card */}
       {error ? (
         <View style={styles.errorCard}>
+          <AlertCircle size={18} color={COLORS.error} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
 
       {dashboard ? (
         <>
-          {/* Overview Section */}
+          {/* Primary Metrics Grid 2x2 */}
           <Text style={styles.sectionTitle}>Overview</Text>
           <View style={styles.gridRow}>
             <Pressable
               style={styles.statCard}
               onPress={() => navigation.navigate("AdminStudentList")}
             >
+              <View style={styles.statIconWrap}>
+                <Users size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.statNum}>{dashboard.totalStudents}</Text>
               <Text style={styles.statLabel}>Students</Text>
             </Pressable>
+
             <Pressable
               style={styles.statCard}
               onPress={() => navigation.navigate("AdminTeacherList")}
             >
+              <View style={styles.statIconWrap}>
+                <GraduationCap size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.statNum}>{dashboard.totalTeachers}</Text>
               <Text style={styles.statLabel}>Teachers</Text>
             </Pressable>
@@ -99,86 +133,176 @@ export default function AdminDashboardScreen({ navigation }) {
               style={styles.statCard}
               onPress={() => navigation.navigate("AdminCourseList")}
             >
+              <View style={styles.statIconWrap}>
+                <BookOpen size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.statNum}>{dashboard.activeCourses}</Text>
               <Text style={styles.statLabel}>Active Courses</Text>
             </Pressable>
+
             <Pressable
               style={styles.statCard}
               onPress={() => navigation.navigate("AdminLiveSessions")}
             >
+              <View style={styles.statIconWrap}>
+                <Activity size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.statNum}>{dashboard.activeSessions}</Text>
               <Text style={styles.statLabel}>Active Sessions</Text>
             </Pressable>
           </View>
 
-          {/* Quick Metrics / Admin Notes */}
+          {/* Status Notes */}
           <Text style={styles.sectionTitle}>Status Notes</Text>
           <View style={styles.noteCard}>
             <Pressable
-              style={styles.noteItem}
+              style={styles.noteRow}
               onPress={() => navigation.navigate("AdminAtRisk")}
             >
-              <Text style={styles.noteTitle}>At-Risk Students (&lt;75%):</Text>
-              <Text style={[styles.noteValue, { color: COLORS.error }]}>{dashboard.atRiskStudents}</Text>
+              <View style={styles.noteLeftGroup}>
+                <XCircle size={18} color={COLORS.error} />
+                <Text style={styles.noteLabel}>At-Risk Students (&lt;75%)</Text>
+              </View>
+              <Text style={[styles.noteValue, { color: COLORS.error }]}>
+                {dashboard.atRiskStudents}
+              </Text>
             </Pressable>
+
+            <View style={styles.noteDivider} />
+
             <Pressable
-              style={styles.noteItem}
+              style={styles.noteRow}
               onPress={() => navigation.navigate("AdminAuditCenter")}
             >
-              <Text style={styles.noteTitle}>Manual Corrections (Total):</Text>
+              <View style={styles.noteLeftGroup}>
+                <Edit size={18} color={COLORS.primary} />
+                <Text style={styles.noteLabel}>Manual Corrections</Text>
+              </View>
               <Text style={styles.noteValue}>{dashboard.manualCorrections}</Text>
             </Pressable>
+
+            <View style={styles.noteDivider} />
+
             <Pressable
-              style={styles.noteItem}
+              style={styles.noteRow}
               onPress={() => navigation.navigate("AdminAnalytics")}
             >
-              <Text style={styles.noteTitle}>Avg Attendance Today (View Analytics):</Text>
+              <View style={styles.noteLeftGroup}>
+                <TrendingUp size={18} color={COLORS.primary} />
+                <Text style={styles.noteLabel}>Avg Attendance Today</Text>
+              </View>
               <Text style={styles.noteValue}>{dashboard.attendanceToday}%</Text>
             </Pressable>
           </View>
         </>
       ) : null}
 
-      {/* Navigation shortcuts */}
+      {/* Management Controls */}
       <Text style={styles.sectionTitle}>Management Controls</Text>
-      <View style={styles.actionRow}>
+      <View style={styles.modulesCard}>
         <Pressable
-          style={styles.actionButton}
+          style={styles.moduleTile}
           onPress={() => navigation.navigate("AdminCourseList")}
         >
-          <Text style={styles.actionButtonText}>View Courses</Text>
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <BookOpen size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>View Courses</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
         </Pressable>
+
+        <View style={styles.tileDivider} />
+
         <Pressable
-          style={styles.actionButton}
+          style={styles.moduleTile}
           onPress={() => navigation.navigate("AdminAnalytics")}
         >
-          <Text style={styles.actionButtonText}>Analytics</Text>
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <BarChart2 size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Analytics</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
         </Pressable>
-      </View>
-      <View style={styles.actionRow}>
+
+        <View style={styles.tileDivider} />
+
         <Pressable
-          style={styles.actionButton}
+          style={styles.moduleTile}
           onPress={() => navigation.navigate("AdminLiveSessions")}
         >
-          <Text style={styles.actionButtonText}>Live Sessions</Text>
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <Radio size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Live Sessions</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
         </Pressable>
+
+        <View style={styles.tileDivider} />
+
         <Pressable
-          style={styles.actionButton}
+          style={styles.moduleTile}
           onPress={() => navigation.navigate("AdminAuditCenter")}
         >
-          <Text style={styles.actionButtonText}>Audit Center</Text>
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <ClipboardList size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Audit Center</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
         </Pressable>
-      </View>
-      <View style={styles.actionRow}>
+
+        <View style={styles.tileDivider} />
+
         <Pressable
-          style={styles.actionButton}
+          style={styles.moduleTile}
           onPress={() => navigation.navigate("AdminArchivedCourses")}
         >
-          <Text style={styles.actionButtonText}>Course Archive</Text>
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <Archive size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Course Archive</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
+        </Pressable>
+
+        <View style={styles.tileDivider} />
+
+        <Pressable
+          style={styles.moduleTile}
+          onPress={() => navigation.navigate("AdminStudentList")}
+        >
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <Users size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Students</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
+        </Pressable>
+
+        <View style={styles.tileDivider} />
+
+        <Pressable
+          style={styles.moduleTile}
+          onPress={() => navigation.navigate("AdminTeacherList")}
+        >
+          <View style={styles.moduleLeft}>
+            <View style={styles.moduleIconWrap}>
+              <GraduationCap size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.moduleLabel}>Teachers</Text>
+          </View>
+          <ChevronRight size={18} color={COLORS.textSecondary} />
         </Pressable>
       </View>
-
-
 
       {/* Recent Activity Feed */}
       <Text style={styles.sectionTitle}>Recent Activity</Text>
@@ -206,13 +330,23 @@ export default function AdminDashboardScreen({ navigation }) {
                   index === recentActivity.length - 1 && { borderBottomWidth: 0 }
                 ]}
               >
-                <View style={styles.activityTimeContainer}>
-                  <Text style={styles.activityTimeText}>{formattedTime}</Text>
-                  <Text style={styles.activityDateText}>{formattedDate}</Text>
+                <View style={styles.activityDotWrap}>
+                  <View style={styles.activityDot} />
                 </View>
+
                 <View style={styles.activityContentContainer}>
                   <Text style={styles.activityText}>{activity.message}</Text>
-                  <Text style={styles.activityTypeText}>{activity.type.replace("_", " ")}</Text>
+                  <Text style={styles.activityTypeText}>
+                    {activity.type.replace("_", " ")}
+                  </Text>
+                </View>
+
+                <View style={styles.activityTimeContainer}>
+                  <View style={styles.activityTimeRow}>
+                    <Clock size={10} color={COLORS.textSecondary} />
+                    <Text style={styles.activityTimeText}> {formattedTime}</Text>
+                  </View>
+                  <Text style={styles.activityDateText}>{formattedDate}</Text>
                 </View>
               </View>
             );
@@ -220,7 +354,9 @@ export default function AdminDashboardScreen({ navigation }) {
         </View>
       )}
 
+      {/* Logout */}
       <Pressable style={styles.logoutButton} onPress={signOut}>
+        <LogOut size={18} color="#FFFFFF" />
         <Text style={styles.logoutButtonText}>Logout</Text>
       </Pressable>
     </ScrollView>
@@ -234,199 +370,296 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontFamily: TYPOGRAPHY.body.fontFamily
+  },
   container: {
-    padding: 16,
+    paddingHorizontal: LAYOUT.screenPadding,
+    paddingTop: LAYOUT.spacing.lg,
+    paddingBottom: 32,
     backgroundColor: COLORS.background,
     flexGrow: 1
   },
-  headerBlock: {
+
+  /* Header Card */
+  headerCard: {
     backgroundColor: COLORS.primary,
     borderRadius: LAYOUT.cardRadius,
-    padding: 20,
+    paddingVertical: 28,
+    paddingHorizontal: LAYOUT.cardPadding,
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3
+    marginBottom: LAYOUT.cardGap,
+    ...SHADOWS.md
+  },
+  headerIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12
   },
   headerTitle: {
-    color: COLORS.surface,
-    fontSize: 22,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: "bold"
-  },
-  headerSubtitle: {
-    color: COLORS.secondary,
-    fontSize: 14,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-    marginTop: 4
-  },
-  sectionTitle: {
-    fontSize: 16,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
     fontFamily: TYPOGRAPHY.heading.fontFamily,
     fontWeight: "bold",
-    color: COLORS.text,
-    marginTop: 16,
-    marginBottom: 8
+    textAlign: "center"
   },
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    marginTop: 4,
+    textAlign: "center"
+  },
+
+  /* Error Card */
+  errorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: LAYOUT.cardRadius,
+    padding: LAYOUT.spacing.md,
+    marginBottom: LAYOUT.cardGap,
+    borderWidth: 1,
+    borderColor: "#F5C6C3"
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: TYPOGRAPHY.body.fontFamily
+  },
+
+  /* Section Title */
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginTop: LAYOUT.spacing.xl,
+    marginBottom: LAYOUT.spacing.sm
+  },
+
+  /* Stat Cards */
   gridRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10
+    marginBottom: LAYOUT.spacing.sm
   },
   statCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 16,
-    width: "48%",
+    padding: LAYOUT.cardPadding,
+    width: "48.5%",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1
+    ...SHADOWS.sm
+  },
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10
   },
   statNum: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.sizes.cardMetric,
     fontWeight: "bold",
     color: COLORS.primary,
     fontFamily: TYPOGRAPHY.heading.fontFamily
   },
   statLabel: {
-    fontSize: 12,
-    color: COLORS.text,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
     fontFamily: TYPOGRAPHY.body.fontFamily,
-    marginTop: 4
+    marginTop: 4,
+    textAlign: "center"
   },
+
+  /* Status Notes */
   noteCard: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.cardRadius,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 16,
-    marginBottom: 10
+    paddingHorizontal: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.spacing.base,
+    ...SHADOWS.sm
   },
-  noteItem: {
+  noteRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6"
+    paddingVertical: 14
   },
-  noteTitle: {
-    fontSize: 13,
+  noteLeftGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 10
+  },
+  noteLabel: {
+    fontSize: TYPOGRAPHY.sizes.label,
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontWeight: "500",
+    flexShrink: 1
   },
   noteValue: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
     color: COLORS.primary,
-    fontFamily: TYPOGRAPHY.body.fontFamily
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    minWidth: 40,
+    textAlign: "right"
   },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10
+  noteDivider: {
+    height: 1,
+    backgroundColor: COLORS.borderSubtle
   },
-  actionButton: {
+
+  /* Management Controls */
+  modulesCard: {
     backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    paddingVertical: 12,
-    width: "48%",
-    alignItems: "center"
+    borderColor: COLORS.border,
+    paddingHorizontal: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.spacing.base,
+    ...SHADOWS.sm
   },
-  actionButtonText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.body.fontFamily
+  moduleTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14
   },
+  moduleLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1
+  },
+  moduleIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14
+  },
+  moduleLabel: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontWeight: "500"
+  },
+  tileDivider: {
+    height: 1,
+    backgroundColor: COLORS.borderSubtle
+  },
+
+  /* Recent Activity */
   activityCard: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.cardRadius,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 12,
-    marginBottom: 20
+    paddingHorizontal: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.cardGap,
+    ...SHADOWS.sm
   },
   emptyActivityText: {
     textAlign: "center",
-    color: "#64748b",
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontFamily: TYPOGRAPHY.body.fontFamily,
-    paddingVertical: 10
+    paddingVertical: 20
   },
   activityItem: {
     flexDirection: "row",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: COLORS.borderSubtle,
     alignItems: "center"
   },
-  activityTimeContainer: {
-    width: "25%"
+  activityDotWrap: {
+    width: 20,
+    alignItems: "center",
+    marginRight: 10
   },
-  activityTimeText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    fontFamily: TYPOGRAPHY.body.fontFamily
-  },
-  activityDateText: {
-    fontSize: 10,
-    color: "#94a3b8",
-    fontFamily: TYPOGRAPHY.body.fontFamily
+  activityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary
   },
   activityContentContainer: {
     flex: 1,
-    paddingLeft: 8
+    paddingRight: 8
   },
   activityText: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.label,
     color: COLORS.text,
     fontFamily: TYPOGRAPHY.body.fontFamily,
     fontWeight: "500"
   },
   activityTypeText: {
-    fontSize: 10,
-    color: "#64748b",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
     fontFamily: TYPOGRAPHY.body.fontFamily,
     marginTop: 2,
-    textTransform: "uppercase"
+    textTransform: "uppercase",
+    letterSpacing: 0.4
   },
+  activityTimeContainer: {
+    alignItems: "flex-end",
+    minWidth: 60
+  },
+  activityTimeRow: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
+  activityTimeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: "600",
+    color: COLORS.primary,
+    fontFamily: TYPOGRAPHY.body.fontFamily
+  },
+  activityDateText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    marginTop: 2
+  },
+
+  /* Logout */
   logoutButton: {
+    flexDirection: "row",
+    gap: 8,
     backgroundColor: COLORS.error,
     borderRadius: LAYOUT.buttonRadius,
     height: LAYOUT.buttonHeight,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
-    marginBottom: 20
+    marginTop: LAYOUT.spacing.base,
+    marginBottom: 8,
+    ...SHADOWS.sm
   },
   logoutButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.body.fontFamily
-  },
-  errorCard: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: LAYOUT.cardRadius,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#FCA5A5"
-  },
-  errorText: {
-    color: COLORS.error,
-    textAlign: "center",
     fontFamily: TYPOGRAPHY.body.fontFamily
   }
 });

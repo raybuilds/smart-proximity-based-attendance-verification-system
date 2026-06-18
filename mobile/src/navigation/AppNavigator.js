@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { COLORS, NAVIGATOR_STYLE } from "../utils/theme";
 
 import { useAuth } from "../context/AuthContext";
 import ActiveSessionScreen from "../screens/ActiveSessionScreen";
@@ -47,27 +48,14 @@ export default function AppNavigator() {
   if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
     <Stack.Navigator
-      screenOptions={{
-        headerTitleAlign: "center",
-        headerStyle: {
-          backgroundColor: "#2C5F2D",
-        },
-        headerTintColor: "#FFFFFF",
-        headerTitleStyle: {
-          fontFamily: "serif",
-          fontWeight: "bold",
-        },
-        contentStyle: {
-          backgroundColor: "#F5F1E8",
-        },
-      }}
+      screenOptions={NAVIGATOR_STYLE}
     >
       {isAuthenticated ? (
         user?.role === "admin" ? (
@@ -253,7 +241,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
 });
 

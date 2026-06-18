@@ -2,7 +2,7 @@ const reportsService = require("./reports.service");
 
 async function teacherOverview(req, res, next) {
   try {
-    const data = await reportsService.getTeacherOverview();
+    const data = await reportsService.getTeacherOverview(req.user.sub);
     res.status(200).json({
       success: true,
       data,

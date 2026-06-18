@@ -133,7 +133,7 @@ async function main() {
     const rollNumber = `${departments[s % departments.length]}2026${String(s+1).padStart(3, "0")}`;
     const department = departments[s % departments.length];
     const semester = semesters[s % semesters.length];
-    const section = sections[s % sections.length];
+    const section = sections[Math.floor(s / 2) % sections.length];
 
     const user = await prisma.user.create({
       data: {
@@ -180,8 +180,9 @@ async function main() {
   const courses = [];
   for (let i = 0; i < courseList.length; i++) {
     const cInfo = courseList[i];
-    // Exclude index 0 (teacher@attendance.local) from seeded courses
-    const teacher = teachers[1 + (i % (teachers.length - 1))];
+    // Deterministically assign the first 4 active courses to primary demo teacher (teachers[0])
+    // The rest are distributed across other teachers (teachers[1] to teachers[7])
+    const teacher = i < 4 ? teachers[0] : teachers[1 + ((i - 4) % (teachers.length - 1))];
     const course = await prisma.course.create({
       data: {
         code: cInfo.code,
@@ -206,7 +207,7 @@ async function main() {
   const archivedCourses = [];
   for (let i = 0; i < archivedCourseData.length; i++) {
     const cInfo = archivedCourseData[i];
-    // Exclude index 0 (teacher@attendance.local) from seeded courses
+    // Exclude primary teacher from archived courses to keep active courses clean
     const teacher = teachers[1 + (i % (teachers.length - 1))];
     const course = await prisma.course.create({
       data: {
@@ -241,7 +242,18 @@ async function main() {
   const activeCoursesCombined = [...courses, ...archivedCourses];
 
   for (const course of activeCoursesCombined) {
-    const numSessions = course.isArchived ? 12 : 10 + Math.floor(Math.random() * 5); // 10-15 sessions
+    let numSessions = 10;
+    if (course.isArchived) {
+      numSessions = 12;
+    } else {
+      // Deterministically set session count to ensure the primary teacher has exactly 32 completed sessions
+      if (course.code === "CS401") numSessions = 8;
+      else if (course.code === "CS402") numSessions = 8;
+      else if (course.code === "CS403") numSessions = 8;
+      else if (course.code === "CS404") numSessions = 8;
+      else numSessions = 10;
+    }
+
     const eligibleStudents = students.filter(
       st =>
         st.student.department.toLowerCase() === course.department.toLowerCase() &&
@@ -294,7 +306,10 @@ async function main() {
       }
 
       for (let sIdx = 0; sIdx < sessions.length; sIdx++) {
-        const isPresent = Math.random() < presenceProbability;
+        // Use deterministic hash-based presence check instead of Math.random()
+        const seedValue = (student.id * 17 + sessions[sIdx].id * 31) % 100;
+        const isPresent = seedValue < (presenceProbability * 100);
+        
         if (isPresent) {
           await prisma.attendance.create({
             data: {
@@ -350,7 +365,9 @@ async function main() {
     if (eligibleStudents.length === 0) continue;
 
     const student = eligibleStudents[c % eligibleStudents.length];
-    const teacher = teachers[1 + (c % (teachers.length - 1))];
+    // Assign exactly 7 corrections to the primary demo teacher (teachers[0])
+    // The other 23 are mapped across other teachers
+    const teacher = c < 7 ? teachers[0] : teachers[1 + ((c - 7) % (teachers.length - 1))];
     const reason = correctionReasons[c % correctionReasons.length];
 
     // Ensure attendance record exists (upsert)

@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   RefreshControl
 } from "react-native";
+import { BookOpen, ChevronRight, User, Layers, AlertCircle, BookMarked, Radio } from "lucide-react-native";
 import { getAdminCourses } from "../services/admin";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS } from "../utils/theme";
 
 export default function AdminCourseListScreen({ navigation }) {
   const [courses, setCourses] = useState([]);

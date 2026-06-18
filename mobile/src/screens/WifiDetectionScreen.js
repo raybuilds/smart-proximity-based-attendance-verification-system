@@ -159,7 +159,16 @@ export default function WifiDetectionScreen({ navigation, route }) {
           </Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate("Dashboard");
+            }
+          }}
+        >
           <ChevronLeft size={16} color={COLORS.primary} />
           <Text style={styles.secondaryButtonText}>Back</Text>
         </Pressable>
