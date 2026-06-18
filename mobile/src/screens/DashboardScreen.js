@@ -124,12 +124,6 @@ export default function DashboardScreen({ navigation }) {
     Attendance History
   </Text>
 </Pressable>
-    <Pressable
-      style={[styles.button, { marginTop: 12 }]}
-      onPress={() => navigation.navigate("BleTest")}
-    >
-      <Text style={styles.buttonText}>BLE Test</Text>
-    </Pressable>
   </>
 ) : (
   <Pressable
