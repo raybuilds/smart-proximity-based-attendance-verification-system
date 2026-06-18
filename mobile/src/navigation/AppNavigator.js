@@ -22,6 +22,11 @@ import DefaulterReportScreen from "../screens/DefaulterReportScreen";
 
 import StudentAttendanceHistoryScreen from "../screens/StudentAttendanceHistoryScreen";
 import StudentCourseAttendanceScreen from "../screens/StudentCourseAttendanceScreen";
+import AdminDashboardScreen from "../screens/AdminDashboardScreen";
+import AdminStudentListScreen from "../screens/AdminStudentListScreen";
+import AdminStudentDetailScreen from "../screens/AdminStudentDetailScreen";
+import AdminTeacherListScreen from "../screens/AdminTeacherListScreen";
+import AdminTeacherDetailScreen from "../screens/AdminTeacherDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -55,7 +60,35 @@ export default function AppNavigator() {
       }}
     >
       {isAuthenticated ? (
-        user?.role === "teacher" ? (
+        user?.role === "admin" ? (
+          <>
+            <Stack.Screen
+              name="AdminDashboard"
+              component={AdminDashboardScreen}
+              options={{ title: "Admin Dashboard", headerBackVisible: false }}
+            />
+            <Stack.Screen
+              name="AdminStudentList"
+              component={AdminStudentListScreen}
+              options={{ title: "Manage Students" }}
+            />
+            <Stack.Screen
+              name="AdminStudentDetail"
+              component={AdminStudentDetailScreen}
+              options={{ title: "Student Detail" }}
+            />
+            <Stack.Screen
+              name="AdminTeacherList"
+              component={AdminTeacherListScreen}
+              options={{ title: "Manage Teachers" }}
+            />
+            <Stack.Screen
+              name="AdminTeacherDetail"
+              component={AdminTeacherDetailScreen}
+              options={{ title: "Teacher Detail" }}
+            />
+          </>
+        ) : user?.role === "teacher" ? (
           <>
             <Stack.Screen
               name="TeacherDashboard"

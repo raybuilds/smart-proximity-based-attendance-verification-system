@@ -9,6 +9,7 @@ const studentAttendanceRoutes = require("../modules/studentAttendance/studentAtt
 const wifiRoutes = require("../modules/wifi/wifi.routes");
 const reportsRoutes = require("../modules/reports/reports.routes");
 const coursesRoutes = require("../modules/courses/courses.routes");
+const adminRoutes = require("../modules/admin/admin.routes");
 
 const router = express.Router();
 
@@ -42,5 +43,6 @@ router.use("/student-attendance", studentAttendanceRoutes);
 router.use("/wifi", wifiRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/courses", authenticate, coursesRoutes);
+router.use("/admin", adminRoutes);
 
 module.exports = router;
