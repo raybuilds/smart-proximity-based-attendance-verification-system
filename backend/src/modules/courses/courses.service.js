@@ -68,10 +68,12 @@ async function createCourse(userId, data) {
   const dept = normalizeInputString(data.department);
   const sec = normalizeInputString(data.section);
   const sem = data.semester !== undefined ? (data.semester || null) : null;
+  const courseCode = normalizeInputString(data.code);
 
   const course = await prisma.course.create({
     data: {
       name: trimmedName,
+      code: courseCode,
       teacherId: teacher.id,
       department: dept,
       semester: sem,
@@ -219,6 +221,7 @@ async function updateCourse(userId, courseId, data) {
       where: { id: courseId },
       data: {
         name: trimmedName,
+        code: normalizeInputString(data.code),
         department: dept,
         semester: sem,
         section: sec,
