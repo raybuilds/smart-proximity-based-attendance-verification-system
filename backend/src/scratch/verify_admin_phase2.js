@@ -37,7 +37,7 @@ async function runVerification() {
         department: "Computer Science",
         semester: 4,
         section: "A",
-        teacherId: teacherUser.id
+        teacherId: teacherUser.teacher.id
       }
     });
 
