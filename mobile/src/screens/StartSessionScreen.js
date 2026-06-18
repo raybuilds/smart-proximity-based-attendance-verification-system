@@ -7,13 +7,25 @@ import {
   View,
   Modal,
   FlatList,
+  ScrollView,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { getActiveSession, startSession } from "../services/attendance";
 import { getCourses } from "../services/courses";
 import EligibilityChips from "../components/EligibilityChips";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS, RADIUS, SPACING, BUTTON_VARIANTS, BADGES, FONTS } from "../utils/theme";
+import {
+  PlayCircle,
+  BookOpen,
+  ChevronRight,
+  Play,
+  AlertTriangle,
+  AlertCircle,
+  Users,
+  BookMarked,
+  Info,
+} from "lucide-react-native";
 
 export default function StartSessionScreen({ navigation }) {
   const { user } = useAuth();
@@ -30,7 +42,7 @@ export default function StartSessionScreen({ navigation }) {
         try {
           setIsLoading(true);
           setErrorMessage("");
-          
+
           const [sessionResponse, coursesResponse] = await Promise.all([
             getActiveSession(),
             getCourses(),
@@ -45,11 +57,7 @@ export default function StartSessionScreen({ navigation }) {
 
           const teacherCourses = coursesResponse.courses || [];
           setCourses(teacherCourses);
-          
-          // Pre-select first course if available
-          if (teacherCourses.length > 0 && !selectedCourse) {
-            setSelectedCourse(null); // start with unselected to force explicit choice or set it
-          }
+          setSelectedCourse(null);
         } catch (error) {
           setErrorMessage(
             error.response?.data?.message ||
@@ -90,79 +98,182 @@ export default function StartSessionScreen({ navigation }) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading courses…</Text>
       </View>
     );
   }
 
-  // Warning state if teacher has zero courses
   if (courses.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Start Session</Text>
-          <View style={styles.warningBox}>
-            <Text style={styles.warningText}>
-              You must create a course before starting an attendance session.
-            </Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerSection}>
+          <View style={styles.headerIconWrap}>
+            <PlayCircle size={32} color={COLORS.primary} />
           </View>
-
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate("CourseManagement")}
-          >
-            <Text style={styles.primaryButtonText}>Manage Courses</Text>
-          </Pressable>
+          <Text style={styles.screenTitle}>Start Session</Text>
+          <Text style={styles.screenSubtitle}>
+            Launch a live attendance session for your class
+          </Text>
         </View>
-      </View>
+
+        <View style={styles.warningCard}>
+          <View style={styles.warningCardHeader}>
+            <AlertTriangle size={20} color={COLORS.warning} />
+            <Text style={styles.warningCardTitle}>No Courses Found</Text>
+          </View>
+          <Text style={styles.warningCardBody}>
+            You must create a course before starting an attendance session.
+            Head over to Course Management to set up your first course.
+          </Text>
+        </View>
+
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate("CourseManagement")}
+        >
+          <BookMarked size={18} color={COLORS.textInverse} />
+          <Text style={styles.primaryButtonText}>Manage Courses</Text>
+        </Pressable>
+      </ScrollView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Start Session</Text>
-        <Text style={styles.subtitle}>
-          Welcome, {user?.name}. Start a live attendance session when your class begins.
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.headerSection}>
+        <View style={styles.headerIconWrap}>
+          <PlayCircle size={32} color={COLORS.primary} />
+        </View>
+        <Text style={styles.screenTitle}>Start Session</Text>
+        <Text style={styles.screenSubtitle}>
+          Welcome, {user?.name}. Select a course and launch a live attendance
+          session when your class begins.
+        </Text>
+      </View>
+
+      {errorMessage ? (
+        <View style={styles.errorCard}>
+          <AlertCircle size={18} color={COLORS.error} />
+          <Text style={styles.errorCardText}>{errorMessage}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.sectionBlock}>
+        <Text style={styles.sectionTitle}>Select Course</Text>
+        <Text style={styles.sectionHint}>
+          Tap a course below to select it for this session
         </Text>
 
-        <Text style={styles.fieldLabel}>Course</Text>
-        <Pressable
-          style={styles.dropdownSelector}
-          onPress={() => setShowDropdown(true)}
-        >
-          <Text style={styles.dropdownSelectorText}>
-            {selectedCourse ? (selectedCourse.code ? `${selectedCourse.code} - ${selectedCourse.name}` : selectedCourse.name) : "Select a Course ▼"}
-          </Text>
-        </Pressable>
+        <View style={styles.courseListContainer}>
+          {courses.map((item) => {
+            const isSelected =
+              selectedCourse && selectedCourse.id === item.id;
+            return (
+              <Pressable
+                key={item.id.toString()}
+                style={[
+                  styles.courseCard,
+                  isSelected && styles.courseCardSelected,
+                ]}
+                onPress={() => {
+                  setSelectedCourse(item);
+                  setErrorMessage("");
+                }}
+              >
+                <View style={[styles.courseCardIconWrap, isSelected && styles.courseCardIconWrapSelected]}>
+                  <BookOpen
+                    size={20}
+                    color={isSelected ? COLORS.primary : COLORS.textSecondary}
+                  />
+                </View>
+                <View style={styles.courseCardBody}>
+                  {item.code ? (
+                    <Text
+                      style={[
+                        styles.courseCode,
+                        isSelected && styles.courseCodeSelected,
+                      ]}
+                    >
+                      {item.code}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.courseName,
+                      isSelected && styles.courseNameSelected,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.name}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.courseRadio,
+                    isSelected && styles.courseRadioSelected,
+                  ]}
+                >
+                  {isSelected && (
+                    <View style={styles.courseRadioDot} />
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
-        {selectedCourse ? (
-          <View style={styles.previewCard}>
-            <Text style={styles.previewLabel}>Eligible Students:</Text>
+      {selectedCourse ? (
+        <View style={styles.previewCard}>
+          <View style={styles.previewCardHeader}>
+            <Users size={18} color={COLORS.primary} />
+            <Text style={styles.previewCardTitle}>Session Preview</Text>
+          </View>
+          <View style={styles.previewDivider} />
+          <Text style={styles.previewLabel}>Eligible Students Target</Text>
+          <View style={styles.chipsWrapper}>
             <EligibilityChips eligibility={selectedCourse} />
-            <Text style={styles.previewCount}>
-              Matching Students: {selectedCourse.eligibleStudentCount !== undefined ? selectedCourse.eligibleStudentCount : 0}
+          </View>
+          <View style={styles.previewCountRow}>
+            <Text style={styles.previewCountLabel}>Matching Roster Count</Text>
+            <Text style={styles.previewCountValue}>
+              {selectedCourse.eligibleStudentCount !== undefined
+                ? selectedCourse.eligibleStudentCount
+                : 0}
             </Text>
           </View>
-        ) : null}
+        </View>
+      ) : null}
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-        <Pressable
-          style={[
-            styles.primaryButton,
-            (!selectedCourse || isStarting) && styles.buttonDisabled,
-          ]}
-          onPress={handleStartSession}
-          disabled={!selectedCourse || isStarting}
-        >
-          {isStarting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
-          )}
-        </Pressable>
-      </View>
+      <Pressable
+        style={[
+          styles.primaryButton,
+          (!selectedCourse || isStarting) && styles.buttonDisabled,
+        ]}
+        onPress={handleStartSession}
+        disabled={!selectedCourse || isStarting}
+      >
+        {isStarting ? (
+          <ActivityIndicator color={COLORS.textInverse} size="small" />
+        ) : (
+          <>
+            <Play size={18} color={COLORS.textInverse} />
+            <Text style={styles.primaryButtonText}>
+              Start Attendance Session
+            </Text>
+          </>
+        )}
+      </Pressable>
 
       <Modal transparent visible={showDropdown} animationType="fade">
         <Pressable
@@ -183,7 +294,11 @@ export default function StartSessionScreen({ navigation }) {
                     setErrorMessage("");
                   }}
                 >
-                  <Text style={styles.modalItemText}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
+                  <BookOpen size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
+                  <Text style={styles.modalItemText}>
+                    {item.code ? `${item.code} - ${item.name}` : item.name}
+                  </Text>
+                  <ChevronRight size={16} color={COLORS.textSecondary} />
                 </Pressable>
               )}
             />
@@ -196,184 +311,329 @@ export default function StartSessionScreen({ navigation }) {
           </View>
         </Pressable>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
     backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    paddingHorizontal: LAYOUT.screenPadding,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xxl + 16,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
+    gap: SPACING.md,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  loadingText: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginTop: SPACING.sm,
   },
-  title: {
-    fontSize: 26,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: TYPOGRAPHY.heading.fontWeight,
-    color: COLORS.primary,
-    textAlign: "center",
+  headerSection: {
+    alignItems: "center",
+    marginBottom: LAYOUT.sectionGap,
   },
-  subtitle: {
-    marginTop: 10,
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#64748b",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 8,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  dropdownSelector: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: LAYOUT.inputRadius,
-    paddingHorizontal: 16,
-    height: 48,
-    backgroundColor: COLORS.surface,
-    marginBottom: 20,
-    justifyContent: "center",
-  },
-  dropdownSelectorText: {
-    fontSize: 16,
-    color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  previewCard: {
-    backgroundColor: COLORS.background,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 20,
-  },
-  previewLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 4,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  previewCount: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.primary,
-    marginTop: 8,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  warningBox: {
-    backgroundColor: "#fffbeb",
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#fde68a",
-    marginBottom: 24,
-  },
-  warningText: {
-    color: "#92400e",
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: "center",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  errorText: {
-    marginBottom: 12,
-    color: COLORS.error,
-    textAlign: "center",
-    lineHeight: 20,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
+  headerIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
+  },
+  screenTitle: {
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
+    fontFamily: FONTS.heading,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    textAlign: "center",
+    marginBottom: SPACING.xs,
+  },
+  screenSubtitle: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: FONTS.body,
+    paddingHorizontal: SPACING.md,
+  },
+  errorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+    padding: SPACING.base,
+    marginBottom: LAYOUT.cardGap,
+  },
+  errorCardText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.error,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
+  },
+  warningCard: {
+    backgroundColor: COLORS.warningLight,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: "rgba(193, 127, 36, 0.15)",
+    padding: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.cardGap,
+    ...SHADOWS.xs,
+  },
+  warningCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  warningCardTitle: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.warning,
+    fontFamily: FONTS.body,
+  },
+  warningCardBody: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    lineHeight: 22,
+    fontFamily: FONTS.body,
+  },
+  sectionBlock: {
+    marginBottom: LAYOUT.cardGap,
+  },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontFamily: FONTS.heading,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  sectionHint: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginBottom: SPACING.md,
+  },
+  courseListContainer: {
+    gap: SPACING.sm,
+  },
+  courseCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.base,
+    ...SHADOWS.xs,
+  },
+  courseCardSelected: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+    borderWidth: 1.5,
+  },
+  courseCardIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+  },
+  courseCardIconWrapSelected: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.primary,
+  },
+  courseCardBody: {
+    flex: 1,
+    gap: 2,
+  },
+  courseCode: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  courseCodeSelected: {
+    color: COLORS.primary,
+  },
+  courseName: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
+  },
+  courseNameSelected: {
+    color: COLORS.primaryDark,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  courseRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: SPACING.sm,
+  },
+  courseRadioSelected: {
+    borderColor: COLORS.primary,
+  },
+  courseRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  previewCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.cardGap,
+    ...SHADOWS.sm,
+  },
+  previewCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  previewCardTitle: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
+  },
+  previewDivider: {
+    height: 1,
+    backgroundColor: COLORS.borderSubtle,
+    marginBottom: SPACING.md,
+  },
+  previewLabel: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+    fontFamily: FONTS.body,
+    textTransform: "uppercase",
+  },
+  chipsWrapper: {
+    marginVertical: SPACING.xs,
+  },
+  previewCountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: SPACING.md,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderSubtle,
+  },
+  previewCountLabel: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    fontWeight: TYPOGRAPHY.weights.medium,
+  },
+  previewCountValue: {
+    fontSize: TYPOGRAPHY.sizes.cardMetricSm,
+    fontFamily: FONTS.heading,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+  },
+  primaryButton: {
+    ...BUTTON_VARIANTS.primary,
+    marginTop: SPACING.sm,
+    ...SHADOWS.xs,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: FONTS.body,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backgroundColor: "rgba(44, 36, 22, 0.45)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: LAYOUT.screenPadding,
   },
   modalContent: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.modalRadius,
+    borderRadius: RADIUS.xl,
     width: "100%",
-    maxHeight: "60%",
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    maxHeight: "65%",
+    padding: SPACING.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.lg,
   },
   modalTitle: {
-    fontSize: 20,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontFamily: FONTS.heading,
+    fontWeight: TYPOGRAPHY.weights.bold,
     color: COLORS.primary,
-    marginBottom: 16,
+    marginBottom: SPACING.base,
     textAlign: "center",
   },
   modalItem: {
-    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderSubtle,
   },
   modalItemText: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
+    lineHeight: 20,
   },
   closeButton: {
-    marginTop: 16,
-    backgroundColor: COLORS.background,
-    borderRadius: LAYOUT.buttonRadius,
-    height: 44,
+    marginTop: SPACING.base,
+    backgroundColor: COLORS.backgroundAlt,
+    borderRadius: RADIUS.md,
+    height: 46,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   closeButtonText: {
     color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
 });

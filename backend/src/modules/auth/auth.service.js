@@ -50,6 +50,12 @@ async function loginUser({ email, password }) {
     throw error;
   }
 
+  if (user.isActive === false) {
+    const error = new Error("Account has been deactivated by administrator");
+    error.statusCode = 403;
+    throw error;
+  }
+
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isPasswordValid) {

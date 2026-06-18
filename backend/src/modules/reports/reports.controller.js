@@ -2,7 +2,7 @@ const reportsService = require("./reports.service");
 
 async function teacherOverview(req, res, next) {
   try {
-    const data = await reportsService.getTeacherOverview();
+    const data = await reportsService.getTeacherOverview(req.user.sub);
     res.status(200).json({
       success: true,
       data,
@@ -153,27 +153,6 @@ async function getCourseDefaulters(req, res, next) {
   }
 }
 
-async function getCourseTrends(req, res, next) {
-  try {
-    const courseId = Number(req.params.courseId);
-    if (isNaN(courseId)) {
-      const error = new Error("Invalid course ID");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const result = await reportsService.getCourseTrends(req.user.sub, courseId);
-    res.status(200).json({
-      success: true,
-      averageAttendance: result.averageAttendance,
-      highestAttendance: result.highestAttendance,
-      lowestAttendance: result.lowestAttendance,
-      data: result.data,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
 
 async function exportCourseCSV(req, res, next) {
   try {
@@ -329,7 +308,6 @@ module.exports = {
   // New handlers
   getTeacherDashboard,
   getCourseDefaulters,
-  getCourseTrends,
   exportCourseCSV,
   exportCourseDefaultersCSV,
   exportCoursePDF,

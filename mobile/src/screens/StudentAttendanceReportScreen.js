@@ -4,11 +4,20 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  FileText,
+  Users,
+  CalendarDays,
+  BarChart3,
+  AlertTriangle,
+  ChevronRight,
+} from "lucide-react-native";
 import { getTeacherCourseStudentsReport } from "../services/reports";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function StudentAttendanceReportScreen({ route, navigation }) {
   const { courseId } = route.params;
@@ -40,7 +49,7 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -49,7 +58,9 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
     return (
       <View style={styles.container}>
         <View style={styles.errorCard}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <AlertTriangle size={24} color={COLORS.error} style={styles.errorIcon} />
+          <Text style={styles.errorTitleText}>Unable to load report</Text>
+          <Text style={styles.errorMessageText}>{errorMessage}</Text>
         </View>
       </View>
     );
@@ -61,17 +72,20 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
     <View style={styles.container}>
       {/* Summary Header Card */}
       <View style={styles.headerCard}>
-        <Text style={styles.courseName}>{course?.name}</Text>
+        <Text style={styles.courseName}>{course?.name ?? "Course Report"}</Text>
         <View style={styles.headerStatsRow}>
           <View style={styles.headerStatBox}>
+            <CalendarDays size={16} color={COLORS.textInverse} style={styles.headerStatIcon} />
             <Text style={styles.headerStatNumber}>{totalSessions}</Text>
             <Text style={styles.headerStatLabel}>Sessions</Text>
           </View>
           <View style={styles.headerStatBox}>
+            <Users size={16} color={COLORS.textInverse} style={styles.headerStatIcon} />
             <Text style={styles.headerStatNumber}>{totalStudents}</Text>
             <Text style={styles.headerStatLabel}>Students</Text>
           </View>
           <View style={styles.headerStatBox}>
+            <BarChart3 size={16} color={COLORS.textInverse} style={styles.headerStatIcon} />
             <Text style={styles.headerStatNumber}>{averageAttendance}%</Text>
             <Text style={styles.headerStatLabel}>Avg Attendance</Text>
           </View>
@@ -90,10 +104,16 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
           keyExtractor={(item) => item.studentId.toString()}
           contentContainerStyle={styles.listContainer}
           renderItem={({ item }) => {
-            const isDefaulter = item.attendancePercentage < 75; // 75% standard threshold indication
+            const isDefaulter = item.attendancePercentage < 75;
+            const badgeStyle = isDefaulter ? BADGES.danger : BADGES.success;
+            const badgeText = isDefaulter ? "AT RISK" : "SAFE";
+
             return (
-              <TouchableOpacity
-                style={[styles.studentCard, isDefaulter && styles.defaulterCard]}
+              <Pressable
+                style={[
+                  styles.studentCard,
+                  isDefaulter && styles.defaulterCard,
+                ]}
                 onPress={() =>
                   navigation.navigate("StudentAttendanceHistory", {
                     courseId,
@@ -104,26 +124,31 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
                 <View style={styles.studentInfo}>
                   <Text style={styles.studentName}>{item.name}</Text>
                   <Text style={styles.studentRoll}>Roll: {item.rollNumber}</Text>
+                  
+                  {/* Clean Horizontal Metadata */}
                   <View style={styles.detailsRow}>
-                    <Text style={styles.detailsText}>QR Records: {item.qrCount || 0}</Text>
-                    <Text style={styles.detailsText}>Manual Records: {item.manualCount || 0}</Text>
-                    <Text style={styles.detailsText}>Absences: {item.absentCount || 0}</Text>
+                    <Text style={styles.detailsText}>
+                      QR: {item.qrCount || 0}  •  Manual: {item.manualCount || 0}  •  Absent: {item.absentCount || 0}
+                    </Text>
                   </View>
                 </View>
+                
                 <View style={styles.studentStats}>
-                  <Text style={styles.fractionText}>
-                    Present: {item.presentCount || 0} / {item.totalSessions}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.percentageText,
-                      isDefaulter ? styles.defaulterText : styles.normalText,
-                    ]}
-                  >
+                  <Text style={[styles.percentageText, { color: badgeStyle.color }]}>
                     {item.attendancePercentage}%
                   </Text>
+                  <View style={[styles.statusBadge, badgeStyle]}>
+                    <Text style={[styles.badgeText, { color: badgeStyle.color }]}>
+                      {badgeText}
+                    </Text>
+                  </View>
+                  <Text style={styles.fractionText}>
+                    Present: {item.presentCount || 0}/{item.totalSessions}
+                  </Text>
                 </View>
-              </TouchableOpacity>
+                
+                <ChevronRight size={16} color={COLORS.textSecondary} style={styles.chevronIcon} />
+              </Pressable>
             );
           }}
         />
@@ -137,30 +162,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f8fafc",
+    padding: SPACING.base,
+    backgroundColor: COLORS.background,
   },
   headerCard: {
-    backgroundColor: "#0f172a",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.base,
+    ...SHADOWS.md,
   },
   courseName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#ffffff",
+    fontSize: TYPOGRAPHY.sizes.screenTitle - 2,
+    fontWeight: "bold",
+    color: COLORS.textInverse,
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: SPACING.md,
+    fontFamily: FONTS.heading,
   },
   headerStatsRow: {
     flexDirection: "row",
@@ -170,25 +192,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginHorizontal: 4,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.sm,
+    marginHorizontal: SPACING.xxs,
+  },
+  headerStatIcon: {
+    marginBottom: 4,
+    opacity: 0.9,
   },
   headerStatNumber: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    color: "#ffffff",
+    color: COLORS.textInverse,
+    fontFamily: FONTS.body,
     marginBottom: 2,
   },
   headerStatLabel: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.primaryLight,
+    fontFamily: FONTS.body,
   },
   listTitle: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "700",
-    color: "#475569",
-    marginBottom: 12,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
+    marginBottom: SPACING.sm,
     paddingHorizontal: 4,
   },
   listContainer: {
@@ -196,83 +225,111 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.sm,
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    elevation: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
   defaulterCard: {
-    borderColor: "#fecaca",
-    backgroundColor: "#fff5f5",
+    borderColor: COLORS.border,
   },
   studentInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: SPACING.xs,
   },
   studentName: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg - 1,
     fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 4,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+    marginBottom: 2,
   },
   studentRoll: {
-    fontSize: 13,
-    color: "#64748b",
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
   },
   studentStats: {
     alignItems: "flex-end",
+    marginRight: 6,
   },
   fractionText: {
-    fontSize: 13,
-    color: "#475569",
-    marginBottom: 2,
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginTop: 2,
   },
   percentageText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-  },
-  defaulterText: {
-    color: "#dc2626",
-  },
-  normalText: {
-    color: "#166534",
+    fontFamily: FONTS.heading,
+    marginBottom: 2,
   },
   detailsRow: {
     marginTop: 6,
-    flexDirection: "column",
   },
   detailsText: {
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 2,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+  },
+  chevronIcon: {
+    opacity: 0.7,
+  },
+  statusBadge: {
+    borderRadius: RADIUS.xxl,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: "bold",
+    fontFamily: FONTS.body,
   },
   errorCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: COLORS.error,
+    alignItems: "center",
   },
-  errorText: {
-    color: "#dc2626",
-    fontSize: 16,
+  errorIcon: {
+    marginBottom: SPACING.xs,
+  },
+  errorTitleText: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: "700",
+    color: COLORS.error,
+    marginBottom: 4,
     textAlign: "center",
+    fontFamily: FONTS.heading,
+  },
+  errorMessageText: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.error,
+    textAlign: "center",
+    fontFamily: FONTS.body,
   },
   emptyCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     alignItems: "center",
   },
   emptyText: {
-    color: "#64748b",
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
   },
 });

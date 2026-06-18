@@ -4,6 +4,9 @@
   "description": "Backend for Attendance System",
   "main": "src/index.js",
   "scripts": {
+    "dev": "node src/app.js",
+    "dev:clean": "powershell -Command \"$p = Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue; if ($p) { Stop-Process -Id $p.OwningProcess -Force }\" & node src/app.js",
+    "health-check": "node src/scripts/smoke-test.js",
     "audit:snapshot": "node audit/pre_audit_snapshot.js",
     "audit:verify": "node audit/post_cleanup_verify.js",
     "audit:test:id": "node audit/tests/generateAuditRunId.test.js",

@@ -8,9 +8,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-
 import { useAuth } from "../context/AuthContext";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, LAYOUT, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, FONTS } from "../utils/theme";
+import { AlertCircle, User, Award, Mail, Lock, Building, GraduationCap, Layers, Sparkles } from "lucide-react-native";
 
 export default function RegisterScreen({ navigation }) {
   const { signUp } = useAuth();
@@ -31,13 +31,11 @@ export default function RegisterScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleRegister() {
-    // Trimming whitespaces on general fields
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
     const trimmedDepartment = department.trim();
 
-    // Prevent submission if empty strings containing only spaces are entered
     if (!trimmedName || !trimmedEmail || !trimmedPassword || !trimmedDepartment) {
       setErrorMessage("Please fill in all general fields.");
       return;
@@ -109,7 +107,7 @@ export default function RegisterScreen({ navigation }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>
@@ -125,6 +123,7 @@ export default function RegisterScreen({ navigation }) {
               setErrorMessage("");
             }}
           >
+            <GraduationCap size={16} color={role === "student" ? COLORS.textInverse : COLORS.textSecondary} style={styles.roleIcon} />
             <Text style={[styles.roleText, role === "student" && styles.roleTextActive]}>
               Student
             </Text>
@@ -136,6 +135,7 @@ export default function RegisterScreen({ navigation }) {
               setErrorMessage("");
             }}
           >
+            <Award size={16} color={role === "teacher" ? COLORS.textInverse : COLORS.textSecondary} style={styles.roleIcon} />
             <Text style={[styles.roleText, role === "teacher" && styles.roleTextActive]}>
               Teacher
             </Text>
@@ -143,72 +143,106 @@ export default function RegisterScreen({ navigation }) {
         </View>
 
         {/* General Inputs */}
-        <TextInput
-          placeholder="Name"
-          placeholderTextColor="#94a3b8"
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-        />
+        <View style={styles.inputWrapper}>
+          <User size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            placeholder="Full Name"
+            placeholderTextColor={COLORS.textSecondary}
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
 
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder="Email"
-          placeholderTextColor="#94a3b8"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-        />
+        <View style={styles.inputWrapper}>
+          <Mail size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="Email Address"
+            placeholderTextColor={COLORS.textSecondary}
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
 
-        <TextInput
-          placeholder="Password (min 6 chars)"
-          placeholderTextColor="#94a3b8"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
+        <View style={styles.inputWrapper}>
+          <Lock size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            placeholder="Password (min 6 chars)"
+            placeholderTextColor={COLORS.textSecondary}
+            secureTextEntry
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+          />
+        </View>
 
-        <TextInput
-          placeholder="Department"
-          placeholderTextColor="#94a3b8"
-          style={styles.input}
-          value={department}
-          onChangeText={setDepartment}
-        />
+        <View style={styles.inputWrapper}>
+          <Building size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+          <TextInput
+            placeholder="Department (e.g. CSE)"
+            placeholderTextColor={COLORS.textSecondary}
+            style={styles.input}
+            value={department}
+            onChangeText={setDepartment}
+          />
+        </View>
 
         {/* Conditionally Rendered Student Fields */}
         {role === "student" && (
           <>
-            <TextInput
-              placeholder="Roll Number"
-              placeholderTextColor="#94a3b8"
-              style={styles.input}
-              value={rollNumber}
-              onChangeText={setRollNumber}
-            />
+            <View style={styles.dividerBlock}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerLabel}>Student Academic Details</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-            <TextInput
-              keyboardType="number-pad"
-              placeholder="Semester"
-              placeholderTextColor="#94a3b8"
-              style={styles.input}
-              value={semester}
-              onChangeText={setSemester}
-            />
+            <View style={styles.inputWrapper}>
+              <Award size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                placeholder="Roll Number (e.g. 2021CSE102)"
+                placeholderTextColor={COLORS.textSecondary}
+                style={styles.input}
+                value={rollNumber}
+                onChangeText={setRollNumber}
+              />
+            </View>
 
-            <TextInput
-              placeholder="Section (e.g. A)"
-              placeholderTextColor="#94a3b8"
-              style={styles.input}
-              value={section}
-              onChangeText={setSection}
-            />
+            <View style={styles.row}>
+              <View style={[styles.inputWrapper, { flex: 1, marginRight: SPACING.sm }]}>
+                <Layers size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  keyboardType="number-pad"
+                  placeholder="Semester (e.g. 6)"
+                  placeholderTextColor={COLORS.textSecondary}
+                  style={styles.input}
+                  value={semester}
+                  onChangeText={setSemester}
+                />
+              </View>
+
+              <View style={[styles.inputWrapper, { flex: 1 }]}>
+                <Sparkles size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  placeholder="Section (e.g. A)"
+                  placeholderTextColor={COLORS.textSecondary}
+                  style={styles.input}
+                  value={section}
+                  onChangeText={setSection}
+                />
+              </View>
+            </View>
           </>
         )}
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {errorMessage ? (
+          <View style={[styles.feedbackBox, styles.errorBox]}>
+            <AlertCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
         <Pressable
           style={[styles.button, isSubmitting && styles.buttonDisabled]}
@@ -216,7 +250,7 @@ export default function RegisterScreen({ navigation }) {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={COLORS.textInverse} />
           ) : (
             <Text style={styles.buttonText}>Register</Text>
           )}
@@ -237,111 +271,156 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.xl,
     backgroundColor: COLORS.background,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    elevation: 2,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
+    ...SHADOWS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   title: {
-    fontSize: 26,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: TYPOGRAPHY.heading.fontWeight,
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
+    fontFamily: FONTS.heading,
+    fontWeight: TYPOGRAPHY.weights.bold,
     color: COLORS.primary,
     textAlign: "center",
   },
   subtitle: {
-    marginTop: 8,
-    marginBottom: 20,
-    fontSize: 14,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.xl,
+    fontSize: TYPOGRAPHY.sizes.body,
     lineHeight: 20,
-    color: "#64748b",
+    color: COLORS.textSecondary,
     textAlign: "center",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   roleContainer: {
     flexDirection: "row",
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: LAYOUT.inputRadius,
-    marginBottom: 16,
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.base,
     overflow: "hidden",
+    backgroundColor: COLORS.background,
+    padding: 3,
   },
   roleTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    justifyContent: "center",
+    flexDirection: "row",
+    borderRadius: RADIUS.sm,
   },
   roleTabActive: {
     backgroundColor: COLORS.primary,
+    ...SHADOWS.xs,
+  },
+  roleIcon: {
+    marginRight: SPACING.xs,
   },
   roleText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#64748b",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
   },
   roleTextActive: {
-    color: "#ffffff",
+    color: COLORS.textInverse,
   },
-  input: {
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: LAYOUT.inputRadius,
-    paddingHorizontal: 16,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.base,
     height: 48,
-    fontSize: 16,
+  },
+  inputIcon: {
+    marginRight: SPACING.sm,
+  },
+  input: {
+    flex: 1,
+    height: "100%",
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.text,
-    backgroundColor: COLORS.surface,
-    marginBottom: 14,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  dividerBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: SPACING.base,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.borderSubtle,
+  },
+  dividerLabel: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    textTransform: "uppercase",
+    marginHorizontal: SPACING.sm,
+    letterSpacing: 0.5,
   },
   button: {
-    marginTop: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
+    ...BUTTON_VARIANTS.primary,
+    marginTop: SPACING.sm,
+    height: 48,
+    ...SHADOWS.xs,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: FONTS.body,
+  },
+  feedbackBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.base,
+  },
+  errorBox: {
+    backgroundColor: COLORS.errorLight,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+  },
+  feedbackIcon: {
+    marginRight: SPACING.sm,
   },
   errorText: {
-    marginBottom: 8,
+    flex: 1,
     color: COLORS.error,
-    fontSize: 14,
-    textAlign: "center",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
   linkButton: {
-    marginTop: 16,
+    marginTop: SPACING.base,
     alignItems: "center",
   },
   linkText: {
     color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
 });

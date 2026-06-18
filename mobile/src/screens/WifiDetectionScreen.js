@@ -6,23 +6,21 @@ import {
   Text,
   View,
 } from "react-native";
-
 import { submitScannedAttendance } from "../services/studentAttendance";
 import { getNearbyWifi, validateWifi } from "../services/wifi";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
+import { Wifi, Info, Shield, CheckCircle, XCircle, ChevronLeft } from "lucide-react-native";
 
 function getSignalLabel(rssi) {
   if (rssi >= -50) {
     return "Excellent";
   }
-
   if (rssi >= -60) {
     return "Good";
   }
-
   if (rssi >= -70) {
     return "Fair";
   }
-
   return "Weak";
 }
 
@@ -95,7 +93,10 @@ export default function WifiDetectionScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>WiFi Proximity Check</Text>
+        <View style={styles.headerRow}>
+          <Shield size={24} color={COLORS.primary} style={styles.headerIcon} />
+          <Text style={styles.title}>WiFi Proximity Check</Text>
+        </View>
         <Text style={styles.subtitle}>
           We will verify that you are close to the teacher hotspot before attendance is accepted.
         </Text>
@@ -107,27 +108,42 @@ export default function WifiDetectionScreen({ navigation, route }) {
 
         {detectedWifi ? (
           <View style={styles.hotspotCard}>
-            <Text style={styles.hotspotTitle}>Detected Hotspot</Text>
-            <Text style={styles.hotspotText}>SSID: {detectedWifi.SSID}</Text>
-            <Text style={styles.hotspotText}>BSSID: {detectedWifi.BSSID}</Text>
-            <Text style={styles.hotspotText}>
-              RSSI: {detectedWifi.level} dBm ({signalLabel})
-            </Text>
+            <View style={styles.hotspotHeader}>
+              <Wifi size={16} color={COLORS.primary} style={styles.hotspotIcon} />
+              <Text style={styles.hotspotTitle}>Detected Hotspot</Text>
+            </View>
+            <View style={styles.hotspotDetailGrid}>
+              <Text style={styles.hotspotText}>SSID: <Text style={styles.boldText}>{detectedWifi.SSID}</Text></Text>
+              <Text style={styles.hotspotText}>BSSID: <Text style={styles.boldText}>{detectedWifi.BSSID}</Text></Text>
+              <Text style={styles.hotspotText}>
+                RSSI: <Text style={styles.boldText}>{detectedWifi.level} dBm</Text> ({signalLabel})
+              </Text>
+            </View>
           </View>
         ) : null}
 
         {isScanning || isValidating ? (
-          <ActivityIndicator size="large" color="#0f172a" style={styles.loader} />
+          <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
         ) : null}
 
         {message ? (
-          <Text style={[styles.message, isSuccess ? styles.successText : styles.errorText]}>
-            {message}
-          </Text>
+          <View style={[styles.messageBox, isSuccess ? styles.successBox : styles.errorBox]}>
+            {isSuccess ? (
+              <CheckCircle size={16} color={COLORS.success} style={styles.feedbackIcon} />
+            ) : (
+              <XCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
+            )}
+            <Text style={[styles.messageText, isSuccess ? styles.successText : styles.errorText]}>
+              {message}
+            </Text>
+          </View>
         ) : (
-          <Text style={styles.helperText}>
-            Scan nearby WiFi and validate that you are close to the teacher hotspot.
-          </Text>
+          <View style={styles.helperBox}>
+            <Info size={16} color={COLORS.textSecondary} style={styles.feedbackIcon} />
+            <Text style={styles.helperText}>
+              Scan nearby WiFi and validate that you are close to the teacher hotspot.
+            </Text>
+          </View>
         )}
 
         <Pressable
@@ -143,7 +159,17 @@ export default function WifiDetectionScreen({ navigation, route }) {
           </Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate("Dashboard");
+            }
+          }}
+        >
+          <ChevronLeft size={16} color={COLORS.primary} />
           <Text style={styles.secondaryButtonText}>Back</Text>
         </Pressable>
       </View>
@@ -155,115 +181,173 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "#f8fafc",
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.md,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.sm,
+  },
+  headerIcon: {
+    marginRight: SPACING.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
     textAlign: "center",
   },
   subtitle: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
     textAlign: "center",
-    color: "#475569",
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
     lineHeight: 22,
+    fontFamily: FONTS.body,
   },
   statusCard: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: COLORS.infoLight,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(42, 95, 139, 0.15)",
   },
   statusLabel: {
-    color: "#64748b",
-    fontSize: 14,
-    marginBottom: 6,
+    color: COLORS.info,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   statusValue: {
-    color: "#0f172a",
-    fontSize: 28,
-    fontWeight: "800",
+    color: COLORS.text,
+    fontSize: TYPOGRAPHY.sizes.cardMetric,
+    fontWeight: TYPOGRAPHY.weights.extrabold,
     letterSpacing: 3,
+    fontFamily: FONTS.body,
   },
   hotspotCard: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderColor: COLORS.borderSubtle,
+    borderRadius: RADIUS.md,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  hotspotHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.xs,
+  },
+  hotspotIcon: {
+    marginRight: SPACING.xs,
   },
   hotspotTitle: {
-    color: "#0f172a",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
+    color: COLORS.text,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: FONTS.heading,
+  },
+  hotspotDetailGrid: {
+    gap: 2,
   },
   hotspotText: {
-    color: "#334155",
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
     lineHeight: 22,
+    fontFamily: FONTS.body,
+  },
+  boldText: {
+    color: COLORS.text,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   loader: {
-    marginBottom: 16,
+    marginBottom: SPACING.base,
+  },
+  helperBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    marginBottom: SPACING.base,
   },
   helperText: {
-    color: "#64748b",
-    textAlign: "center",
+    flex: 1,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
     lineHeight: 20,
-    marginBottom: 16,
+    fontFamily: FONTS.body,
   },
-  message: {
-    textAlign: "center",
-    fontSize: 15,
-    fontWeight: "600",
-    lineHeight: 22,
-    marginBottom: 16,
+  messageBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: SPACING.md,
+    marginBottom: SPACING.base,
+  },
+  successBox: {
+    backgroundColor: COLORS.successLight,
+    borderColor: "rgba(45, 106, 79, 0.15)",
+  },
+  errorBox: {
+    backgroundColor: COLORS.errorLight,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+  },
+  feedbackIcon: {
+    marginRight: SPACING.sm,
+  },
+  messageText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    lineHeight: 20,
+    fontFamily: FONTS.body,
   },
   successText: {
-    color: "#15803d",
+    color: COLORS.success,
   },
   errorText: {
-    color: "#dc2626",
+    color: COLORS.error,
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
+    ...BUTTON_VARIANTS.primary,
+    height: 48,
+    ...SHADOWS.xs,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   secondaryButton: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
+    ...BUTTON_VARIANTS.outline,
+    marginTop: SPACING.sm,
+    height: 48,
+    borderColor: COLORS.primary,
   },
   secondaryButtonText: {
-    color: "#0f172a",
-    fontSize: 16,
-    fontWeight: "700",
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   buttonDisabled: {
     opacity: 0.7,

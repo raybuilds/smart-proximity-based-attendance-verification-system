@@ -131,6 +131,7 @@ async function getTeacherDashboard(userId, range = "all") {
   const courseStats = [];
 
   for (const course of courses) {
+    if (course.isArchived) continue;
     const rangeSessions = course.sessions.filter((s) => {
       if (range === "7d" || range === "30d") {
         return s.startedAt >= cutoff;
@@ -194,29 +195,7 @@ async function getTeacherDashboard(userId, range = "all") {
     worstCourse,
   };
 
-  // Trend indicator calculation for 7d and 30d
-  if (range !== "all") {
-    let totalRecordsPrev = 0;
-    let totalPossiblePrev = 0;
 
-    for (const course of courses) {
-      const prevSessions = course.sessions.filter((s) => s.startedAt >= prevCutoff && s.startedAt < cutoff);
-      for (const session of prevSessions) {
-        const eligibleCount = await cachedStudentCount(session);
-        totalRecordsPrev += session.attendanceRecords.length;
-        totalPossiblePrev += eligibleCount;
-      }
-    }
-
-    const previousAverage = totalPossiblePrev === 0 ? 0 : (totalRecordsPrev / totalPossiblePrev) * 100;
-    const currentAverage = totalPossibleAll === 0 ? 0 : (totalAttendanceRecords / totalPossibleAll) * 100;
-    const diff = currentAverage - previousAverage;
-
-    responseData.attendanceTrend = {
-      direction: diff >= 0 ? "up" : "down",
-      change: Number(Math.abs(diff).toFixed(1)),
-    };
-  }
 
   dashboardCache.set(cacheKey, { data: responseData, expiresAt: Date.now() + 60 * 1000 });
   return responseData;
@@ -237,73 +216,6 @@ async function getCourseDefaulters(userId, courseId, threshold = 75) {
   };
 }
 
-async function getCourseTrends(userId, courseId) {
-  const teacher = await getTeacherByUserId(userId);
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-  });
-
-  if (!course) {
-    const error = new Error("Course not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (course.teacherId !== teacher.id) {
-    const error = new Error("Access denied.");
-    error.statusCode = 403;
-    throw error;
-  }
-
-  const sessions = await prisma.attendanceSession.findMany({
-    where: { courseId },
-    include: {
-      attendanceRecords: true,
-    },
-    orderBy: { startedAt: "asc" },
-  });
-
-  if (sessions.length === 0) {
-    return {
-      averageAttendance: 0.0,
-      highestAttendance: 0.0,
-      lowestAttendance: 0.0,
-      data: [],
-    };
-  }
-
-  const trendData = [];
-  let totalPercentage = 0;
-  let highestAttendance = -1;
-  let lowestAttendance = 101;
-
-  for (const session of sessions) {
-    const eligibleCount = await getEligibleStudentCountForSession(session);
-    const recordsCount = session.attendanceRecords.length;
-
-    const percentage = eligibleCount === 0 ? 0.0 : Number(((recordsCount / eligibleCount) * 100).toFixed(2));
-
-    totalPercentage += percentage;
-    if (percentage > highestAttendance) highestAttendance = percentage;
-    if (percentage < lowestAttendance) lowestAttendance = percentage;
-
-    trendData.push({
-      sessionId: session.id,
-      date: session.startedAt.toISOString().split("T")[0],
-      attendancePercentage: percentage,
-    });
-  }
-
-  const averageAttendance = Number((totalPercentage / sessions.length).toFixed(2));
-
-  return {
-    averageAttendance,
-    highestAttendance: Number(highestAttendance.toFixed(2)),
-    lowestAttendance: Number(lowestAttendance.toFixed(2)),
-    data: trendData,
-  };
-}
 
 async function exportCourseCSV(userId, courseId) {
   const report = await getTeacherCourseStudentsReport(userId, courseId);
@@ -527,30 +439,184 @@ async function exportCoursePDF(userId, courseId, res) {
   logExport(teacher.id, courseId, "PDF");
 }
 
-async function getTeacherOverview() {
-  const totalStudents = await prisma.student.count();
+async function getTeacherOverview(userId) {
+  const teacher = await getTeacherByUserId(userId);
 
-  const totalSessions = await prisma.attendanceSession.count();
+  // Retrieve active courses (exclude archived ones) taught by the teacher
+  const courses = await prisma.course.findMany({
+    where: {
+      teacherId: teacher.id,
+      isArchived: false,
+    },
+  });
 
-  const totalAttendanceRecords = await prisma.attendance.count();
+  const totalCourses = courses.length;
 
-  const possibleAttendance = totalStudents * totalSessions;
+  // Find unique students matching (department, semester, section) of active courses
+  const courseFilters = courses
+    .map((c) => ({
+      department: c.department,
+      semester: c.semester,
+      section: c.section,
+    }))
+    .filter((f) => f.department && f.semester && f.section);
+
+  let totalStudents = 0;
+  if (courseFilters.length > 0) {
+    totalStudents = await prisma.student.count({
+      where: {
+        OR: courseFilters.map((f) => ({
+          department: { equals: f.department, mode: "insensitive" },
+          semester: f.semester,
+          section: { equals: f.section, mode: "insensitive" },
+        })),
+      },
+    });
+  }
+
+  // Retrieve total completed sessions for active courses only
+  const activeCourseIds = courses.map((c) => c.id);
+  const totalSessions = await prisma.attendanceSession.count({
+    where: {
+      courseId: { in: activeCourseIds },
+      isActive: false,
+    },
+  });
+
+  // Calculate Average Attendance across this teacher's courses only
+  // Count total present records and possible attendance for non-active sessions
+  const sessions = await prisma.attendanceSession.findMany({
+    where: {
+      courseId: { in: activeCourseIds },
+      isActive: false,
+    },
+    include: {
+      attendanceRecords: true,
+    },
+  });
+
+  let totalPresent = 0;
+  let totalPossible = 0;
+  const countCache = {};
+
+  for (const session of sessions) {
+    const key = `${session.departmentSnapshot || ""}-${session.semesterSnapshot || ""}-${session.sectionSnapshot || ""}`;
+    if (countCache[key] === undefined) {
+      countCache[key] = await getEligibleStudentCountForSession(session);
+    }
+    const eligibleCount = countCache[key];
+    totalPresent += session.attendanceRecords.length;
+    totalPossible += eligibleCount;
+  }
 
   const attendancePercentage =
-    possibleAttendance === 0
-      ? 0
-      : Number(
-          (
-            (totalAttendanceRecords / possibleAttendance) *
-            100
-          ).toFixed(1)
-        );
+    totalPossible === 0
+      ? 0.0
+      : Number(((totalPresent / totalPossible) * 100).toFixed(1));
+
+  // Compute at-risk students (< 75% attendance within active courses)
+  const atRiskSet = new Set();
+  for (const course of courses) {
+    if (!course.department || !course.semester || !course.section) continue;
+
+    const courseSessions = sessions.filter((s) => s.courseId === course.id);
+    const totalCourseSessions = courseSessions.length;
+    if (totalCourseSessions === 0) continue;
+
+    const roster = await prisma.student.findMany({
+      where: {
+        department: { equals: course.department, mode: "insensitive" },
+        semester: course.semester,
+        section: { equals: course.section, mode: "insensitive" },
+      },
+    });
+
+    const courseSessionIds = courseSessions.map((s) => s.id);
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        sessionId: { in: courseSessionIds },
+      },
+    });
+
+    for (const student of roster) {
+      const presentCount = attendances.filter((a) => a.studentId === student.userId).length;
+      const pct = (presentCount / totalCourseSessions) * 100;
+      if (pct < 75.0) {
+        atRiskSet.add(student.userId);
+      }
+    }
+  }
+  const atRiskStudents = atRiskSet.size;
+
+  // Count manual corrections performed by this teacher
+  const manualCorrections = await prisma.attendanceCorrection.count({
+    where: {
+      modifiedByTeacherId: teacher.userId,
+    },
+  });
+
+  // Determine Best Course (highest average attendance percentage)
+  let bestCourseObj = null;
+  let maxPct = -1;
+
+  for (const course of courses) {
+    const courseSessions = sessions.filter((s) => s.courseId === course.id);
+    if (courseSessions.length === 0) continue;
+
+    let present = 0;
+    let possible = 0;
+
+    for (const session of courseSessions) {
+      const key = `${session.departmentSnapshot || ""}-${session.semesterSnapshot || ""}-${session.sectionSnapshot || ""}`;
+      const eligibleCount = countCache[key] !== undefined ? countCache[key] : await getEligibleStudentCountForSession(session);
+      present += session.attendanceRecords.length;
+      possible += eligibleCount;
+    }
+
+    const coursePct = possible === 0 ? 0.0 : (present / possible) * 100;
+    if (coursePct > maxPct) {
+      maxPct = coursePct;
+      bestCourseObj = {
+        code: course.code || "Course",
+        name: course.name,
+        attendancePercentage: Number(coursePct.toFixed(1)),
+      };
+    }
+  }
+
+  // Find if there is an active session taught by this teacher
+  const liveSession = await prisma.attendanceSession.findFirst({
+    where: {
+      teacherId: teacher.userId,
+      isActive: true,
+    },
+    include: {
+      course: true,
+      attendanceRecords: true,
+    },
+  });
+
+  let activeSessionObj = null;
+  if (liveSession) {
+    const eligibleCount = await getEligibleStudentCountForSession(liveSession);
+    activeSessionObj = {
+      courseCode: liveSession.course?.code || "N/A",
+      courseName: liveSession.course?.name || "Not Assigned",
+      presentCount: liveSession.attendanceRecords.length,
+      eligibleCount,
+      startedAt: liveSession.startedAt.toISOString(),
+    };
+  }
 
   return {
+    totalCourses,
     totalStudents,
     totalSessions,
-    totalAttendanceRecords,
     attendancePercentage,
+    atRiskStudents,
+    manualCorrections,
+    bestCourse: bestCourseObj,
+    activeSession: activeSessionObj,
   };
 }
 
@@ -681,7 +747,10 @@ async function getTeacherCoursesReport(userId) {
   const teacher = await getTeacherByUserId(userId);
 
   const courses = await prisma.course.findMany({
-    where: { teacherId: teacher.id },
+    where: {
+      teacherId: teacher.id,
+      isArchived: false,
+    },
     include: {
       sessions: {
         include: {
@@ -1236,7 +1305,6 @@ async function getStudentCoursesReport(studentUserId) {
       department: { equals: student.department, mode: "insensitive" },
       semester: student.semester,
       section: { equals: student.section, mode: "insensitive" },
-      isArchived: false,
     },
     include: {
       sessions: {
@@ -1261,7 +1329,6 @@ async function getStudentCoursesReport(studentUserId) {
           },
         },
       },
-      isArchived: false,
     },
     include: {
       sessions: {
@@ -1507,7 +1574,6 @@ module.exports = {
   getTeacherDashboard,
   invalidateTeacherDashboardCache,
   getCourseDefaulters,
-  getCourseTrends,
   exportCourseCSV,
   exportCourseDefaultersCSV,
   exportCoursePDF,

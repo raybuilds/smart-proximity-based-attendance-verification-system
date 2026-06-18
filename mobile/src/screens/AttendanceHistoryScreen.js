@@ -7,9 +7,9 @@ import {
   Text,
   View,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { BookOpen, AlertTriangle, ShieldCheck, Inbox } from "lucide-react-native";
 import { getStudentCourses } from "../services/reports";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function AttendanceHistoryScreen({ navigation }) {
   const [data, setData] = useState(null);
@@ -57,7 +57,10 @@ export default function AttendanceHistoryScreen({ navigation }) {
       {/* At Risk Quick View */}
       {atRiskCourses.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>At Risk Quick View</Text>
+          <View style={styles.sectionHeaderRow}>
+            <AlertTriangle size={18} color={COLORS.error} style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>At Risk Quick View</Text>
+          </View>
           {atRiskCourses.map((item) => (
             <Pressable
               key={item.courseId}
@@ -95,18 +98,18 @@ export default function AttendanceHistoryScreen({ navigation }) {
       contentContainerStyle={[styles.container, courses.length === 0 && { flexGrow: 1 }]}
       ListHeaderComponent={renderHeader}
       renderItem={({ item }) => {
-        let badgeStyle = styles.badgeSafe;
+        let badgeStyle = BADGES.success;
         let badgeText = "SAFE";
         let cardBorderStyle = styles.borderSafe;
         let percentageTextStyle = styles.textSafe;
 
         if (item.riskLevel === "warning") {
-          badgeStyle = styles.badgeWarning;
+          badgeStyle = BADGES.warning;
           badgeText = "WARNING";
           cardBorderStyle = styles.borderWarning;
           percentageTextStyle = styles.textWarning;
         } else if (item.riskLevel === "atRisk") {
-          badgeStyle = styles.badgeError;
+          badgeStyle = BADGES.danger;
           badgeText = "AT RISK";
           cardBorderStyle = styles.borderError;
           percentageTextStyle = styles.textError;
@@ -126,7 +129,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
                 {item.courseCode ? `${item.courseCode} - ${item.courseName}` : item.courseName}
               </Text>
               <View style={[styles.badge, badgeStyle]}>
-                <Text style={styles.badgeText}>{badgeText}</Text>
+                <Text style={[styles.badgeText, { color: badgeStyle.color }]}>{badgeText}</Text>
               </View>
             </View>
 
@@ -162,10 +165,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
-            <Svg width={64} height={64} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-              <Path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
-            </Svg>
+            <Inbox size={48} color={COLORS.primary} strokeWidth={1.5} />
           </View>
           <Text style={styles.emptyHeading}>No courses available yet</Text>
           <Text style={styles.emptySubheading}>Courses will appear here when:</Text>
@@ -198,63 +198,63 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   container: {
-    padding: 16,
+    padding: SPACING.base,
     backgroundColor: COLORS.background,
   },
   summaryCard: {
     backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    ...SHADOWS.sm,
   },
   summaryTitle: {
-    color: "#FFFFFF",
-    fontSize: 14,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.label,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
     textTransform: "uppercase",
     letterSpacing: 1,
     opacity: 0.9,
   },
   summaryValue: {
-    color: "#FFFFFF",
-    fontSize: 36,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.cardMetric + 8,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     marginVertical: 8,
   },
   summaryFooter: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
     opacity: 0.8,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: SPACING.base,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.xs,
+  },
+  sectionIcon: {
+    marginRight: SPACING.xs,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     color: COLORS.primary,
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   quickViewCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.xs,
+    ...SHADOWS.xs,
   },
   row: {
     flexDirection: "row",
@@ -263,62 +263,49 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   quickViewCourseCode: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "700",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     flex: 1,
     marginRight: 8,
   },
   percentageText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
   },
   recoveryText: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.error,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   courseCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.xs,
   },
   courseTitle: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     flex: 1,
     marginRight: 8,
   },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: RADIUS.xs,
+    borderWidth: 1,
   },
   badgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
+    fontSize: TYPOGRAPHY.sizes.micro,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  badgeSafe: {
-    backgroundColor: COLORS.success,
-  },
-  badgeWarning: {
-    backgroundColor: COLORS.warning,
-  },
-  badgeError: {
-    backgroundColor: COLORS.error,
+    fontFamily: FONTS.body,
   },
   borderSafe: {
     borderLeftWidth: 4,
@@ -344,88 +331,88 @@ const styles = StyleSheet.create({
   detailsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 8,
-    paddingVertical: 8,
+    marginVertical: SPACING.xs,
+    paddingVertical: SPACING.xs,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: COLORS.borderSubtle,
   },
   detailLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     textTransform: "uppercase",
     marginBottom: 2,
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "600",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   cardFooter: {
     marginTop: 4,
   },
   recoveryFooterText: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.sizes.metadata,
     color: COLORS.error,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   safeFooterText: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.sizes.metadata,
     color: COLORS.success,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.xl,
     paddingVertical: 40,
   },
   emptyIconContainer: {
-    marginBottom: 16,
-    backgroundColor: "rgba(44, 95, 45, 0.08)",
-    padding: 16,
-    borderRadius: 50,
+    marginBottom: SPACING.base,
+    backgroundColor: COLORS.primaryLight,
+    padding: SPACING.base,
+    borderRadius: RADIUS.full,
   },
   emptyHeading: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
     fontWeight: "bold",
     color: COLORS.primary,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: SPACING.xs,
   },
   emptySubheading: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   emptyBulletsBox: {
     alignSelf: "stretch",
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 16,
+    marginBottom: SPACING.base,
   },
   emptyBullet: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
     lineHeight: 20,
     marginBottom: 6,
   },
   emptyCaption: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     textAlign: "center",
     lineHeight: 18,
     fontStyle: "italic",

@@ -16,6 +16,8 @@ import NetInfo from "@react-native-community/netinfo";
 import { getTeacherCourseDetailReport } from "../services/reports";
 import api from "../services/api";
 import EligibilityChips from "../components/EligibilityChips";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
+import { AlertCircle, FileText, Download, Calendar, BarChart3, Users, Clock, Info, ShieldAlert } from "lucide-react-native";
 
 export default function CourseDetailReportScreen({ route, navigation }) {
   const { courseId } = route.params;
@@ -29,7 +31,7 @@ export default function CourseDetailReportScreen({ route, navigation }) {
 
   useEffect(() => {
     isMountedRef.current = true;
-if (__DEV__) console.log('[CourseDetailReportScreen] Mounted');
+    if (__DEV__) console.log('[CourseDetailReportScreen] Mounted');
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -40,7 +42,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] Mounted');
 
   const loadCourseDetail = useCallback(async (options = {}) => {
     const { isPull = false } = options;
-if (__DEV__) console.log('[CourseDetailReportScreen] loadCourseDetail – start', { courseId, options });
+    if (__DEV__) console.log('[CourseDetailReportScreen] loadCourseDetail – start', { courseId, options });
 
     if (loading || refreshing) {
       return;
@@ -61,10 +63,10 @@ if (__DEV__) console.log('[CourseDetailReportScreen] loadCourseDetail – start'
 
     try {
       if (__DEV__) console.log('[CourseDetailReportScreen] API request → getTeacherCourseDetailReport');
-const response = await getTeacherCourseDetailReport(courseId, { signal });
+      const response = await getTeacherCourseDetailReport(courseId, { signal });
       if (isMountedRef.current) {
         setData(response.data);
-if (__DEV__) console.log('[CourseDetailReportScreen] API response received', response?.data?.course?.id);
+        if (__DEV__) console.log('[CourseDetailReportScreen] API response received', response?.data?.course?.id);
       }
     } catch (error) {
       if (isMountedRef.current && error.name !== "CanceledError" && error.name !== "AbortError") {
@@ -86,7 +88,6 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
     }, [loadCourseDetail])
   );
 
-  // Reconnect listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isConnected = state.isConnected && state.isInternetReachable !== false;
@@ -153,6 +154,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
     return (
       <View style={styles.center}>
         <View style={styles.errorContainer}>
+          <AlertCircle size={32} color={COLORS.error} />
           <Text style={styles.errorTitleText}>Unable to load data</Text>
           <Text style={styles.errorMessageText}>{errorMessage}</Text>
           <Pressable
@@ -173,7 +175,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
   if (loading && !data) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -195,15 +197,19 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
   return (
     <ScrollView
       contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={() => loadCourseDetail({ isPull: true })}
+          colors={[COLORS.primary]}
+          tintColor={COLORS.primary}
         />
       }
     >
       {errorMessage ? (
         <View style={styles.errorContainer}>
+          <AlertCircle size={20} color={COLORS.error} />
           <Text style={styles.errorTitleText}>Unable to load data</Text>
           <Text style={styles.errorMessageText}>{errorMessage}</Text>
           <Pressable
@@ -218,21 +224,28 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
           </Pressable>
         </View>
       ) : null}
+      
       <View style={styles.card}>
         <Text style={styles.courseName}>{course?.code ? `${course.code} - ${course.name}` : course?.name}</Text>
         
-        <View style={{ alignItems: "center", marginTop: 6, marginBottom: 14 }}>
+        <View style={styles.chipsRow}>
           <EligibilityChips eligibility={course} isArchived={course?.isArchived} />
         </View>
 
         {/* Timestamps Section */}
         <View style={styles.metadataContainer}>
           <View style={styles.metadataRow}>
-            <Text style={styles.metadataLabel}>Created</Text>
+            <View style={styles.metaLabelWrap}>
+              <Calendar size={14} color={COLORS.textSecondary} style={styles.metaIcon} />
+              <Text style={styles.metadataLabel}>Created</Text>
+            </View>
             <Text style={styles.metadataValue}>{formatDate(course?.createdAt)}</Text>
           </View>
           <View style={styles.metadataRow}>
-            <Text style={styles.metadataLabel}>Last Updated</Text>
+            <View style={styles.metaLabelWrap}>
+              <Clock size={14} color={COLORS.textSecondary} style={styles.metaIcon} />
+              <Text style={styles.metadataLabel}>Last Updated</Text>
+            </View>
             <Text style={styles.metadataValue}>{formatDate(course?.updatedAt)}</Text>
           </View>
         </View>
@@ -240,7 +253,10 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
         {/* Archive Info Section */}
         {course?.isArchived ? (
           <View style={styles.archiveInfoContainer}>
-            <Text style={styles.archiveTitle}>Archival Details</Text>
+            <View style={styles.archiveHeader}>
+              <ShieldAlert size={16} color={COLORS.warning} />
+              <Text style={styles.archiveTitle}>Archival Details</Text>
+            </View>
             <View style={styles.metadataRow}>
               <Text style={styles.metadataLabel}>Archived On</Text>
               <Text style={styles.metadataValue}>{formatDate(course?.archivedAt)}</Text>
@@ -254,6 +270,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
 
         <View style={styles.divider} />
 
+        {/* Course Statistics Grid */}
         <View style={styles.metricsContainer}>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Sessions Conducted</Text>
@@ -269,15 +286,16 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
           </View>
         </View>
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         {exporting ? (
-          <View style={{ paddingVertical: 10 }}>
-            <ActivityIndicator color="#0f172a" />
+          <View style={styles.exportLoader}>
+            <ActivityIndicator color={COLORS.primary} size="small" />
+            <Text style={styles.exportLoaderText}>Exporting data...</Text>
           </View>
         ) : null}
 
         {!hasSessions ? (
           <View style={styles.emptyStateBox}>
+            <Info size={18} color={COLORS.warning} style={styles.feedbackIcon} />
             <Text style={styles.emptyStateText}>
               No attendance sessions have been conducted for this course yet.
             </Text>
@@ -292,6 +310,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
                 })
               }
             >
+              <Users size={16} color={COLORS.textInverse} />
               <Text style={styles.primaryButtonText}>View Student Attendance</Text>
             </Pressable>
 
@@ -303,18 +322,8 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
                 })
               }
             >
+              <AlertCircle size={16} color={COLORS.error} />
               <Text style={styles.dangerButtonText}>View Defaulters</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.infoButton}
-              onPress={() =>
-                navigation.navigate("CourseTrend", {
-                  courseId: course.id,
-                })
-              }
-            >
-              <Text style={styles.infoButtonText}>Attendance Trends</Text>
             </Pressable>
 
             <View style={styles.row}>
@@ -322,6 +331,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
                 style={[styles.outlineButton, { flex: 1, marginRight: 6 }]}
                 onPress={() => handleExport("csv")}
               >
+                <Download size={14} color={COLORS.text} style={styles.btnIcon} />
                 <Text style={styles.outlineButtonText}>Export CSV</Text>
               </Pressable>
 
@@ -329,6 +339,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
                 style={[styles.outlineButton, { flex: 1, marginLeft: 6 }]}
                 onPress={() => handleExport("pdf")}
               >
+                <FileText size={14} color={COLORS.text} style={styles.btnIcon} />
                 <Text style={styles.outlineButtonText}>Export PDF</Text>
               </Pressable>
             </View>
@@ -344,59 +355,66 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   container: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    backgroundColor: "#f8fafc",
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.lg,
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
+    ...SHADOWS.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
   },
   courseName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.screenTitle - 2,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
     textAlign: "center",
+  },
+  chipsRow: {
+    alignItems: "center",
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.base,
   },
   divider: {
     height: 1,
-    backgroundColor: "#e2e8f0",
-    marginVertical: 20,
+    backgroundColor: COLORS.borderSubtle,
+    marginVertical: SPACING.lg,
   },
   metadataContainer: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    marginBottom: 16,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: SPACING.base,
   },
   archiveInfoContainer: {
-    backgroundColor: "#fff5f5",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.warningLight,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: "#fecaca",
-    marginBottom: 16,
+    borderColor: "rgba(193, 127, 36, 0.15)",
+    marginBottom: SPACING.base,
+  },
+  archiveHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.sm,
+    gap: SPACING.xs,
   },
   archiveTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#991b1b",
-    marginBottom: 10,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.warning,
     textTransform: "uppercase",
   },
   metadataRow: {
@@ -405,23 +423,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 6,
   },
+  metaLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  metaIcon: {
+    marginRight: SPACING.xs,
+  },
   metadataLabel: {
-    fontSize: 14,
-    color: "#64748b",
-    fontWeight: "600",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.medium,
   },
   metadataValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
   },
   metricsContainer: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    marginBottom: 24,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: SPACING.lg,
   },
   metricRow: {
     flexDirection: "row",
@@ -429,128 +454,124 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: COLORS.borderSubtle,
   },
   metricLabel: {
-    fontSize: 15,
-    color: "#475569",
-    fontWeight: "500",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   metricValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
   },
   emptyStateBox: {
-    backgroundColor: "#fffbeb",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#fde68a",
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: COLORS.warningLight,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: "rgba(193, 127, 36, 0.15)",
   },
   emptyStateText: {
-    color: "#92400e",
-    fontSize: 15,
-    textAlign: "center",
+    flex: 1,
+    color: COLORS.warning,
+    fontSize: TYPOGRAPHY.sizes.body,
     lineHeight: 22,
+    fontFamily: FONTS.body,
+    fontWeight: TYPOGRAPHY.weights.medium,
+  },
+  feedbackIcon: {
+    marginRight: SPACING.sm,
   },
   buttonStack: {
-    gap: 12,
+    gap: SPACING.sm,
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
+    ...BUTTON_VARIANTS.primary,
+    height: 48,
+    ...SHADOWS.xs,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   dangerButton: {
-    backgroundColor: "#fff5f5",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#fecaca",
+    ...BUTTON_VARIANTS.secondary,
+    backgroundColor: COLORS.errorLight,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+    height: 48,
   },
   dangerButtonText: {
-    color: "#b91c1c",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  infoButton: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
-  infoButtonText: {
-    color: "#1d4ed8",
-    fontSize: 15,
-    fontWeight: "700",
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
   outlineButton: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
+    ...BUTTON_VARIANTS.outline,
+    height: 48,
+  },
+  btnIcon: {
+    marginRight: SPACING.xs,
   },
   outlineButtonText: {
-    color: "#475569",
-    fontSize: 15,
-    fontWeight: "700",
+    color: COLORS.text,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
-  errorText: {
-    color: "#dc2626",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 10,
+  exportLoader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm,
+  },
+  exportLoaderText: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
   },
   errorContainer: {
-    backgroundColor: "#fef2f2",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
-    borderColor: "#fee2e2",
-    marginHorizontal: 16,
-    marginVertical: 12,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+    marginHorizontal: SPACING.base,
+    marginVertical: SPACING.sm,
     alignItems: "center",
   },
   errorTitleText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#991b1b",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.error,
     marginBottom: 4,
     textAlign: "center",
   },
   errorMessageText: {
-    fontSize: 14,
-    color: "#dc2626",
-    marginBottom: 12,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.error,
+    marginBottom: SPACING.sm,
     textAlign: "center",
   },
   retryButton: {
-    backgroundColor: "#991b1b",
-    borderRadius: 8,
+    backgroundColor: COLORS.error,
+    borderRadius: RADIUS.md,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.base,
   },
   retryButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   buttonDisabled: {
     opacity: 0.5,

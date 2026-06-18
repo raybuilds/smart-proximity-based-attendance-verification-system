@@ -10,23 +10,34 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import NetInfo from "@react-native-community/netinfo";
+import {
+  FileText,
+  BookOpen,
+  BarChart3,
+  Users,
+  CalendarDays,
+  CheckCircle,
+  AlertTriangle,
+  Award,
+  Clock,
+  ChevronRight,
+} from "lucide-react-native";
 import { getTeacherCoursesReport, getTeacherDashboard } from "../services/reports";
 import EligibilityChips from "../components/EligibilityChips";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function TeacherReportsScreen({ navigation, route }) {
   if (__DEV__) {
     console.log("[TeacherReports] Screen mounted");
-    console.log("[TeacherReports] route:", route?.name);
-    console.trace("[TeacherReports] mounted from");
-// useEffect moved out of conditional
   }
-  // Log mount/unmount for TeacherReportsScreen
+
   useEffect(() => {
     console.log('[TeacherReports] mounted');
     return () => {
       console.log('[TeacherReports] unmounted');
     };
   }, []);
+
   useFocusEffect(
     React.useCallback(() => {
       console.log("[TeacherReports] focused");
@@ -56,9 +67,8 @@ export default function TeacherReportsScreen({ navigation, route }) {
   }, []);
 
   const loadReportsData = useCallback(async (options = {}) => {
-  const { isPull = false } = options;
-  if (__DEV__) console.log('[Teacher] load start', { isPull, range });
-
+    const { isPull = false } = options;
+    if (__DEV__) console.log('[Teacher] load start', { isPull, range });
 
     if (loading || refreshing) {
       return;
@@ -73,15 +83,13 @@ export default function TeacherReportsScreen({ navigation, route }) {
     if (isPull) {
       setRefreshing(true);
     } else {
-      setLoading(true);
+      setIsLoading(true);
     }
     setErrorMessage("");
     
     try {
       const coursesRes = await getTeacherCoursesReport({ signal });
-      if (__DEV__) console.log('[Teacher] courses report response received', coursesRes?.data?.length);
       const dashboardRes = await getTeacherDashboard(range, { signal });
-      if (__DEV__) console.log('[Teacher] dashboard report response received', dashboardRes?.data?.length);
 
       if (isMountedRef.current) {
         setCourses(coursesRes.data || []);
@@ -95,7 +103,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
       }
     } finally {
       if (isMountedRef.current) {
-  if (__DEV__) console.log('[Teacher] loading flags cleared');
         setLoading(false);
         setRefreshing(false);
       }
@@ -112,7 +119,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
     loadReportsData();
   }, [range, loadReportsData]);
 
-  // Reconnect listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isConnected = state.isConnected && state.isInternetReachable !== false;
@@ -126,10 +132,14 @@ export default function TeacherReportsScreen({ navigation, route }) {
     };
   }, [loadReportsData]);
 
+  // Dynamic set loading flag helper to avoid unused warnings
+  function setIsLoading(val) {
+    setLoading(val);
+  }
+
   const renderDashboard = () => {
     if (!dashboard) return null;
     
-    // Check if empty dashboard
     if (dashboard.totalCourses === 0) {
       return (
         <View style={styles.emptyDashboardCard}>
@@ -137,8 +147,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
         </View>
       );
     }
-
-    const trend = dashboard.attendanceTrend;
 
     return (
       <View style={styles.dashboardContainer}>
@@ -160,32 +168,41 @@ export default function TeacherReportsScreen({ navigation, route }) {
         {/* Row 1 Stats */}
         <View style={styles.gridRow}>
           <View style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <BookOpen size={16} color={COLORS.primary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>Total Courses</Text>
+            </View>
             <Text style={styles.statNum}>{dashboard.totalCourses}</Text>
-            <Text style={styles.statLabel}>Total Courses</Text>
           </View>
           <View style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <CalendarDays size={16} color={COLORS.primary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>Sessions</Text>
+            </View>
             <Text style={styles.statNum}>{dashboard.totalSessions}</Text>
-            <Text style={styles.statLabel}>Sessions</Text>
           </View>
         </View>
 
         {/* Row 2 Stats */}
         <View style={styles.gridRow}>
           <View style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <Users size={16} color={COLORS.primary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>Active Courses</Text>
+            </View>
             <View style={styles.rowAlign}>
               <Text style={styles.statNum}>{dashboard.activeCourses}</Text>
               <Text style={styles.subText}> / {dashboard.archivedCourses} archived</Text>
             </View>
-            <Text style={styles.statLabel}>Active Courses</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNum}>{dashboard.averageAttendancePercentage}%</Text>
-            <Text style={styles.statLabel}>Avg Attendance</Text>
-            {range !== "all" && trend ? (
-              <Text style={[styles.trendIndicator, trend.direction === "up" ? styles.trendUp : styles.trendDown]}>
-                {trend.direction === "up" ? `↑ Improved by ${trend.change}%` : `↓ Dropped by ${trend.change}%`}
-              </Text>
-            ) : null}
+            <View style={styles.statHeader}>
+              <BarChart3 size={16} color={COLORS.success} style={styles.statIcon} />
+              <Text style={styles.statLabel}>Avg Attendance</Text>
+            </View>
+            <Text style={[styles.statNum, styles.statValueGreen]}>
+              {dashboard.averageAttendancePercentage}%
+            </Text>
           </View>
         </View>
 
@@ -195,17 +212,23 @@ export default function TeacherReportsScreen({ navigation, route }) {
             <Text style={styles.insightsTitle}>Course Performance Insights</Text>
             {dashboard.bestCourse ? (
               <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>⭐ Best Performer:</Text>
+                <View style={styles.insightLabelRow}>
+                  <Award size={16} color={COLORS.success} style={styles.insightRowIcon} />
+                  <Text style={styles.insightLabel}>Best Performer</Text>
+                </View>
                 <Text style={styles.insightValue}>
-                  {dashboard.bestCourse.code ? `${dashboard.bestCourse.code} - ` : ""}{dashboard.bestCourse.name} ({dashboard.bestCourse.attendancePercentage}%)
+                  {dashboard.bestCourse.code ? `${dashboard.bestCourse.code} ` : ""}{dashboard.bestCourse.name} ({dashboard.bestCourse.attendancePercentage}%)
                 </Text>
               </View>
             ) : null}
             {dashboard.worstCourse ? (
-              <View style={[styles.insightRow, { marginTop: 8 }]}>
-                <Text style={styles.insightLabel}>⚠️ Needs Attention:</Text>
-                <Text style={styles.insightValue}>
-                  {dashboard.worstCourse.code ? `${dashboard.worstCourse.code} - ` : ""}{dashboard.worstCourse.name} ({dashboard.worstCourse.attendancePercentage}%)
+              <View style={[styles.insightRow, { marginTop: SPACING.xs }]}>
+                <View style={styles.insightLabelRow}>
+                  <AlertTriangle size={16} color={COLORS.error} style={styles.insightRowIcon} />
+                  <Text style={styles.insightLabel}>Needs Attention</Text>
+                </View>
+                <Text style={[styles.insightValue, { color: COLORS.error }]}>
+                  {dashboard.worstCourse.code ? `${dashboard.worstCourse.code} ` : ""}{dashboard.worstCourse.name} ({dashboard.worstCourse.attendancePercentage}%)
                 </Text>
               </View>
             ) : null}
@@ -217,9 +240,19 @@ export default function TeacherReportsScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
+      {/* Green Header */}
+      <View style={styles.screenHeader}>
+        <View style={styles.headerTitleWrap}>
+          <FileText size={22} color={COLORS.primary} style={styles.titleIcon} />
+          <Text style={styles.screenTitle}>Performance Report Center</Text>
+        </View>
+        <Text style={styles.headerSubtitle}>Analyze semester course metrics and attendance records</Text>
+      </View>
+
       {errorMessage ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitleText}>Unable to load data</Text>
+          <AlertTriangle size={24} color={COLORS.error} style={styles.errorIcon} />
+          <Text style={styles.errorTitleText}>Unable to load reports</Text>
           <Text style={styles.errorMessageText}>{errorMessage}</Text>
           <Pressable
             style={[
@@ -243,6 +276,8 @@ export default function TeacherReportsScreen({ navigation, route }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadReportsData({ isPull: true })}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
           />
         }
         ListEmptyComponent={
@@ -261,13 +296,14 @@ export default function TeacherReportsScreen({ navigation, route }) {
               })
             }
           >
-            <Text style={styles.courseName}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.courseName}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
+              <ChevronRight size={18} color={COLORS.textSecondary} />
+            </View>
             
             <EligibilityChips eligibility={item} isArchived={item.isArchived} />
             
-            <View style={{ marginBottom: 14 }} />
-            
-            <View style={styles.statsContainer}>
+            <View style={styles.cardStatsContainer}>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>{item.sessionCount}</Text>
                 <Text style={styles.statLabel}>Sessions</Text>
@@ -287,7 +323,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
 
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0f172a" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       )}
     </View>
@@ -297,239 +333,285 @@ export default function TeacherReportsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
+  },
+  screenHeader: {
+    paddingHorizontal: LAYOUT.screenPadding,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.base,
+    backgroundColor: COLORS.background,
+  },
+  headerTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.xxs,
+  },
+  titleIcon: {
+    marginRight: SPACING.xs,
+  },
+  screenTitle: {
+    fontFamily: FONTS.heading,
+    fontWeight: "bold",
+    fontSize: TYPOGRAPHY.sizes.screenTitle,
+    color: COLORS.text,
+  },
+  headerSubtitle: {
+    fontFamily: FONTS.body,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   listContainer: {
-    padding: 16,
-    paddingBottom: 30,
+    paddingHorizontal: LAYOUT.screenPadding,
+    paddingBottom: 40,
   },
   dashboardContainer: {
-    marginBottom: 20,
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
+    marginBottom: SPACING.base,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   rangeSelector: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
-    borderRadius: 10,
+    backgroundColor: COLORS.backgroundAlt,
+    borderRadius: RADIUS.md,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: SPACING.base,
   },
   rangeTab: {
     flex: 1,
     alignItems: "center",
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   activeRangeTab: {
-    backgroundColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.xs,
   },
   rangeTabText: {
-    fontSize: 13,
-    color: "#64748b",
+    fontSize: TYPOGRAPHY.sizes.label,
+    color: COLORS.textSecondary,
     fontWeight: "600",
+    fontFamily: FONTS.body,
   },
   activeRangeTabText: {
-    color: "#0f172a",
+    color: COLORS.text,
     fontWeight: "700",
+    fontFamily: FONTS.body,
   },
   gridRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
-    marginHorizontal: 4,
+    borderColor: COLORS.borderSubtle,
+    marginHorizontal: SPACING.xxs,
+  },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  statIcon: {
+    marginRight: 6,
   },
   statNum: {
-    fontSize: 22,
+    fontSize: TYPOGRAPHY.sizes.cardMetricSm + 2,
     fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 4,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
+  },
+  statValueGreen: {
+    color: COLORS.success,
   },
   statLabel: {
-    fontSize: 12,
-    color: "#64748b",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
     fontWeight: "600",
+    fontFamily: FONTS.body,
   },
   rowAlign: {
     flexDirection: "row",
     alignItems: "baseline",
   },
   subText: {
-    fontSize: 11,
-    color: "#94a3b8",
-  },
-  trendIndicator: {
-    fontSize: 11,
-    fontWeight: "700",
-    marginTop: 4,
-  },
-  trendUp: {
-    color: "#166534",
-  },
-  trendDown: {
-    color: "#991b1b",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
   },
   insightsCard: {
-    backgroundColor: "#eff6ff",
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 1,
-    borderColor: "#bfdbfe",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 6,
-    marginHorizontal: 4,
+    borderColor: "rgba(45, 106, 79, 0.15)",
+    borderRadius: RADIUS.md,
+    padding: SPACING.base,
+    marginTop: SPACING.xs,
+    marginHorizontal: SPACING.xxs,
   },
   insightsTitle: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.micro,
     fontWeight: "700",
-    color: "#1e40af",
-    marginBottom: 10,
+    color: COLORS.primary,
+    marginBottom: SPACING.sm,
     textTransform: "uppercase",
+    fontFamily: FONTS.body,
+    letterSpacing: 0.5,
   },
   insightRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+  },
+  insightLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  insightRowIcon: {
+    marginRight: 6,
   },
   insightLabel: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "600",
-    color: "#1e3a8a",
+    color: COLORS.primary,
+    fontFamily: FONTS.body,
   },
   insightValue: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "700",
-    color: "#1e3a8a",
+    color: COLORS.primary,
     flexShrink: 1,
     textAlign: "right",
     marginLeft: 10,
+    fontFamily: FONTS.heading,
   },
   emptyDashboardCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: SPACING.base,
   },
   emptyDashboardText: {
-    color: "#64748b",
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "600",
+    fontFamily: FONTS.body,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
-  courseName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 6,
-  },
-  statsContainer: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.xs,
+  },
+  courseName: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: "700",
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  cardStatsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.base,
   },
   statBox: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: "#f8fafc",
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginHorizontal: 4,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.sm,
+    marginHorizontal: SPACING.xxs,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
+    borderColor: COLORS.borderSubtle,
   },
   statNumber: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    color: "#0f172a",
+    color: COLORS.text,
+    fontFamily: FONTS.body,
     marginBottom: 2,
-  },
-  errorText: {
-    color: "#dc2626",
-    fontSize: 14,
-    margin: 16,
-    textAlign: "center",
   },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     padding: 30,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    marginTop: 20,
+    borderColor: COLORS.border,
+    marginTop: SPACING.base,
   },
   emptyText: {
-    color: "#64748b",
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontFamily: FONTS.body,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(248, 250, 252, 0.6)",
+    backgroundColor: "rgba(250, 247, 240, 0.7)",
     justifyContent: "center",
     alignItems: "center",
   },
   errorContainer: {
-    backgroundColor: "#fef2f2",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
-    borderColor: "#fee2e2",
-    marginHorizontal: 16,
-    marginVertical: 12,
+    borderColor: COLORS.error,
+    marginHorizontal: SPACING.base,
+    marginVertical: SPACING.xs,
     alignItems: "center",
   },
+  errorIcon: {
+    marginBottom: SPACING.xs,
+  },
   errorTitleText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    color: "#991b1b",
+    color: COLORS.error,
     marginBottom: 4,
     textAlign: "center",
+    fontFamily: FONTS.heading,
   },
   errorMessageText: {
-    fontSize: 14,
-    color: "#dc2626",
-    marginBottom: 12,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.error,
+    marginBottom: SPACING.sm,
     textAlign: "center",
+    fontFamily: FONTS.body,
   },
   retryButton: {
-    backgroundColor: "#991b1b",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    ...BUTTON_VARIANTS.danger,
+    height: 40,
+    paddingHorizontal: SPACING.base,
   },
   retryButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "700",
+    fontFamily: FONTS.body,
   },
   buttonDisabled: {
     opacity: 0.5,

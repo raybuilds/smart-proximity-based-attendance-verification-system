@@ -6,13 +6,23 @@ import {
   Text,
   View,
 } from "react-native";
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Flame,
+  Award,
+  Shield,
+  CalendarDays,
+  Clock,
+  History,
+} from "lucide-react-native";
 import { getStudentCourseDetail } from "../services/reports";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 function formatDate(dateString) {
   if (!dateString) return "Never";
   const date = new Date(dateString);
-  // Options for formatting: "18 Jun 2026"
   const options = { day: 'numeric', month: 'short', year: 'numeric' };
   return date.toLocaleDateString('en-GB', options);
 }
@@ -77,22 +87,21 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
   } = courseDetail;
 
   const renderHeader = () => {
-    // Determine risk status color/text
     let statusTitle = "Safe";
     let statusDesc = "Attendance requirement met.";
-    let bannerStyle = styles.bannerSafe;
-    let bannerTextVal = styles.bannerTextSafe;
+    let badgeStyle = BADGES.success;
+    let StatusIcon = CheckCircle;
 
     if (attendancePercentage < 75) {
       statusTitle = "At Risk";
       statusDesc = `Attendance below required threshold. Current: ${attendancePercentage}%, Required: 75%, Need ${classesNeededFor75} consecutive presents.`;
-      bannerStyle = styles.bannerError;
-      bannerTextVal = styles.bannerTextError;
+      badgeStyle = BADGES.danger;
+      StatusIcon = XCircle;
     } else if (attendancePercentage <= 85) {
       statusTitle = "Warning";
       statusDesc = "Monitor attendance closely.";
-      bannerStyle = styles.bannerWarning;
-      bannerTextVal = styles.bannerTextWarning;
+      badgeStyle = BADGES.warning;
+      StatusIcon = Clock;
     }
 
     return (
@@ -104,11 +113,14 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
         </View>
 
         {/* Status Banner */}
-        <View style={[styles.statusBanner, bannerStyle]}>
-          <Text style={[styles.statusTitleText, bannerTextVal]}>
-            Attendance Status: {statusTitle}
-          </Text>
-          <Text style={[styles.statusDescText, bannerTextVal]}>
+        <View style={[styles.statusBanner, { backgroundColor: badgeStyle.backgroundColor, borderColor: badgeStyle.borderColor }]}>
+          <View style={styles.statusBannerHeader}>
+            <StatusIcon size={18} color={badgeStyle.color} style={styles.statusBannerIcon} />
+            <Text style={[styles.statusTitleText, { color: badgeStyle.color }]}>
+              Attendance Status: {statusTitle}
+            </Text>
+          </View>
+          <Text style={[styles.statusDescText, { color: COLORS.text }]}>
             {statusDesc}
           </Text>
         </View>
@@ -116,7 +128,10 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
         {/* Recovery Analytics Card */}
         {attendancePercentage < 75 ? (
           <View style={styles.recoveryCard}>
-            <Text style={styles.recoveryTitle}>Attendance Recovery Plan</Text>
+            <View style={styles.recoveryCardHeader}>
+              <Shield size={18} color={COLORS.error} style={styles.recoveryIcon} />
+              <Text style={[styles.recoveryTitle, { color: COLORS.error }]}>Attendance Recovery Plan</Text>
+            </View>
             <View style={styles.recoveryGrid}>
               <View style={styles.recoveryItem}>
                 <Text style={styles.recoveryLabel}>Current</Text>
@@ -124,7 +139,7 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
               </View>
               <View style={styles.recoveryItem}>
                 <Text style={styles.recoveryLabel}>Needed</Text>
-                <Text style={styles.recoveryValue}>{classesNeededFor75} Consecutive Classes</Text>
+                <Text style={styles.recoveryValue}>{classesNeededFor75} Consecutive</Text>
               </View>
               <View style={styles.recoveryItem}>
                 <Text style={styles.recoveryLabel}>Projected</Text>
@@ -134,7 +149,10 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
           </View>
         ) : (
           <View style={styles.recoveryCard}>
-            <Text style={styles.recoveryTitle}>Attendance Requirement Met</Text>
+            <View style={styles.recoveryCardHeader}>
+              <Shield size={18} color={COLORS.success} style={styles.recoveryIcon} />
+              <Text style={[styles.recoveryTitle, { color: COLORS.success }]}>Attendance Requirement Met</Text>
+            </View>
             <Text style={styles.recoverySubtitle}>
               Current Attendance: {attendancePercentage}%
             </Text>
@@ -163,9 +181,16 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
           {trendData && trendData.length > 0 ? (
             <View style={styles.trendStrip}>
               {trendData.map((status, index) => (
-                <Text key={index} style={styles.trendEmoji}>
-                  {status === "PRESENT" ? "🟢" : "🔴"}
-                </Text>
+                <View
+                  key={index}
+                  style={[
+                    styles.trendDot,
+                    {
+                      backgroundColor: status === "PRESENT" ? COLORS.success : COLORS.error,
+                      borderColor: status === "PRESENT" ? "rgba(45,106,79,0.2)" : "rgba(176,58,46,0.2)",
+                    }
+                  ]}
+                />
               ))}
             </View>
           ) : (
@@ -177,16 +202,26 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
         <View style={styles.card}>
           <View style={styles.streaksRow}>
             <View style={styles.streakColumn}>
-              <Text style={styles.streakLabel}>Current Streak</Text>
-              <Text style={styles.streakValue}>🔥 {currentStreak} Sessions</Text>
+              <View style={styles.streakIconHeader}>
+                <Flame size={16} color={COLORS.warning} style={styles.streakIcon} />
+                <Text style={styles.streakLabel}>Current Streak</Text>
+              </View>
+              <Text style={styles.streakValue}>{currentStreak} Sessions</Text>
             </View>
+            <View style={styles.streakDivider} />
             <View style={styles.streakColumn}>
-              <Text style={styles.streakLabel}>Best Streak</Text>
-              <Text style={styles.streakValue}>🏆 {bestStreak} Sessions</Text>
+              <View style={styles.streakIconHeader}>
+                <Award size={16} color={COLORS.success} style={styles.streakIcon} />
+                <Text style={styles.streakLabel}>Best Streak</Text>
+              </View>
+              <Text style={styles.streakValue}>{bestStreak} Sessions</Text>
             </View>
           </View>
           <View style={styles.lastAttendedRow}>
-            <Text style={styles.lastAttendedLabel}>Last Attended</Text>
+            <View style={styles.lastAttendedLeft}>
+              <CalendarDays size={16} color={COLORS.textSecondary} style={styles.streakIcon} />
+              <Text style={styles.lastAttendedLabel}>Last Attended</Text>
+            </View>
             <Text style={styles.lastAttendedValue}>{formatDate(lastAttended)}</Text>
           </View>
         </View>
@@ -203,17 +238,17 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
       contentContainerStyle={styles.container}
       ListHeaderComponent={renderHeader}
       renderItem={({ item }) => {
-        let badgeStyle = styles.badgeAbsent;
+        let badgeStyle = BADGES.danger;
         let badgeText = "ABSENT";
         let cardStyle = styles.timelineCardAbsent;
 
         if (item.status === "Present" || item.status === "present") {
           if (item.method === "QR") {
-            badgeStyle = styles.badgeQr;
+            badgeStyle = BADGES.success;
             badgeText = "QR PRESENT";
             cardStyle = styles.timelineCardQr;
           } else {
-            badgeStyle = styles.badgeManual;
+            badgeStyle = BADGES.warning;
             badgeText = "MANUAL CORRECTED";
             cardStyle = styles.timelineCardManual;
           }
@@ -233,7 +268,7 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
                 })}
               </Text>
               <View style={[styles.timelineBadge, badgeStyle]}>
-                <Text style={styles.timelineBadgeText}>{badgeText}</Text>
+                <Text style={[styles.timelineBadgeText, { color: badgeStyle.color }]}>{badgeText}</Text>
               </View>
             </View>
 
@@ -268,98 +303,88 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   container: {
-    padding: 16,
+    padding: SPACING.base,
     backgroundColor: COLORS.background,
   },
   errorText: {
     color: COLORS.error,
-    fontSize: 16,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontFamily: FONTS.body,
   },
   headerBlock: {
     backgroundColor: COLORS.primary,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 20,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    marginBottom: SPACING.base,
+    ...SHADOWS.sm,
   },
   headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     textAlign: "center",
   },
   headerPercentage: {
-    color: "#FFFFFF",
-    fontSize: 32,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.cardMetric + 8,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    marginTop: 10,
+    fontFamily: FONTS.heading,
+    marginTop: SPACING.sm,
   },
   statusBanner: {
-    borderRadius: LAYOUT.cardRadius,
-    padding: 14,
-    marginBottom: 16,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
     borderWidth: 1,
   },
-  bannerSafe: {
-    backgroundColor: "rgba(44, 95, 45, 0.08)",
-    borderColor: COLORS.success,
+  statusBannerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.xs,
   },
-  bannerWarning: {
-    backgroundColor: "rgba(176, 122, 42, 0.08)",
-    borderColor: COLORS.warning,
-  },
-  bannerError: {
-    backgroundColor: "rgba(198, 55, 55, 0.08)",
-    borderColor: COLORS.error,
+  statusBannerIcon: {
+    marginRight: SPACING.xs,
   },
   statusTitleText: {
-    fontSize: 15,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    marginBottom: 4,
+    fontFamily: FONTS.heading,
   },
   statusDescText: {
-    fontSize: 13,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-    lineHeight: 18,
-  },
-  bannerTextSafe: {
-    color: COLORS.success,
-  },
-  bannerTextWarning: {
-    color: COLORS.warning,
-  },
-  bannerTextError: {
-    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
+    lineHeight: 20,
+    marginTop: 2,
   },
   recoveryCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  recoveryCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.md,
+  },
+  recoveryIcon: {
+    marginRight: SPACING.sm,
   },
   recoveryTitle: {
-    fontSize: 15,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
-    color: COLORS.primary,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    marginBottom: 12,
+    fontFamily: FONTS.heading,
   },
   recoverySubtitle: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.success,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   recoveryGrid: {
     flexDirection: "row",
@@ -370,149 +395,165 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   recoveryLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     textTransform: "uppercase",
     marginBottom: 4,
   },
   recoveryValue: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "600",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
     textAlign: "center",
   },
   grid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: SPACING.base,
   },
   gridCard: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 12,
-    marginHorizontal: 4,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.xxs,
     alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
   gridLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     textTransform: "uppercase",
     marginBottom: 4,
   },
   gridValue: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "bold",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    marginBottom: 12,
+    fontFamily: FONTS.heading,
+    marginBottom: SPACING.md,
   },
   trendStrip: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
+    gap: SPACING.sm,
   },
-  trendEmoji: {
-    fontSize: 22,
-    marginRight: 6,
-    marginBottom: 6,
+  trendDot: {
+    width: 14,
+    height: 14,
+    borderRadius: RADIUS.full,
+    borderWidth: 1.5,
   },
   noDataText: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     fontStyle: "italic",
   },
   streaksRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-    paddingBottom: 12,
-    marginBottom: 12,
+    borderBottomColor: COLORS.borderSubtle,
+    paddingBottom: SPACING.md,
+    marginBottom: SPACING.md,
   },
   streakColumn: {
     flex: 1,
     alignItems: "center",
   },
-  streakLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-    textTransform: "uppercase",
+  streakIconHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
+  streakIcon: {
+    marginRight: 6,
+  },
+  streakLabel: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    textTransform: "uppercase",
+  },
+  streakDivider: {
+    width: 1,
+    backgroundColor: COLORS.borderSubtle,
+    height: "100%",
+  },
   streakValue: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "bold",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   lastAttendedRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  lastAttendedLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   lastAttendedLabel: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "600",
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   lastAttendedValue: {
-    fontSize: 13,
-    color: "#4B5563",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    fontFamily: FONTS.heading,
     color: COLORS.primary,
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   timelineCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.xs,
   },
   timelineCardQr: {
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB", // Blue for QR
+    borderLeftColor: COLORS.success,
   },
   timelineCardManual: {
     borderLeftWidth: 4,
-    borderLeftColor: "#D97706", // Amber for Manual
+    borderLeftColor: COLORS.warning,
   },
   timelineCardAbsent: {
     borderLeftWidth: 4,
-    borderLeftColor: "#DC2626", // Red for Absent
+    borderLeftColor: COLORS.error,
   },
   row: {
     flexDirection: "row",
@@ -520,54 +561,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   timelineDate: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.text,
     fontWeight: "600",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   timelineBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: RADIUS.xs,
+    borderWidth: 1,
   },
   timelineBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
+    fontSize: TYPOGRAPHY.sizes.micro,
     fontWeight: "bold",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
-  },
-  badgeQr: {
-    backgroundColor: "#2563EB",
-  },
-  badgeManual: {
-    backgroundColor: "#D97706",
-  },
-  badgeAbsent: {
-    backgroundColor: "#DC2626",
+    fontFamily: FONTS.body,
   },
   correctionDetails: {
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: COLORS.borderSubtle,
   },
   correctionHeader: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     fontWeight: "bold",
-    color: "#D97706",
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    marginBottom: 8,
+    color: COLORS.warning,
+    fontFamily: FONTS.heading,
+    marginBottom: SPACING.sm,
   },
   correctionLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
     marginTop: 4,
   },
   correctionValue: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.sizes.body,
     color: COLORS.text,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
     fontWeight: "600",
   },
   emptyContainer: {
@@ -575,9 +607,9 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   emptyText: {
-    color: "#6B7280",
-    fontSize: 13,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
   },
   textSafe: {
     color: COLORS.success,

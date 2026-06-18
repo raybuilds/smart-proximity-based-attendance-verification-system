@@ -15,6 +15,7 @@ model User {
   role               Role
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  isActive           Boolean             @default(true)
   attendances        Attendance[]        @relation("StudentAttendances")
   attendanceSessions AttendanceSession[] @relation("TeacherSessions")
   student            Student?
@@ -66,25 +67,20 @@ model AttendanceSession {
   @@index([courseId, isActive])
 }
 
-enum AttendanceMethod {
-  QR
-  MANUAL
-}
-
 model Attendance {
-  id                  Int               @id @default(autoincrement())
+  id                  Int                    @id @default(autoincrement())
   studentId           Int
   sessionId           Int
-  markedAt            DateTime          @default(now())
+  markedAt            DateTime               @default(now())
   verificationMethod  String
-  createdAt           DateTime          @default(now())
-  status              String            @default("present")
-  method              AttendanceMethod  @default(QR)
-  modifiedByTeacherId Int?
-  modifiedAt          DateTime?
+  createdAt           DateTime               @default(now())
+  status              String                 @default("present")
   correctionReason    String?
-  session             AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  student             User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  method              AttendanceMethod       @default(QR)
+  modifiedAt          DateTime?
+  modifiedByTeacherId Int?
+  session             AttendanceSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student             User                   @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
   corrections         AttendanceCorrection[]
 
   @@unique([studentId, sessionId])
@@ -115,7 +111,6 @@ model SessionQRCode {
 model Course {
   id            Int                 @id @default(autoincrement())
   name          String
-  code          String?
   teacherId     Int
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -125,6 +120,7 @@ model Course {
   isArchived    Boolean             @default(false)
   section       String?
   semester      Int?
+  code          String?
   sessions      AttendanceSession[]
   teacher       Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
@@ -138,6 +134,11 @@ model UsedProximityToken {
   createdAt DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
 }
 
 enum Role {

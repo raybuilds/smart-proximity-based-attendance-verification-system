@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { COLORS, NAVIGATOR_STYLE } from "../utils/theme";
 
 import { useAuth } from "../context/AuthContext";
 import ActiveSessionScreen from "../screens/ActiveSessionScreen";
@@ -19,9 +20,24 @@ import RegisterScreen from "../screens/RegisterScreen";
 import CourseDetailReportScreen from "../screens/CourseDetailReportScreen";
 import StudentAttendanceReportScreen from "../screens/StudentAttendanceReportScreen";
 import DefaulterReportScreen from "../screens/DefaulterReportScreen";
-import CourseTrendScreen from "../screens/CourseTrendScreen";
+
 import StudentAttendanceHistoryScreen from "../screens/StudentAttendanceHistoryScreen";
 import StudentCourseAttendanceScreen from "../screens/StudentCourseAttendanceScreen";
+import AdminDashboardScreen from "../screens/AdminDashboardScreen";
+import AdminStudentListScreen from "../screens/AdminStudentListScreen";
+import AdminStudentDetailScreen from "../screens/AdminStudentDetailScreen";
+import AdminTeacherListScreen from "../screens/AdminTeacherListScreen";
+import AdminTeacherDetailScreen from "../screens/AdminTeacherDetailScreen";
+
+import AdminCourseListScreen from "../screens/AdminCourseListScreen";
+import AdminCourseDetailScreen from "../screens/AdminCourseDetailScreen";
+import AdminAuditCenterScreen from "../screens/AdminAuditCenterScreen";
+import AdminLiveSessionsScreen from "../screens/AdminLiveSessionsScreen";
+import AdminAtRiskScreen from "../screens/AdminAtRiskScreen";
+import AdminAnalyticsScreen from "../screens/AdminAnalyticsScreen";
+import AdminArchivedCoursesScreen from "../screens/AdminArchivedCoursesScreen";
+import AdminArchivedCourseDetailScreen from "../screens/AdminArchivedCourseDetailScreen";
+
 
 const Stack = createNativeStackNavigator();
 
@@ -32,30 +48,85 @@ export default function AppNavigator() {
   if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
     <Stack.Navigator
-      screenOptions={{
-        headerTitleAlign: "center",
-        headerStyle: {
-          backgroundColor: "#2C5F2D",
-        },
-        headerTintColor: "#FFFFFF",
-        headerTitleStyle: {
-          fontFamily: "serif",
-          fontWeight: "bold",
-        },
-        contentStyle: {
-          backgroundColor: "#F5F1E8",
-        },
-      }}
+      screenOptions={NAVIGATOR_STYLE}
     >
       {isAuthenticated ? (
-        user?.role === "teacher" ? (
+        user?.role === "admin" ? (
+          <>
+            <Stack.Screen
+              name="AdminDashboard"
+              component={AdminDashboardScreen}
+              options={{ title: "Admin Dashboard", headerBackVisible: false }}
+            />
+            <Stack.Screen
+              name="AdminStudentList"
+              component={AdminStudentListScreen}
+              options={{ title: "Manage Students" }}
+            />
+            <Stack.Screen
+              name="AdminStudentDetail"
+              component={AdminStudentDetailScreen}
+              options={{ title: "Student Detail" }}
+            />
+            <Stack.Screen
+              name="AdminTeacherList"
+              component={AdminTeacherListScreen}
+              options={{ title: "Manage Teachers" }}
+            />
+            <Stack.Screen
+              name="AdminTeacherDetail"
+              component={AdminTeacherDetailScreen}
+              options={{ title: "Teacher Detail" }}
+            />
+            <Stack.Screen
+              name="AdminCourseList"
+              component={AdminCourseListScreen}
+              options={{ title: "Courses Oversight" }}
+            />
+            <Stack.Screen
+              name="AdminCourseDetail"
+              component={AdminCourseDetailScreen}
+              options={{ title: "Course Overview" }}
+            />
+            <Stack.Screen
+              name="AdminAuditCenter"
+              component={AdminAuditCenterScreen}
+              options={{ title: "Audit Center" }}
+            />
+            <Stack.Screen
+              name="AdminLiveSessions"
+              component={AdminLiveSessionsScreen}
+              options={{ title: "Live Sessions" }}
+            />
+            <Stack.Screen
+              name="AdminAtRisk"
+              component={AdminAtRiskScreen}
+              options={{ title: "At Risk Students" }}
+            />
+            <Stack.Screen
+              name="AdminAnalytics"
+              component={AdminAnalyticsScreen}
+              options={{ title: "Institutional Analytics" }}
+            />
+            <Stack.Screen
+              name="AdminArchivedCourses"
+              component={AdminArchivedCoursesScreen}
+              options={{ title: "Course Archive" }}
+            />
+            <Stack.Screen
+              name="AdminArchivedCourseDetail"
+              component={AdminArchivedCourseDetailScreen}
+              options={{ title: "Archived Course Details" }}
+            />
+          </>
+        ) : user?.role === "teacher" ? (
           <>
             <Stack.Screen
               name="TeacherDashboard"
@@ -107,11 +178,7 @@ export default function AppNavigator() {
               component={DefaulterReportScreen}
               options={{ title: "Defaulter Report" }}
             />
-            <Stack.Screen
-              name="CourseTrend"
-              component={CourseTrendScreen}
-              options={{ title: "Attendance Trends" }}
-            />
+
           </>
         ) : (
           <>
@@ -174,7 +241,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
 });
 

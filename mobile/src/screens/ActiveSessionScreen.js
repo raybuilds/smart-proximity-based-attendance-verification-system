@@ -12,12 +12,17 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import {
+  Clock,
+  QrCode,
+  StopCircle,
+  Share2,
+  AlertCircle,
+} from "lucide-react-native";
 
 import { endSession, getActiveSession } from "../services/attendance";
 import { getCurrentQR } from "../services/qr";
-import EligibilityChips from "../components/EligibilityChips";
-import { getSessionEligibility } from "../utils/eligibility";
-import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 const QR_LIFETIME_SECONDS = 30;
 
@@ -96,16 +101,9 @@ export default function ActiveSessionScreen({ navigation, route }) {
   }
 
   useEffect(() => {
-    return () => {
-      console.log('[ActiveSession] unmounted');
-    };
-  }, []);
-
-  useEffect(() => {
     if (!session?.id) {
       return;
     }
-
     fetchQrCode(session.id);
   }, [session?.id]);
 
@@ -219,7 +217,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
   if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -235,57 +233,78 @@ export default function ActiveSessionScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{session.course?.name ?? "Active Session"}</Text>
-        <Text style={styles.subtitle}>
-          Section {session.course?.section ?? "N/A"}
-        </Text>
-
-        <View style={styles.qrWrapper}>
-          {qrData ? (
-            <QRCode value={qrPayload} size={280} getRef={(c) => (qrRef.current = c)} />
-          ) : (
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          )}
+        
+        {/* Live Session Hero Card */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeaderRow}>
+            <View style={styles.heroTitleGroup}>
+              <Text style={styles.heroCourseName}>{session.course?.name ?? "Live Attendance Session"}</Text>
+              <Text style={styles.heroCourseCode}>
+                Section {session.course?.section ?? "N/A"} • Code: {session.sessionCode}
+              </Text>
+            </View>
+            <View style={[styles.liveBadge, BADGES.success]}>
+              <View style={styles.pulseDot} />
+              <Text style={[styles.liveBadgeText, { color: COLORS.success }]}>ACTIVE</Text>
+            </View>
+          </View>
+          <View style={styles.dividerLine} />
+          <View style={styles.heroRatioRow}>
+            <View style={styles.heroRatioCol}>
+              <Clock size={16} color={COLORS.warning} style={styles.heroRatioIcon} />
+              <Text style={styles.heroRatioValue}>{countdown}s</Text>
+              <Text style={styles.heroRatioLabel}>Next QR Rotation</Text>
+            </View>
+          </View>
         </View>
 
-        <Text style={styles.codeLabel}>Session Code</Text>
-        <Text style={styles.codeValue}>{session.sessionCode}</Text>
+        {/* QR Code Container */}
+        <View style={styles.qrCard}>
+          <View style={styles.qrWrapper}>
+            {qrData ? (
+              <QRCode value={qrPayload} size={240} getRef={(c) => (qrRef.current = c)} />
+            ) : (
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            )}
+          </View>
+          
+          <Text style={styles.codeLabel}>Rotation Verification Code</Text>
+          <Text style={styles.codeValue}>{session.sessionCode}</Text>
 
-        <Text
-          style={[
-            styles.countdownText,
-            isExpiryWarning && styles.countdownWarning,
-          ]}
-        >
-          Refreshing in {countdown}s
-        </Text>
-
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressBar,
-              isExpiryWarning && styles.progressBarWarning,
-              { width: progressWidth },
-            ]}
-          />
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressBar,
+                isExpiryWarning && styles.progressBarWarning,
+                { width: progressWidth },
+              ]}
+            />
+          </View>
+          <Text style={[styles.countdownText, isExpiryWarning && styles.countdownWarning]}>
+            QR refreshes automatically in {countdown} seconds
+          </Text>
         </View>
 
         {isRefreshingQr ? (
-          <Text style={styles.refreshText}>Refreshing QR...</Text>
+          <Text style={styles.refreshText}>Generating rotating token...</Text>
         ) : null}
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
+        {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Pressable
-            style={[styles.secondaryButton, (isSharing || isEnding) && styles.buttonDisabled, { marginBottom: 12 }]}
+            style={[styles.secondaryButton, (isSharing || isEnding) && styles.buttonDisabled]}
             onPress={handleShareQr}
             disabled={isSharing || isEnding}
           >
             {isSharing ? (
               <ActivityIndicator color={COLORS.primary} />
             ) : (
-              <Text style={styles.secondaryButtonText}>Share QR Code</Text>
+              <>
+                <Share2 size={18} color={COLORS.primary} style={styles.btnIcon} />
+                <Text style={styles.secondaryButtonText}>Share QR Code</Text>
+              </>
             )}
           </Pressable>
 
@@ -295,13 +314,16 @@ export default function ActiveSessionScreen({ navigation, route }) {
             disabled={isEnding || isSharing}
           >
             {isEnding ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={COLORS.textInverse} />
             ) : (
-              <Text style={styles.primaryButtonText}>End Session</Text>
+              <>
+                <StopCircle size={18} color={COLORS.textInverse} style={styles.btnIcon} />
+                <Text style={styles.primaryButtonText}>Stop Attendance Session</Text>
+              </>
             )}
-
           </Pressable>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -314,138 +336,196 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 40,
+    paddingHorizontal: SPACING.base,
+    paddingTop: SPACING.base,
+    paddingBottom: SPACING.xl,
     backgroundColor: COLORS.background,
   },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
     backgroundColor: COLORS.background,
   },
+  heroCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.base,
+    ...SHADOWS.sm,
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  heroTitleGroup: {
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  heroCourseName: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontFamily: FONTS.heading,
+    fontWeight: "bold",
+    color: COLORS.text,
+  },
+  heroCourseCode: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.success,
+    marginRight: 4,
+  },
+  liveBadgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontFamily: FONTS.body,
+    fontWeight: "bold",
+  },
+  dividerLine: {
+    height: 1,
+    backgroundColor: COLORS.borderSubtle,
+    marginVertical: SPACING.sm,
+  },
+  heroRatioRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  heroRatioCol: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  heroRatioIcon: {
+    marginRight: SPACING.xs,
+  },
+  heroRatioValue: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: "bold",
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  heroRatioLabel: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginLeft: 4,
+  },
+  qrCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.base,
+    ...SHADOWS.sm,
+  },
   qrWrapper: {
-    width: 320,
-    height: 320,
+    width: 260,
+    height: 260,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.qrSurface,
-    borderRadius: LAYOUT.cardRadius,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.qrBorder,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  title: {
-    fontSize: 26,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
-    fontWeight: TYPOGRAPHY.heading.fontWeight,
-    color: COLORS.primary,
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#64748b",
-    textAlign: "center",
-    marginBottom: 24,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.xs,
   },
   codeLabel: {
-    color: "#64748b",
-    fontSize: 14,
-    marginBottom: 4,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.label,
+    fontFamily: FONTS.body,
+    marginTop: SPACING.xs,
   },
   codeValue: {
     color: COLORS.primary,
-    fontSize: 36,
+    fontSize: TYPOGRAPHY.sizes.cardMetric + 6,
     fontWeight: "800",
     letterSpacing: 4,
-    marginBottom: 12,
-    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    marginBottom: SPACING.xs,
+    fontFamily: FONTS.heading,
   },
   countdownText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 10,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontFamily: FONTS.body,
   },
   countdownWarning: {
     color: COLORS.error,
+    fontWeight: "600",
   },
   progressTrack: {
-    width: "100%",
-    height: 8,
-    backgroundColor: "#eff6ff",
-    borderRadius: 999,
+    width: "80%",
+    height: 6,
+    backgroundColor: COLORS.backgroundAlt,
+    borderRadius: RADIUS.full,
     overflow: "hidden",
-    marginBottom: 16,
+    marginVertical: SPACING.sm,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: COLORS.timerActive,
-    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
   },
   progressBarWarning: {
     backgroundColor: COLORS.error,
   },
   refreshText: {
-    marginTop: 10,
-    color: "#64748b",
-    fontSize: 13,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    textAlign: "center",
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontFamily: FONTS.body,
+    marginBottom: SPACING.xs,
   },
   errorText: {
-    marginVertical: 12,
+    marginVertical: SPACING.xs,
     color: COLORS.error,
     textAlign: "center",
     lineHeight: 20,
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
   },
   buttonContainer: {
     width: "100%",
-    marginTop: 16,
+    marginBottom: SPACING.base,
   },
   primaryButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
+    ...BUTTON_VARIANTS.danger,
     width: "100%",
+    marginTop: SPACING.sm,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
+    marginLeft: 6,
   },
   secondaryButton: {
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.buttonRadius,
-    height: LAYOUT.buttonHeight,
-    justifyContent: "center",
-    alignItems: "center",
+    ...BUTTON_VARIANTS.secondary,
     width: "100%",
   },
   secondaryButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: "700",
-    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontFamily: FONTS.body,
+    marginLeft: 6,
+  },
+  btnIcon: {
+    marginRight: 4,
   },
   buttonDisabled: {
     opacity: 0.7,
