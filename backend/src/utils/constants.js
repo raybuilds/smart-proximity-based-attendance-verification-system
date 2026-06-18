@@ -23,7 +23,7 @@ const APP = {
 };
 
 const QR = {
-  EXPIRY_MS: 15000,
+  EXPIRY_MS: 25000,
   NONCE_LENGTH: 16,
 };
 
