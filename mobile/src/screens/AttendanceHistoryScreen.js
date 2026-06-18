@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { getStudentCourses } from "../services/reports";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
@@ -91,7 +92,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
     <FlatList
       data={courses}
       keyExtractor={(item) => item.courseId.toString()}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, courses.length === 0 && { flexGrow: 1 }]}
       ListHeaderComponent={renderHeader}
       renderItem={({ item }) => {
         let badgeStyle = styles.badgeSafe;
@@ -160,7 +161,29 @@ export default function AttendanceHistoryScreen({ navigation }) {
       }}
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No enrolled courses found.</Text>
+          <View style={styles.emptyIconContainer}>
+            <Svg width={64} height={64} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+              <Path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+            </Svg>
+          </View>
+          <Text style={styles.emptyHeading}>No courses available yet</Text>
+          <Text style={styles.emptySubheading}>Courses will appear here when:</Text>
+          
+          <View style={styles.emptyBulletsBox}>
+            <Text style={styles.emptyBullet}>
+              • A teacher creates a course matching your profile
+            </Text>
+            <Text style={styles.emptyBullet}>
+              • You attend your first class
+            </Text>
+          </View>
+
+          {courses.length === 0 && overallAttendancePercentage === 100 && (
+            <Text style={styles.emptyCaption}>
+              You're all set. Once your first course becomes available, it will appear here automatically.
+            </Text>
+          )}
         </View>
       }
     />
@@ -355,12 +378,57 @@ const styles = StyleSheet.create({
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
   emptyContainer: {
+    flex: 1,
     alignItems: "center",
-    padding: 30,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
-  emptyText: {
-    color: "#6B7280",
+  emptyIconContainer: {
+    marginBottom: 16,
+    backgroundColor: "rgba(44, 95, 45, 0.08)",
+    padding: 16,
+    borderRadius: 50,
+  },
+  emptyHeading: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptySubheading: {
     fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "600",
     fontFamily: TYPOGRAPHY.body.fontFamily,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  emptyBulletsBox: {
+    alignSelf: "stretch",
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 16,
+  },
+  emptyBullet: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  emptyCaption: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    textAlign: "center",
+    lineHeight: 18,
+    fontStyle: "italic",
+    paddingHorizontal: 12,
   },
 });
