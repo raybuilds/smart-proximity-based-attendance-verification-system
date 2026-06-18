@@ -14,8 +14,10 @@ import * as Sharing from "expo-sharing";
 import NetInfo from "@react-native-community/netinfo";
 import { getCourseDefaulters } from "../services/reports";
 import api from "../services/api";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, FONTS } from "../utils/theme";
+import { AlertTriangle, Download, ArrowLeft, RefreshCw, GraduationCap, Award } from "lucide-react-native";
 
-export default function DefaulterReportScreen({ route }) {
+export default function DefaulterReportScreen({ route, navigation }) {
   if (__DEV__) {
     console.log("[DEF] Screen mounted");
   }
@@ -89,7 +91,6 @@ export default function DefaulterReportScreen({ route }) {
     loadDefaulters();
   }, [threshold, loadDefaulters]);
 
-  // Reconnect listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isConnected = state.isConnected && state.isInternetReachable !== false;
@@ -157,7 +158,8 @@ export default function DefaulterReportScreen({ route }) {
     return (
       <View style={styles.center}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitleText}>Unable to load data</Text>
+          <AlertTriangle size={36} color={COLORS.error} style={styles.errorIcon} />
+          <Text style={styles.errorTitleText}>Unable to Load Roster</Text>
           <Text style={styles.errorMessageText}>{errorMessage}</Text>
           <Pressable
             style={[
@@ -167,7 +169,7 @@ export default function DefaulterReportScreen({ route }) {
             onPress={() => loadDefaulters()}
             disabled={loading || refreshing}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>Retry Connection</Text>
           </Pressable>
         </View>
       </View>
@@ -177,7 +179,7 @@ export default function DefaulterReportScreen({ route }) {
   if (loading && !data) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0f172a" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -190,7 +192,6 @@ export default function DefaulterReportScreen({ route }) {
         <Text style={styles.courseName}>{course?.name}</Text>
         <Text style={styles.headerLabel}>Defaulter Roster Threshold Selector</Text>
         
-        {/* Threshold selectors: 75%, 80%, 85% */}
         <View style={styles.tabsContainer}>
           {[75, 80, 85].map((val) => (
             <Pressable
@@ -211,25 +212,30 @@ export default function DefaulterReportScreen({ route }) {
           disabled={exporting}
         >
           {exporting ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={COLORS.textInverse} />
           ) : (
-            <Text style={styles.exportBtnText}>Download Defaulter CSV</Text>
+            <>
+              <Download size={16} color={COLORS.textInverse} style={styles.btnIcon} />
+              <Text style={styles.exportBtnText}>Download Defaulter CSV</Text>
+            </>
           )}
         </Pressable>
       </View>
 
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
+      {successMessage ? (
+        <View style={[styles.feedbackBox, styles.successBox]}>
+          <Text style={styles.successText}>{successMessage}</Text>
+        </View>
+      ) : null}
+
       {errorMessage ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitleText}>Unable to load data</Text>
+          <AlertTriangle size={24} color={COLORS.error} style={styles.errorIcon} />
+          <Text style={styles.errorTitleText}>Error Conducting Action</Text>
           <Text style={styles.errorMessageText}>{errorMessage}</Text>
           <Pressable
-            style={[
-              styles.retryButton,
-              (loading || refreshing) && styles.buttonDisabled,
-            ]}
+            style={styles.retryButton}
             onPress={() => loadDefaulters()}
-            disabled={loading || refreshing}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
@@ -238,37 +244,48 @@ export default function DefaulterReportScreen({ route }) {
 
       {students?.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No students below {threshold}% found.</Text>
+          <Award size={32} color={COLORS.success} style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>Excellent! No students below {threshold}% found.</Text>
         </View>
       ) : (
         <FlatList
           data={students}
           keyExtractor={(item) => item.studentId.toString()}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadDefaulters({ isPull: true })}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
             />
           }
           renderItem={({ item }) => (
             <View style={styles.studentCard}>
-              <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>{item.name}</Text>
-                <Text style={styles.rollNumber}>{item.rollNumber}</Text>
+              <View style={styles.studentInfoWrap}>
+                <View style={styles.avatarMini}>
+                  <GraduationCap size={16} color={COLORS.primary} />
+                </View>
+                <View style={styles.studentTextInfo}>
+                  <Text style={styles.studentName}>{item.name}</Text>
+                  <Text style={styles.rollNumber}>{item.rollNumber}</Text>
+                </View>
               </View>
               <View style={styles.percentageContainer}>
                 <Text style={styles.attendancePercentage}>{item.attendancePercentage}%</Text>
-                <Text style={styles.warningLabel}>Defaulter</Text>
+                <View style={styles.defaulterBadge}>
+                  <Text style={styles.defaulterBadgeText}>Defaulter</Text>
+                </View>
               </View>
             </View>
           )}
         />
       )}
 
-      {loading && (
+      {loading && data && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0f172a" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       )}
     </View>
@@ -278,191 +295,231 @@ export default function DefaulterReportScreen({ route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
-    padding: 16,
+    backgroundColor: COLORS.background,
+    padding: SPACING.base,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   headerCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    marginBottom: 16,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.base,
+    ...SHADOWS.sm,
   },
   courseName: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.screenTitle - 2,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: SPACING.sm,
   },
   headerLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#64748b",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
     textTransform: "uppercase",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
+    letterSpacing: 0.5,
   },
   tabsContainer: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
-    borderRadius: 10,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
     padding: 4,
-    marginBottom: 14,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
   },
   tab: {
     flex: 1,
     alignItems: "center",
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   activeTab: {
-    backgroundColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.xs,
   },
   tabText: {
-    fontSize: 13,
-    color: "#64748b",
-    fontWeight: "600",
+    fontSize: TYPOGRAPHY.sizes.label,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
   activeTabText: {
-    color: "#b91c1c",
-    fontWeight: "700",
+    color: COLORS.error,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   exportBtn: {
-    backgroundColor: "#b91c1c",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    ...BUTTON_VARIANTS.danger,
+    height: 46,
+    ...SHADOWS.xs,
+  },
+  btnIcon: {
+    marginRight: SPACING.xs,
   },
   exportBtnDisabled: {
     opacity: 0.7,
   },
   exportBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: FONTS.body,
   },
   list: {
-    paddingBottom: 20,
+    paddingBottom: SPACING.xl,
   },
   studentCard: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.sm,
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#fca5a5",
-    elevation: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
-  studentInfo: {
+  studentInfoWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  avatarMini: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+  },
+  studentTextInfo: {
     flex: 1,
   },
   studentName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 2,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   rollNumber: {
-    fontSize: 13,
-    color: "#64748b",
-    fontWeight: "500",
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    fontWeight: TYPOGRAPHY.weights.medium,
   },
   percentageContainer: {
     alignItems: "flex-end",
   },
   attendancePercentage: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#b91c1c",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.extrabold,
+    color: COLORS.error,
+    fontFamily: FONTS.heading,
   },
-  warningLabel: {
-    fontSize: 10,
-    color: "#ef4444",
-    fontWeight: "700",
-    textTransform: "uppercase",
+  defaulterBadge: {
+    ...BADGES.danger,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 1,
     marginTop: 2,
   },
+  defaulterBadgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro - 1,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.error,
+    textTransform: "uppercase",
+  },
   emptyCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
+  },
+  emptyIcon: {
+    marginBottom: SPACING.sm,
   },
   emptyText: {
-    color: "#64748b",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  errorText: {
-    color: "#dc2626",
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    fontFamily: FONTS.body,
     textAlign: "center",
-    marginBottom: 10,
+  },
+  feedbackBox: {
+    padding: SPACING.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.base,
+  },
+  successBox: {
+    backgroundColor: COLORS.successLight,
+    borderColor: "rgba(45, 106, 79, 0.15)",
   },
   successText: {
-    color: "#166534",
-    fontSize: 14,
+    color: COLORS.success,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
     textAlign: "center",
-    marginBottom: 10,
+    fontFamily: FONTS.body,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(248, 250, 252, 0.4)",
+    backgroundColor: "rgba(250, 247, 240, 0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
   errorContainer: {
-    backgroundColor: "#fef2f2",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
     borderWidth: 1,
-    borderColor: "#fee2e2",
-    marginHorizontal: 16,
-    marginVertical: 12,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+    marginVertical: SPACING.sm,
     alignItems: "center",
   },
+  errorIcon: {
+    marginBottom: SPACING.xs,
+  },
   errorTitleText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#991b1b",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.error,
     marginBottom: 4,
     textAlign: "center",
   },
   errorMessageText: {
-    fontSize: 14,
-    color: "#dc2626",
-    marginBottom: 12,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.error,
+    marginBottom: SPACING.sm,
     textAlign: "center",
   },
   retryButton: {
-    backgroundColor: "#991b1b",
-    borderRadius: 8,
+    backgroundColor: COLORS.error,
+    borderRadius: RADIUS.md,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.base,
   },
   retryButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   buttonDisabled: {
     opacity: 0.5,

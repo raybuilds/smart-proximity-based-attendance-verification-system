@@ -5,7 +5,7 @@ import {
   Modal,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
   Alert,
   ScrollView,
@@ -15,6 +15,8 @@ import {
   getStudentAttendanceHistoryForCourse,
   correctAttendanceManually,
 } from "../services/reports";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, FONTS, LAYOUT } from "../utils/theme";
+import { CheckCircle, XCircle, Clock, Shield, Calendar, Edit2, AlertTriangle, AlertCircle, Sparkles } from "lucide-react-native";
 
 const CORRECTION_REASONS = [
   "QR Scan Failed",
@@ -117,7 +119,7 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2C5F2D" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -126,6 +128,7 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
     return (
       <View style={styles.container}>
         <View style={styles.errorCard}>
+          <AlertCircle size={24} color={COLORS.error} style={styles.feedbackIcon} />
           <Text style={styles.errorText}>{errorMessage || "Failed to load data"}</Text>
         </View>
       </View>
@@ -136,24 +139,24 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
   const { reliabilityPercentage, hasAttendanceData } = summary;
 
   // Reliability Badge Info
-  let reliabilityBadgeColor = "#64748B"; // gray
+  let reliabilityBadgeStyle = BADGES.neutral;
   let reliabilityBadgeText = "No Attendance Data";
 
   if (hasAttendanceData) {
     if (reliabilityPercentage >= 90) {
-      reliabilityBadgeColor = "#166534"; // green
+      reliabilityBadgeStyle = BADGES.success;
       reliabilityBadgeText = "Highly Verified";
     } else if (reliabilityPercentage >= 70) {
-      reliabilityBadgeColor = "#b45309"; // amber
+      reliabilityBadgeStyle = BADGES.warning;
       reliabilityBadgeText = "Moderately Verified";
     } else {
-      reliabilityBadgeColor = "#dc2626"; // red
+      reliabilityBadgeStyle = BADGES.danger;
       reliabilityBadgeText = "Frequent Manual Corrections";
     }
   }
 
-  return (
-    <View style={styles.container}>
+  const renderHeader = () => (
+    <View>
       {/* 1. Header Details */}
       <View style={styles.headerCard}>
         <View style={styles.headerRow}>
@@ -189,13 +192,8 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
       <View style={styles.analyticsRow}>
         <View style={styles.analyticsCard}>
           <Text style={styles.analyticsLabel}>Reliability</Text>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: reliabilityBadgeColor, alignSelf: "center", marginTop: 4 },
-            ]}
-          >
-            <Text style={styles.badgeText}>{reliabilityBadgeText}</Text>
+          <View style={[styles.badge, { backgroundColor: reliabilityBadgeStyle.backgroundColor, borderColor: reliabilityBadgeStyle.borderColor }]}>
+            <Text style={[styles.badgeText, { color: reliabilityBadgeStyle.color }]}>{reliabilityBadgeText}</Text>
           </View>
           {hasAttendanceData && (
             <Text style={styles.reliabilityPercentText}>{reliabilityPercentage}% QR Verified</Text>
@@ -232,35 +230,48 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
       </View>
 
       <Text style={styles.sectionTitle}>Attendance Timeline</Text>
+    </View>
+  );
 
-      {/* 4. Timeline list */}
+  return (
+    <View style={styles.container}>
       <FlatList
         data={timeline}
         keyExtractor={(item) => item.sessionId.toString()}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.timelineList}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const isPresent = item.status === "Present";
           const isManual = item.method === "MANUAL";
           const isQR = item.method === "QR";
 
-          let statusBadgeColor = "#dc2626"; // ABSENT
+          let statusStyle = BADGES.danger;
           let statusBadgeText = "ABSENT";
+          let StatusIcon = XCircle;
+
           if (isQR) {
-            statusBadgeColor = "#2563eb"; // QR (blue)
+            statusStyle = BADGES.success;
             statusBadgeText = "QR PRESENT";
+            StatusIcon = CheckCircle;
           } else if (isManual) {
-            statusBadgeColor = "#b45309"; // MANUAL (amber)
+            statusStyle = BADGES.warning;
             statusBadgeText = "MANUAL PRESENT";
+            StatusIcon = Clock;
           }
 
           return (
             <View style={styles.timelineCard}>
               <View style={styles.timelineHeader}>
-                <Text style={styles.sessionDateText}>
-                  Session: {formatDate(item.sessionDate)}
-                </Text>
-                <View style={[styles.statusBadge, { backgroundColor: statusBadgeColor }]}>
-                  <Text style={styles.statusBadgeText}>{statusBadgeText}</Text>
+                <View style={styles.sessionDateWrap}>
+                  <Calendar size={15} color={COLORS.textSecondary} style={styles.calendarIcon} />
+                  <Text style={styles.sessionDateText}>
+                    Session: {formatDate(item.sessionDate)}
+                  </Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor, borderColor: statusStyle.borderColor }]}>
+                  <StatusIcon size={12} color={statusStyle.color} style={styles.badgeIcon} />
+                  <Text style={[styles.statusBadgeText, { color: statusStyle.color }]}>{statusBadgeText}</Text>
                 </View>
               </View>
 
@@ -276,23 +287,25 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
                     Modified By: <Text style={styles.detailVal}>{item.modifiedBy}</Text>
                   </Text>
                   <View style={styles.disabledLockBadge}>
-                    <Text style={styles.disabledLockText}>MANUAL CORRECTED</Text>
+                    <Shield size={12} color={COLORS.textSecondary} style={styles.badgeIcon} />
+                    <Text style={styles.disabledLockText}>MANUAL AUDITED</Text>
                   </View>
                 </View>
               ) : isQR ? (
                 <View style={styles.correctionDetails}>
                   <Text style={styles.detailLabel}>
-                    Method: <Text style={styles.detailVal}>QR Verified Scan</Text>
+                    Verification: <Text style={styles.detailVal}>Secure QR & WiFi Proximity Verified</Text>
                   </Text>
                 </View>
               ) : (
                 <View style={styles.actionRow}>
-                  <TouchableOpacity
+                  <Pressable
                     style={styles.markPresentButton}
                     onPress={() => handleOpenCorrection(item.attendanceId, item.sessionId)}
                   >
+                    <Edit2 size={13} color={COLORS.textInverse} style={styles.badgeIcon} />
                     <Text style={styles.markPresentButtonText}>Mark Present</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
             </View>
@@ -304,21 +317,24 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
       <Modal
         visible={modalVisible}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Reason for Attendance Correction</Text>
+            <View style={styles.modalAlertHeader}>
+              <AlertTriangle size={24} color={COLORS.warning} />
+              <Text style={styles.modalTitle}>Attendance Correction</Text>
+            </View>
             <Text style={styles.modalSubtitle}>
-              Please select a correction reason. This will be stored permanently in the audit logs.
+              Please select a valid correction reason. This will be stored permanently in the audit logs.
             </Text>
 
-            <ScrollView style={styles.reasonsList}>
+            <ScrollView style={styles.reasonsList} showsVerticalScrollIndicator={false}>
               {CORRECTION_REASONS.map((reason) => {
                 const isSelected = selectedReason === reason;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={reason}
                     style={[
                       styles.reasonOption,
@@ -334,30 +350,30 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
                     >
                       {reason}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               })}
             </ScrollView>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity
+              <Pressable
                 style={styles.cancelButton}
                 onPress={() => setModalVisible(false)}
                 disabled={submitting}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={styles.confirmButton}
                 onPress={handleConfirmCorrection}
                 disabled={submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+                  <ActivityIndicator size="small" color={COLORS.textInverse} />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                  <Text style={styles.confirmButtonText}>Confirm Log</Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -371,23 +387,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F5F1E8",
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
-    padding: 14,
-    backgroundColor: "#F5F1E8",
+    padding: SPACING.base,
+    backgroundColor: COLORS.background,
   },
   headerCard: {
-    backgroundColor: "#2C5F2D",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.md,
+    ...SHADOWS.md,
   },
   headerRow: {
     flexDirection: "row",
@@ -401,295 +413,332 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     padding: 10,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
     minWidth: 90,
   },
   studentName: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    fontFamily: "serif",
+    fontSize: TYPOGRAPHY.sizes.screenTitle - 4,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.textInverse,
+    fontFamily: FONTS.heading,
     marginBottom: 2,
   },
   studentRoll: {
-    fontSize: 13,
-    color: "#E2E8F0",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.primaryLight,
+    fontFamily: FONTS.body,
     marginBottom: 4,
   },
   courseName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FCD34D", // Amber-yellowish accent
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.warningLight,
+    fontFamily: FONTS.heading,
   },
   percentageText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: TYPOGRAPHY.sizes.cardMetricSm + 2,
+    fontWeight: TYPOGRAPHY.weights.extrabold,
+    color: COLORS.textInverse,
+    fontFamily: FONTS.body,
   },
   percentageLabel: {
-    fontSize: 10,
-    color: "#E2E8F0",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.primaryLight,
     marginTop: 2,
+    textTransform: "uppercase",
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   analyticsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: SPACING.sm,
   },
   analyticsCard: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 12,
-    marginHorizontal: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginHorizontal: 2,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: COLORS.borderSubtle,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 1,
+    ...SHADOWS.xs,
   },
   analyticsLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#64748B",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.textSecondary,
     textTransform: "uppercase",
     marginBottom: 4,
     textAlign: "center",
+    letterSpacing: 0.5,
   },
   analyticsValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2C5F2D",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
     textAlign: "center",
+    fontFamily: FONTS.heading,
   },
   reliabilityPercentText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#475569",
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
     marginTop: 6,
     textAlign: "center",
+    fontFamily: FONTS.body,
   },
   badge: {
-    borderRadius: 6,
+    borderRadius: RADIUS.xxl,
     paddingVertical: 3,
     paddingHorizontal: 8,
+    borderWidth: 1,
+    alignSelf: "center",
+    marginTop: 4,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: TYPOGRAPHY.sizes.micro - 1,
+    fontWeight: TYPOGRAPHY.weights.bold,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   summaryContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    paddingVertical: SPACING.base,
+    paddingHorizontal: SPACING.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    marginBottom: 14,
-    elevation: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.xs,
   },
   summaryItem: {
     flex: 1,
     alignItems: "center",
   },
   summaryValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   summaryLabel: {
-    fontSize: 10,
-    color: "#64748B",
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
     marginTop: 2,
+    textTransform: "uppercase",
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#475569",
-    marginBottom: 10,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle - 2,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    marginBottom: SPACING.md,
+    fontFamily: FONTS.heading,
     paddingHorizontal: 4,
   },
   timelineList: {
-    paddingBottom: 20,
+    paddingBottom: SPACING.xl,
   },
   timelineCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    elevation: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
   },
   timelineHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: SPACING.sm,
+  },
+  sessionDateWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  calendarIcon: {
+    marginRight: SPACING.xs,
   },
   sessionDateText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   statusBadge: {
-    borderRadius: 6,
-    paddingVertical: 4,
+    borderRadius: RADIUS.xxl,
+    paddingVertical: 3,
     paddingHorizontal: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badgeIcon: {
+    marginRight: 4,
   },
   statusBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: TYPOGRAPHY.sizes.micro - 1,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    textTransform: "uppercase",
   },
   correctionDetails: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: COLORS.borderSubtle,
   },
   detailLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748B",
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    color: COLORS.textSecondary,
     marginBottom: 4,
   },
   detailVal: {
-    color: "#0F172A",
-    fontWeight: "700",
+    color: COLORS.text,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   actionRow: {
     marginTop: 4,
     alignItems: "flex-end",
   },
   markPresentButton: {
-    backgroundColor: "#2C5F2D",
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    ...BUTTON_VARIANTS.primary,
+    height: 32,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.sm,
   },
   markPresentButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13,
+    color: COLORS.textInverse,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontSize: TYPOGRAPHY.sizes.metadata,
   },
   disabledLockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    borderRadius: 6,
-    backgroundColor: "#F1F5F9",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.backgroundAlt,
+    paddingVertical: 4,
+    paddingHorizontal: SPACING.sm,
     alignSelf: "flex-start",
-    marginTop: 8,
+    marginTop: SPACING.sm,
   },
   disabledLockText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "700",
+    fontSize: TYPOGRAPHY.sizes.micro - 1,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     width: "85%",
     maxHeight: "80%",
-    elevation: 10,
+    ...SHADOWS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalAlertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.sm,
+    gap: SPACING.xs,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2C5F2D",
-    fontFamily: "serif",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
     textAlign: "center",
-    marginBottom: 8,
   },
   modalSubtitle: {
-    fontSize: 12,
-    color: "#64748B",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: SPACING.base,
     lineHeight: 18,
+    fontFamily: FONTS.body,
   },
   reasonsList: {
-    marginBottom: 16,
+    marginBottom: SPACING.base,
   },
   reasonOption: {
-    padding: 14,
-    borderRadius: 8,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    marginBottom: 8,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
     alignItems: "center",
   },
   reasonOptionSelected: {
-    borderColor: "#2C5F2D",
-    backgroundColor: "#EBF5EB",
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
   },
   reasonOptionText: {
-    fontSize: 14,
-    color: "#0F172A",
-    fontWeight: "600",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   reasonOptionTextSelected: {
-    color: "#2C5F2D",
-    fontWeight: "700",
+    color: COLORS.primaryDark,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: SPACING.sm,
   },
   cancelButton: {
+    ...BUTTON_VARIANTS.outline,
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    marginRight: 8,
-    alignItems: "center",
+    height: 40,
   },
   cancelButtonText: {
-    fontSize: 14,
-    color: "#64748B",
-    fontWeight: "700",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   confirmButton: {
+    ...BUTTON_VARIANTS.primary,
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#2C5F2D",
-    marginLeft: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    height: 40,
   },
   confirmButtonText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    fontWeight: "700",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textInverse,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   errorCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "rgba(176, 58, 46, 0.15)",
     alignItems: "center",
   },
+  feedbackIcon: {
+    marginRight: SPACING.sm,
+  },
   errorText: {
-    color: "#DC2626",
-    fontSize: 15,
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
     textAlign: "center",
+    fontFamily: FONTS.body,
   },
 });

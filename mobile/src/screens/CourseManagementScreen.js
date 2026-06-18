@@ -7,14 +7,31 @@ import {
   Text,
   TextInput,
   View,
-  Alert,
   Switch,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  Plus,
+  Edit2,
+  Archive,
+  RefreshCw,
+  AlertTriangle,
+  BookOpen,
+  Sparkles,
+  Layers,
+  GraduationCap,
+  Calendar,
+  Users,
+  Info,
+  CheckCircle,
+  XCircle,
+} from "lucide-react-native";
 import { getCourses, createCourse, deleteCourse, updateCourse, unarchiveCourse } from "../services/courses";
 import EligibilityChips from "../components/EligibilityChips";
-import { formatEligibility } from "../utils/eligibility";
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function CourseManagementScreen() {
   console.log("[CourseManagement] render");
@@ -42,14 +59,12 @@ export default function CourseManagementScreen() {
 
   useEffect(() => {
     console.log("[CourseManagement] mounted");
-
     return () => {
       console.log("[CourseManagement] unmounted");
     };
   }, []);
 
   const loadCourses = useCallback(async () => {
-    console.trace("[CourseManagement] loadCourses");
     try {
       setLoading(true);
       setErrorMessage("");
@@ -70,22 +85,11 @@ export default function CourseManagementScreen() {
     }, [loadCourses])
   );
 
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log("[CourseManagement] focused");
-
-      return () => {
-        console.log("[CourseManagement] blurred");
-      };
-    }, [])
-  );
-
   useEffect(() => {
     loadCourses();
   }, [showArchived, loadCourses]);
 
   async function handleSubmit() {
-    console.trace("[CourseManagement] handleSubmit");
     const trimmed = courseName.trim();
     if (!trimmed) {
       setErrorMessage("Course name is required.");
@@ -128,7 +132,6 @@ export default function CourseManagementScreen() {
       setSemester("");
       setSection("");
       
-      // Reload courses
       const response = await getCourses(showArchived);
       setCourses(response.courses || []);
     } catch (error) {
@@ -209,17 +212,21 @@ export default function CourseManagementScreen() {
     section: section || null,
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>
-          {editingCourse ? "Edit Course" : "Add New Course"}
-        </Text>
+  const renderHeader = () => (
+    <View>
+      {/* 1. Add/Edit Course Card */}
+      <View style={[styles.card, editingCourse && styles.editingCard]}>
+        <View style={styles.formHeaderRow}>
+          <BookOpen size={20} color={COLORS.primary} style={styles.formIcon} />
+          <Text style={styles.sectionTitle}>
+            {editingCourse ? "Edit Course Parameters" : "Create New Course"}
+          </Text>
+        </View>
         
         <Text style={styles.fieldLabel}>Course Name *</Text>
         <TextInput
-          placeholder="e.g. Data Mining"
-          placeholderTextColor="#94a3b8"
+          placeholder="e.g. Operating Systems"
+          placeholderTextColor={COLORS.textSecondary}
           style={styles.input}
           value={courseName}
           onChangeText={(text) => {
@@ -231,8 +238,8 @@ export default function CourseManagementScreen() {
 
         <Text style={styles.fieldLabel}>Course Code (Optional)</Text>
         <TextInput
-          placeholder="e.g. MTH401"
-          placeholderTextColor="#94a3b8"
+          placeholder="e.g. CS401"
+          placeholderTextColor={COLORS.textSecondary}
           autoCapitalize="characters"
           style={styles.input}
           value={courseCode}
@@ -245,10 +252,10 @@ export default function CourseManagementScreen() {
 
         <View style={styles.row}>
           <View style={styles.col}>
-            <Text style={styles.fieldLabel}>Dept (Optional)</Text>
+            <Text style={styles.fieldLabel}>Dept</Text>
             <TextInput
-              placeholder="e.g. CSE"
-              placeholderTextColor="#94a3b8"
+              placeholder="CSE"
+              placeholderTextColor={COLORS.textSecondary}
               autoCapitalize="characters"
               style={styles.input}
               value={department}
@@ -259,11 +266,11 @@ export default function CourseManagementScreen() {
               }}
             />
           </View>
-          <View style={[styles.col, { marginHorizontal: 8 }]}>
-            <Text style={styles.fieldLabel}>Sem (Optional)</Text>
+          <View style={[styles.col, { marginHorizontal: SPACING.md }]}>
+            <Text style={styles.fieldLabel}>Semester</Text>
             <TextInput
-              placeholder="e.g. 5"
-              placeholderTextColor="#94a3b8"
+              placeholder="e.g. 6"
+              placeholderTextColor={COLORS.textSecondary}
               keyboardType="number-pad"
               style={styles.input}
               value={semester}
@@ -275,10 +282,10 @@ export default function CourseManagementScreen() {
             />
           </View>
           <View style={styles.col}>
-            <Text style={styles.fieldLabel}>Sec (Optional)</Text>
+            <Text style={styles.fieldLabel}>Section</Text>
             <TextInput
               placeholder="e.g. A"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={COLORS.textSecondary}
               autoCapitalize="characters"
               style={styles.input}
               value={section}
@@ -293,17 +300,33 @@ export default function CourseManagementScreen() {
 
         {/* Live Preview UI */}
         <View style={styles.previewContainer}>
-          <Text style={styles.previewLabel}>Eligible Students Preview:</Text>
-          <EligibilityChips eligibility={livePreviewData} />
+          <View style={styles.previewHeaderRow}>
+            <Sparkles size={14} color={COLORS.primary} style={styles.previewIcon} />
+            <Text style={styles.previewLabel}>Eligible Students Preview</Text>
+          </View>
+          <View style={styles.chipsWrapper}>
+            <EligibilityChips eligibility={livePreviewData} />
+          </View>
         </View>
 
-        {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {successMessage ? (
+          <View style={[styles.feedbackBox, styles.successBox]}>
+            <CheckCircle size={16} color={COLORS.success} style={styles.feedbackIcon} />
+            <Text style={styles.successText}>{successMessage}</Text>
+          </View>
+        ) : null}
+        
+        {errorMessage ? (
+          <View style={[styles.feedbackBox, styles.errorBox]}>
+            <XCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.formActions}>
           {editingCourse ? (
             <Pressable
-              style={[styles.button, styles.cancelFormBtn]}
+              style={styles.cancelFormBtn}
               onPress={cancelEdit}
               disabled={isSubmitting}
             >
@@ -311,63 +334,93 @@ export default function CourseManagementScreen() {
             </Pressable>
           ) : null}
           <Pressable
-            style={[styles.button, styles.submitBtn, isSubmitting && styles.buttonDisabled]}
+            style={[styles.submitBtn, isSubmitting && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={COLORS.textInverse} />
             ) : (
-              <Text style={styles.buttonText}>
-                {editingCourse ? "Save Changes" : "Create Course"}
-              </Text>
+              <>
+                <Plus size={16} color={COLORS.textInverse} />
+                <Text style={styles.buttonText}>
+                  {editingCourse ? "Save Changes" : "Create Course"}
+                </Text>
+              </>
             )}
           </Pressable>
         </View>
       </View>
 
+      {/* 2. Course Header & Filter Toggle */}
       <View style={styles.listHeaderRow}>
-        <Text style={styles.listHeader}>Your Courses</Text>
+        <Text style={styles.listHeader}>Your Enrolled Courses</Text>
         <View style={styles.toggleContainer}>
           <Text style={styles.toggleLabel}>Show Archived</Text>
           <Switch
             value={showArchived}
             onValueChange={setShowArchived}
-            trackColor={{ false: "#cbd5e1", true: "#bfdbfe" }}
-            thumbColor={showArchived ? "#1d4ed8" : "#94a3b8"}
+            trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+            thumbColor={showArchived ? COLORS.primary : COLORS.textSecondary}
           />
         </View>
       </View>
+    </View>
+  );
 
-      {loading ? (
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      {loading && courses.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#0f172a" />
-        </View>
-      ) : courses.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No courses found.</Text>
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
         <FlatList
           data={courses}
           keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Info size={32} color={COLORS.textSecondary} style={styles.emptyIcon} />
+              <Text style={styles.emptyText}>No registered courses found.</Text>
+            </View>
+          }
           renderItem={({ item }) => (
-            <View style={styles.courseItemCard}>
+            <View style={[styles.courseItemCard, item.isArchived && styles.archivedItemCard]}>
               <View style={styles.courseInfo}>
                 <View style={styles.courseTitleRow}>
-                  <Text style={styles.courseName}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
+                  <Text style={styles.courseName}>
+                    {item.code ? `${item.code} - ${item.name}` : item.name}
+                  </Text>
+                  {item.isArchived && (
+                    <View style={styles.archiveBadge}>
+                      <Text style={styles.archiveBadgeText}>Archived</Text>
+                    </View>
+                  )}
                 </View>
                 
-                <EligibilityChips eligibility={item} isArchived={item.isArchived} />
+                <View style={styles.cardChipsWrapper}>
+                  <EligibilityChips eligibility={item} isArchived={item.isArchived} />
+                </View>
 
-                <Text style={styles.studentCountText}>
-                  Eligible Students: {item.eligibleStudentCount !== undefined ? item.eligibleStudentCount : 0}
-                </Text>
+                <View style={styles.metaInfoRow}>
+                  <Users size={13} color={COLORS.textSecondary} style={styles.metaIcon} />
+                  <Text style={styles.studentCountText}>
+                    Eligible Students: <Text style={styles.boldText}>{item.eligibleStudentCount !== undefined ? item.eligibleStudentCount : 0}</Text>
+                  </Text>
+                </View>
 
-                <Text style={styles.courseMeta}>
-                  Created: {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
+                <View style={styles.metaInfoRow}>
+                  <Calendar size={13} color={COLORS.textSecondary} style={styles.metaIcon} />
+                  <Text style={styles.courseMeta}>
+                    Created: {new Date(item.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
               </View>
               
               {item.isArchived ? (
@@ -375,6 +428,7 @@ export default function CourseManagementScreen() {
                   style={styles.restoreButton}
                   onPress={() => handleRestoreCourse(item.id)}
                 >
+                  <RefreshCw size={14} color={COLORS.success} />
                   <Text style={styles.restoreButtonText}>Restore</Text>
                 </Pressable>
               ) : (
@@ -383,12 +437,14 @@ export default function CourseManagementScreen() {
                     style={styles.editBtnLink}
                     onPress={() => startEditCourse(item)}
                   >
+                    <Edit2 size={14} color={COLORS.primary} />
                     <Text style={styles.editBtnLinkText}>Edit</Text>
                   </Pressable>
                   <Pressable
                     style={styles.deleteButton}
                     onPress={() => openArchiveModal(item)}
                   >
+                    <Archive size={14} color={COLORS.error} />
                     <Text style={styles.deleteButtonText}>Archive</Text>
                   </Pressable>
                 </View>
@@ -398,20 +454,23 @@ export default function CourseManagementScreen() {
         />
       )}
 
-      {/* Custom Archive Modal */}
-      <Modal transparent visible={archiveModalVisible} animationType="slide">
+      {/* 4. Custom Archive Modal */}
+      <Modal transparent visible={archiveModalVisible} animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Archive Course?</Text>
+            <View style={styles.modalAlertHeader}>
+              <AlertTriangle size={32} color={COLORS.warning} />
+              <Text style={styles.modalTitle}>Archive Course?</Text>
+            </View>
             <Text style={styles.modalText}>
               This course will no longer appear when starting new attendance sessions.{"\n\n"}
-              Historical attendance records and reports will remain available.
+              Historical attendance records and reports will remain fully available.
             </Text>
             
-            <Text style={styles.fieldLabel}>Archive Reason (Optional)</Text>
+            <Text style={styles.modalInputLabel}>Archive Reason (Optional)</Text>
             <TextInput
               placeholder="e.g. Course completed"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={COLORS.textSecondary}
               style={styles.modalInput}
               value={archiveReason}
               onChangeText={setArchiveReason}
@@ -419,13 +478,13 @@ export default function CourseManagementScreen() {
 
             <View style={styles.modalButtons}>
               <Pressable
-                style={[styles.modalBtn, styles.cancelBtn]}
+                style={styles.cancelBtn}
                 onPress={() => setArchiveModalVisible(false)}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalBtn, styles.archiveBtn]}
+                style={styles.archiveBtn}
                 onPress={handleArchiveCourse}
               >
                 <Text style={styles.archiveBtnText}>Archive</Text>
@@ -434,306 +493,399 @@ export default function CourseManagementScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.background,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginHorizontal: SPACING.base,
+    marginTop: SPACING.base,
+    marginBottom: SPACING.base,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  editingCard: {
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  formHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.base,
+  },
+  formIcon: {
+    marginRight: SPACING.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 14,
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748b",
-    marginBottom: 6,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#0f172a",
-    backgroundColor: "#ffffff",
-    marginBottom: 12,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.base,
+    height: LAYOUT.inputHeight - 2,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
+    marginBottom: SPACING.md,
+    fontFamily: FONTS.body,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: SPACING.sm,
   },
   col: {
     flex: 1,
   },
   previewContainer: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    marginBottom: 14,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: SPACING.base,
+  },
+  previewHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.sm,
+  },
+  previewIcon: {
+    marginRight: SPACING.xs,
   },
   previewLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#475569",
-    marginBottom: 6,
+    fontSize: TYPOGRAPHY.sizes.label,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.textSecondary,
+  },
+  chipsWrapper: {
+    marginTop: SPACING.xs,
+  },
+  cardChipsWrapper: {
+    marginVertical: SPACING.xs,
   },
   formActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-  },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: SPACING.sm,
   },
   submitBtn: {
-    backgroundColor: "#0f172a",
-    minWidth: 120,
+    ...BUTTON_VARIANTS.primary,
+    height: 46,
+    paddingHorizontal: SPACING.xl,
   },
   cancelFormBtn: {
-    backgroundColor: "#f1f5f9",
-    marginRight: 10,
+    ...BUTTON_VARIANTS.outline,
+    height: 46,
+    paddingHorizontal: SPACING.xl,
   },
   cancelFormBtnText: {
-    color: "#475569",
-    fontSize: 14,
-    fontWeight: "600",
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   buttonText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontFamily: FONTS.body,
+  },
+  feedbackBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.base,
+  },
+  successBox: {
+    backgroundColor: COLORS.successLight,
+    borderColor: "rgba(45, 106, 79, 0.15)",
+  },
+  errorBox: {
+    backgroundColor: COLORS.errorLight,
+    borderColor: "rgba(176, 58, 46, 0.15)",
+  },
+  feedbackIcon: {
+    marginRight: SPACING.sm,
   },
   successText: {
-    color: "#166534",
-    fontSize: 14,
-    marginBottom: 10,
-    textAlign: "center",
+    flex: 1,
+    color: COLORS.success,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
   errorText: {
-    color: "#dc2626",
-    fontSize: 14,
-    marginBottom: 10,
-    textAlign: "center",
+    flex: 1,
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
   },
   listHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 4,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+    marginHorizontal: SPACING.base,
   },
   listHeader: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   toggleContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   toggleLabel: {
-    fontSize: 14,
-    color: "#475569",
-    marginRight: 8,
-    fontWeight: "500",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    marginRight: SPACING.sm,
+    fontWeight: TYPOGRAPHY.weights.medium,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: SPACING.xxl,
   },
   courseItemCard: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    marginBottom: SPACING.md,
+    marginHorizontal: SPACING.base,
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    elevation: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.xs,
+  },
+  archivedItemCard: {
+    backgroundColor: COLORS.backgroundAlt,
+    borderColor: COLORS.border,
+    opacity: 0.85,
   },
   courseInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: SPACING.md,
   },
   courseTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    flexWrap: "wrap",
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
   },
   courseName: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
+  },
+  archiveBadge: {
+    ...BADGES.warning,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 1,
+  },
+  archiveBadgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.warning,
+  },
+  metaInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: SPACING.xs,
+  },
+  metaIcon: {
+    marginRight: SPACING.xs,
   },
   studentCountText: {
-    fontSize: 13,
-    color: "#475569",
-    fontWeight: "600",
-    marginTop: 6,
-    marginBottom: 2,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  boldText: {
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
   courseMeta: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
   },
   actionButtonsCol: {
     alignItems: "flex-end",
+    gap: SPACING.xs,
   },
   editBtnLink: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    ...BUTTON_VARIANTS.outline,
+    height: 32,
+    paddingHorizontal: SPACING.md,
+    borderColor: COLORS.primary,
   },
   editBtnLinkText: {
-    color: "#1d4ed8",
-    fontSize: 14,
-    fontWeight: "600",
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   deleteButton: {
-    backgroundColor: "#fee2e2",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    ...BUTTON_VARIANTS.danger,
+    backgroundColor: COLORS.errorLight,
+    height: 32,
+    paddingHorizontal: SPACING.md,
+    borderWidth: 1,
+    borderColor: "rgba(176, 58, 46, 0.15)",
   },
   deleteButtonText: {
-    color: "#ef4444",
-    fontSize: 13,
-    fontWeight: "600",
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   restoreButton: {
-    backgroundColor: "#f0fdf4",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    ...BUTTON_VARIANTS.secondary,
+    backgroundColor: COLORS.successLight,
+    height: 32,
+    paddingHorizontal: SPACING.md,
     borderWidth: 1,
-    borderColor: "#bbf7d0",
+    borderColor: "rgba(45, 106, 79, 0.15)",
   },
   restoreButtonText: {
-    color: "#166534",
-    fontSize: 13,
-    fontWeight: "600",
+    color: COLORS.success,
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: SPACING.xl,
   },
   emptyContainer: {
-    padding: 24,
+    padding: SPACING.xxl,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
+    marginHorizontal: SPACING.base,
+    marginTop: SPACING.md,
+  },
+  emptyIcon: {
+    marginBottom: SPACING.sm,
   },
   emptyText: {
-    color: "#64748b",
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontFamily: FONTS.body,
   },
-  // Modal Styles
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.4)",
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: SPACING.xl,
   },
   modalContent: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     width: "100%",
-    padding: 24,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    padding: SPACING.xl,
+    ...SHADOWS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalAlertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.md,
+    justifyContent: "center",
+    gap: SPACING.sm,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 10,
-    textAlign: "center",
+    fontSize: TYPOGRAPHY.sizes.sectionTitle,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    fontFamily: FONTS.heading,
   },
   modalText: {
-    fontSize: 15,
-    color: "#475569",
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
     lineHeight: 22,
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: SPACING.base,
+    fontFamily: FONTS.body,
+  },
+  modalInputLabel: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+    textTransform: "uppercase",
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#0f172a",
-    backgroundColor: "#ffffff",
-    marginBottom: 20,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.base,
+    height: LAYOUT.inputHeight - 4,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
+    marginBottom: SPACING.base,
+    fontFamily: FONTS.body,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: SPACING.sm,
   },
   cancelBtn: {
-    backgroundColor: "#f1f5f9",
-    marginRight: 12,
+    ...BUTTON_VARIANTS.outline,
+    flex: 1,
+    height: 44,
   },
   cancelBtnText: {
-    color: "#475569",
-    fontSize: 15,
-    fontWeight: "600",
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
   archiveBtn: {
-    backgroundColor: "#ef4444",
+    ...BUTTON_VARIANTS.danger,
+    flex: 1,
+    height: 44,
   },
   archiveBtnText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
+    color: COLORS.textInverse,
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
 });
