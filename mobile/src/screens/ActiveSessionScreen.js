@@ -19,7 +19,7 @@ import EligibilityChips from "../components/EligibilityChips";
 import { getSessionEligibility } from "../utils/eligibility";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
-const QR_LIFETIME_SECONDS = 25;
+const QR_LIFETIME_SECONDS = 30;
 
 export default function ActiveSessionScreen({ navigation, route }) {
   console.log('[ActiveSession] mounted');
