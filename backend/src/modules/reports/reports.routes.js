@@ -62,11 +62,6 @@ router.get(
   reportsController.getCourseDefaulters
 );
 
-router.get(
-  "/courses/:courseId/trends",
-  requireRole(ROLES.TEACHER),
-  reportsController.getCourseTrends
-);
 
 // Export routes with rate limiting
 router.get(

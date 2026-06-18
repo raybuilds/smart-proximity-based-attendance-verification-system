@@ -8,6 +8,8 @@ const coursesService = require("../modules/courses/courses.service");
 const attendanceService = require("../modules/attendance/attendance.service");
 const studentAttendanceService = require("../modules/studentAttendance/studentAttendance.service");
 const qrService = require("../modules/qr/qr.service");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 async function runVerification() {
   console.log("=== STARTING PHASE 5: ANALYTICS, DEFAULTER REPORTS & EXPORT STABILIZATION VERIFICATION ===\n");
@@ -153,11 +155,25 @@ async function runVerification() {
     const currentSession = await attendanceService.startSession(teacherUserId, course.id);
     const qrCode = await qrService.getCurrentQrForSession(currentSession.id, teacherUserId);
 
-    // Mark attendance for current session while it is active
+    // Mark attendance for current session while it is active with a signed proximity token
+    const tokenJti = crypto.randomUUID();
+    const tokenSecret = process.env.JWT_SECRET || "replace-with-a-secure-jwt-secret";
+    const proximityToken = jwt.sign(
+      {
+        studentId: mockStudentId,
+        sessionId: currentSession.id,
+        nonce: qrCode.nonce,
+        jti: tokenJti,
+      },
+      tokenSecret,
+      { expiresIn: "60s" }
+    );
+
     await studentAttendanceService.markAttendanceFromQr({
       studentId: mockStudentId,
       sessionCode: currentSession.sessionCode,
       nonce: qrCode.nonce,
+      proximityToken,
     });
 
     await attendanceService.endSession(teacherUserId);
@@ -178,14 +194,12 @@ async function runVerification() {
       },
     });
 
-    // Dashboard query for 30d should contain attendanceTrend (since current has 100% and prev has 0% attendance)
+    // Dashboard query for 30d should not contain attendanceTrend (since it is removed)
     // First, invalidate cache to force refresh
     reportsService.invalidateTeacherDashboardCache(teacherUserId);
     const dash30d = await reportsService.getTeacherDashboard(teacherUserId, "30d");
-    assert.ok(dash30d.attendanceTrend, "Expected trend indicators for 30d range");
-    assert.strictEqual(dash30d.attendanceTrend.direction, "up");
-    assert.strictEqual(dash30d.attendanceTrend.change, 50.0);
-    logTest("Dashboard Trend Indicators (7d/30d)", "PASS");
+    assert.strictEqual(dash30d.attendanceTrend, undefined, "Expected no trend indicators for 30d range");
+    logTest("Dashboard Trend Indicators (Removed)", "PASS");
 
     // ----------------------------------------------------
     // Test 5: Cache Invalidation (Session and Attendance Lifecycle)
@@ -277,21 +291,7 @@ async function runVerification() {
     await reportsService.exportCoursePDF(teacherUserId, course.id, mockWriteStream);
     logTest("PDF Exporter & Page Footers", "PASS");
 
-    // ----------------------------------------------------
-    // Test 12: Trend Statistics Calculation & Empty State
-    // ----------------------------------------------------
-    console.log("\n--- TEST 12: Trend Stats & Empty State ---");
-    // Create new course with 0 sessions
-    const emptyCourse = await coursesService.createCourse(teacherUserId, { name: `P5Test_Empty_${Date.now()}` });
-    const emptyTrends = await reportsService.getCourseTrends(teacherUserId, emptyCourse.id);
-    assert.strictEqual(emptyTrends.data.length, 0);
-    assert.strictEqual(emptyTrends.averageAttendance, 0.0);
-    assert.strictEqual(emptyTrends.highestAttendance, 0.0);
-    assert.strictEqual(emptyTrends.lowestAttendance, 0.0);
-    logTest("Trend Stats & Empty State", "PASS");
 
-    // Clean up empty course
-    await prisma.course.delete({ where: { id: emptyCourse.id } });
 
 
     // ====================================================
@@ -683,11 +683,25 @@ async function runVerification() {
       const d2 = await reportsService.getTeacherDashboard(teacherUserId, "all");
       assert.strictEqual(d2.totalAttendanceRecords, d1.totalAttendanceRecords); // cache hit
 
-      // Mark attendance via service (will update/upsert the unique record)
+      // Mark attendance via service (will update/upsert the unique record) with signed proximity token
+      const tokenJti = crypto.randomUUID();
+      const tokenSecret = process.env.JWT_SECRET || "replace-with-a-secure-jwt-secret";
+      const proximityToken = jwt.sign(
+        {
+          studentId: mockStudentId,
+          sessionId: started.id,
+          nonce: qrCodeObj.nonce,
+          jti: tokenJti,
+        },
+        tokenSecret,
+        { expiresIn: "60s" }
+      );
+
       await studentAttendanceService.markAttendanceFromQr({
         studentId: mockStudentId,
         sessionCode: started.sessionCode,
         nonce: qrCodeObj.nonce,
+        proximityToken,
       });
 
       const d3 = await reportsService.getTeacherDashboard(teacherUserId, "all");

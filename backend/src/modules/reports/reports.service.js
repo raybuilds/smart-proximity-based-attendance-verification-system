@@ -194,29 +194,7 @@ async function getTeacherDashboard(userId, range = "all") {
     worstCourse,
   };
 
-  // Trend indicator calculation for 7d and 30d
-  if (range !== "all") {
-    let totalRecordsPrev = 0;
-    let totalPossiblePrev = 0;
 
-    for (const course of courses) {
-      const prevSessions = course.sessions.filter((s) => s.startedAt >= prevCutoff && s.startedAt < cutoff);
-      for (const session of prevSessions) {
-        const eligibleCount = await cachedStudentCount(session);
-        totalRecordsPrev += session.attendanceRecords.length;
-        totalPossiblePrev += eligibleCount;
-      }
-    }
-
-    const previousAverage = totalPossiblePrev === 0 ? 0 : (totalRecordsPrev / totalPossiblePrev) * 100;
-    const currentAverage = totalPossibleAll === 0 ? 0 : (totalAttendanceRecords / totalPossibleAll) * 100;
-    const diff = currentAverage - previousAverage;
-
-    responseData.attendanceTrend = {
-      direction: diff >= 0 ? "up" : "down",
-      change: Number(Math.abs(diff).toFixed(1)),
-    };
-  }
 
   dashboardCache.set(cacheKey, { data: responseData, expiresAt: Date.now() + 60 * 1000 });
   return responseData;
@@ -237,73 +215,6 @@ async function getCourseDefaulters(userId, courseId, threshold = 75) {
   };
 }
 
-async function getCourseTrends(userId, courseId) {
-  const teacher = await getTeacherByUserId(userId);
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-  });
-
-  if (!course) {
-    const error = new Error("Course not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (course.teacherId !== teacher.id) {
-    const error = new Error("Access denied.");
-    error.statusCode = 403;
-    throw error;
-  }
-
-  const sessions = await prisma.attendanceSession.findMany({
-    where: { courseId },
-    include: {
-      attendanceRecords: true,
-    },
-    orderBy: { startedAt: "asc" },
-  });
-
-  if (sessions.length === 0) {
-    return {
-      averageAttendance: 0.0,
-      highestAttendance: 0.0,
-      lowestAttendance: 0.0,
-      data: [],
-    };
-  }
-
-  const trendData = [];
-  let totalPercentage = 0;
-  let highestAttendance = -1;
-  let lowestAttendance = 101;
-
-  for (const session of sessions) {
-    const eligibleCount = await getEligibleStudentCountForSession(session);
-    const recordsCount = session.attendanceRecords.length;
-
-    const percentage = eligibleCount === 0 ? 0.0 : Number(((recordsCount / eligibleCount) * 100).toFixed(2));
-
-    totalPercentage += percentage;
-    if (percentage > highestAttendance) highestAttendance = percentage;
-    if (percentage < lowestAttendance) lowestAttendance = percentage;
-
-    trendData.push({
-      sessionId: session.id,
-      date: session.startedAt.toISOString().split("T")[0],
-      attendancePercentage: percentage,
-    });
-  }
-
-  const averageAttendance = Number((totalPercentage / sessions.length).toFixed(2));
-
-  return {
-    averageAttendance,
-    highestAttendance: Number(highestAttendance.toFixed(2)),
-    lowestAttendance: Number(lowestAttendance.toFixed(2)),
-    data: trendData,
-  };
-}
 
 async function exportCourseCSV(userId, courseId) {
   const report = await getTeacherCourseStudentsReport(userId, courseId);
@@ -1507,7 +1418,6 @@ module.exports = {
   getTeacherDashboard,
   invalidateTeacherDashboardCache,
   getCourseDefaulters,
-  getCourseTrends,
   exportCourseCSV,
   exportCourseDefaultersCSV,
   exportCoursePDF,

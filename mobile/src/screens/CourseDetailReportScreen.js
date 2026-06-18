@@ -306,16 +306,6 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
               <Text style={styles.dangerButtonText}>View Defaulters</Text>
             </Pressable>
 
-            <Pressable
-              style={styles.infoButton}
-              onPress={() =>
-                navigation.navigate("CourseTrend", {
-                  courseId: course.id,
-                })
-              }
-            >
-              <Text style={styles.infoButtonText}>Attendance Trends</Text>
-            </Pressable>
 
             <View style={styles.row}>
               <Pressable

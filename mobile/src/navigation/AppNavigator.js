@@ -19,7 +19,7 @@ import RegisterScreen from "../screens/RegisterScreen";
 import CourseDetailReportScreen from "../screens/CourseDetailReportScreen";
 import StudentAttendanceReportScreen from "../screens/StudentAttendanceReportScreen";
 import DefaulterReportScreen from "../screens/DefaulterReportScreen";
-import CourseTrendScreen from "../screens/CourseTrendScreen";
+
 import StudentAttendanceHistoryScreen from "../screens/StudentAttendanceHistoryScreen";
 import StudentCourseAttendanceScreen from "../screens/StudentCourseAttendanceScreen";
 
@@ -107,11 +107,7 @@ export default function AppNavigator() {
               component={DefaulterReportScreen}
               options={{ title: "Defaulter Report" }}
             />
-            <Stack.Screen
-              name="CourseTrend"
-              component={CourseTrendScreen}
-              options={{ title: "Attendance Trends" }}
-            />
+
           </>
         ) : (
           <>

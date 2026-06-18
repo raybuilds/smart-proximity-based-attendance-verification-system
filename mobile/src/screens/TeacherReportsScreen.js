@@ -138,7 +138,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
       );
     }
 
-    const trend = dashboard.attendanceTrend;
+
 
     return (
       <View style={styles.dashboardContainer}>
@@ -169,7 +169,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Row 2 Stats */}
         <View style={styles.gridRow}>
           <View style={styles.statCard}>
             <View style={styles.rowAlign}>
@@ -181,11 +180,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
           <View style={styles.statCard}>
             <Text style={styles.statNum}>{dashboard.averageAttendancePercentage}%</Text>
             <Text style={styles.statLabel}>Avg Attendance</Text>
-            {range !== "all" && trend ? (
-              <Text style={[styles.trendIndicator, trend.direction === "up" ? styles.trendUp : styles.trendDown]}>
-                {trend.direction === "up" ? `↑ Improved by ${trend.change}%` : `↓ Dropped by ${trend.change}%`}
-              </Text>
-            ) : null}
           </View>
         </View>
 
@@ -374,17 +368,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#94a3b8",
   },
-  trendIndicator: {
-    fontSize: 11,
-    fontWeight: "700",
-    marginTop: 4,
-  },
-  trendUp: {
-    color: "#166534",
-  },
-  trendDown: {
-    color: "#991b1b",
-  },
+
   insightsCard: {
     backgroundColor: "#eff6ff",
     borderWidth: 1,
