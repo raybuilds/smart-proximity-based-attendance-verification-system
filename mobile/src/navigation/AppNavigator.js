@@ -28,6 +28,16 @@ import AdminStudentDetailScreen from "../screens/AdminStudentDetailScreen";
 import AdminTeacherListScreen from "../screens/AdminTeacherListScreen";
 import AdminTeacherDetailScreen from "../screens/AdminTeacherDetailScreen";
 
+import AdminCourseListScreen from "../screens/AdminCourseListScreen";
+import AdminCourseDetailScreen from "../screens/AdminCourseDetailScreen";
+import AdminAuditCenterScreen from "../screens/AdminAuditCenterScreen";
+import AdminLiveSessionsScreen from "../screens/AdminLiveSessionsScreen";
+import AdminAtRiskScreen from "../screens/AdminAtRiskScreen";
+import AdminAnalyticsScreen from "../screens/AdminAnalyticsScreen";
+import AdminArchivedCoursesScreen from "../screens/AdminArchivedCoursesScreen";
+import AdminArchivedCourseDetailScreen from "../screens/AdminArchivedCourseDetailScreen";
+
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -86,6 +96,46 @@ export default function AppNavigator() {
               name="AdminTeacherDetail"
               component={AdminTeacherDetailScreen}
               options={{ title: "Teacher Detail" }}
+            />
+            <Stack.Screen
+              name="AdminCourseList"
+              component={AdminCourseListScreen}
+              options={{ title: "Courses Oversight" }}
+            />
+            <Stack.Screen
+              name="AdminCourseDetail"
+              component={AdminCourseDetailScreen}
+              options={{ title: "Course Overview" }}
+            />
+            <Stack.Screen
+              name="AdminAuditCenter"
+              component={AdminAuditCenterScreen}
+              options={{ title: "Audit Center" }}
+            />
+            <Stack.Screen
+              name="AdminLiveSessions"
+              component={AdminLiveSessionsScreen}
+              options={{ title: "Live Sessions" }}
+            />
+            <Stack.Screen
+              name="AdminAtRisk"
+              component={AdminAtRiskScreen}
+              options={{ title: "At Risk Students" }}
+            />
+            <Stack.Screen
+              name="AdminAnalytics"
+              component={AdminAnalyticsScreen}
+              options={{ title: "Institutional Analytics" }}
+            />
+            <Stack.Screen
+              name="AdminArchivedCourses"
+              component={AdminArchivedCoursesScreen}
+              options={{ title: "Course Archive" }}
+            />
+            <Stack.Screen
+              name="AdminArchivedCourseDetail"
+              component={AdminArchivedCourseDetailScreen}
+              options={{ title: "Archived Course Details" }}
             />
           </>
         ) : user?.role === "teacher" ? (

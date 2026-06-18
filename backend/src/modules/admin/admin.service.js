@@ -1,6 +1,14 @@
 const { prisma } = require("../../config/database");
 const reportsService = require("../reports/reports.service");
 
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+
 // Helper to count eligible students using session snapshots
 async function getEligibleStudentCountForSession(session) {
   if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
@@ -77,11 +85,15 @@ async function getAdminDashboard() {
   for (const student of allStudents) {
     try {
       const report = await reportsService.getStudentCoursesReport(student.userId);
-      if (report && report.overallAttendancePercentage < 75.0) {
+      let totalSessions = 0;
+      report.courses.forEach(c => {
+        totalSessions += c.totalSessions;
+      });
+      if (totalSessions > 0 && report.overallAttendancePercentage < 75.0) {
         atRiskStudents++;
       }
     } catch (e) {
-      // ignore failures for newly seeded students with no courses/sessions
+      // ignore
     }
   }
 
@@ -391,6 +403,643 @@ async function toggleUserStatus(userId, isActive, adminUserId) {
   return { success: true };
 }
 
+async function getAdminCourses() {
+  const courses = await prisma.course.findMany({
+    include: {
+      teacher: { include: { user: true } },
+      sessions: {
+        include: { attendanceRecords: true }
+      }
+    }
+  });
+
+  const list = [];
+  for (const course of courses) {
+    let studentCount = 0;
+    if (course.department && course.semester && course.section) {
+      studentCount = await prisma.student.count({
+        where: {
+          department: { equals: course.department, mode: "insensitive" },
+          semester: course.semester,
+          section: { equals: course.section, mode: "insensitive" }
+        }
+      });
+    }
+
+    let totalSessions = course.sessions.length;
+    let attendancePercentage = 100.0;
+    if (totalSessions > 0) {
+      let totalRecords = 0;
+      let totalPossible = 0;
+      for (const s of course.sessions) {
+        const eligible = await getEligibleStudentCountForSession(s);
+        totalRecords += s.attendanceRecords.length;
+        totalPossible += eligible;
+      }
+      attendancePercentage = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
+    }
+
+    const activeSessionExists = course.sessions.some(s => s.isActive);
+
+    list.push({
+      courseId: course.id,
+      courseCode: course.code,
+      courseName: course.name,
+      teacherName: course.teacher.user.name,
+      department: course.department,
+      semester: course.semester,
+      section: course.section,
+      studentCount,
+      attendancePercentage,
+      activeSession: activeSessionExists
+    });
+  }
+
+  return list;
+}
+
+async function getAdminCourseDetail(courseId) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      teacher: { include: { user: true } },
+      sessions: {
+        orderBy: { startedAt: "desc" },
+        include: { attendanceRecords: true }
+      }
+    }
+  });
+
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const totalSessions = course.sessions.length;
+
+  let studentCount = 0;
+  if (course.department && course.semester && course.section) {
+    studentCount = await prisma.student.count({
+      where: {
+        department: { equals: course.department, mode: "insensitive" },
+        semester: course.semester,
+        section: { equals: course.section, mode: "insensitive" }
+      }
+    });
+  }
+
+  let averageAttendance = 100.0;
+  if (totalSessions > 0) {
+    let totalRecords = 0;
+    let totalPossible = 0;
+    for (const s of course.sessions) {
+      const eligible = await getEligibleStudentCountForSession(s);
+      totalRecords += s.attendanceRecords.length;
+      totalPossible += eligible;
+    }
+    averageAttendance = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
+  }
+
+  const manualCorrectionsCount = await prisma.attendance.count({
+    where: {
+      sessionId: { in: course.sessions.map(s => s.id) },
+      method: "MANUAL"
+    }
+  });
+
+  let defaulters = [];
+  if (totalSessions > 0 && course.department && course.semester && course.section) {
+    const students = await prisma.student.findMany({
+      where: {
+        department: { equals: course.department, mode: "insensitive" },
+        semester: course.semester,
+        section: { equals: course.section, mode: "insensitive" }
+      },
+      include: { user: true }
+    });
+
+    for (const student of students) {
+      let presentCount = 0;
+      course.sessions.forEach(s => {
+        const rec = s.attendanceRecords.find(r => r.studentId === student.userId);
+        if (rec && rec.status === "present") {
+          presentCount++;
+        }
+      });
+      const pct = Number(((presentCount / totalSessions) * 100).toFixed(1));
+      if (pct < 75.0) {
+        const classesNeededFor75 = Math.max(0, (3 * totalSessions) - (4 * presentCount));
+        defaulters.push({
+          studentId: student.id,
+          name: student.user.name,
+          attendancePercentage: pct,
+          classesNeededFor75
+        });
+      }
+    }
+  }
+  defaulters = defaulters.slice(0, 50);
+
+  const corrections = await prisma.attendance.findMany({
+    where: {
+      sessionId: { in: course.sessions.map(s => s.id) },
+      method: "MANUAL"
+    },
+    take: 20,
+    orderBy: { modifiedAt: "desc" },
+    include: {
+      student: true
+    }
+  });
+
+  const sessionsData = [];
+  const newestSessions = course.sessions.slice(0, 20);
+  for (const s of newestSessions) {
+    const eligible = await getEligibleStudentCountForSession(s);
+    const recordsCount = s.attendanceRecords.length;
+    const pct = eligible === 0 ? 100.0 : Number(((recordsCount / eligible) * 100).toFixed(1));
+    sessionsData.push({
+      sessionId: s.id,
+      startedAt: s.startedAt,
+      endedAt: s.endedAt,
+      attendanceCount: recordsCount,
+      attendancePercentage: pct
+    });
+  }
+
+  return {
+    course: {
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      department: course.department,
+      semester: course.semester,
+      section: course.section,
+      isArchived: course.isArchived
+    },
+    teacher: {
+      name: course.teacher.user.name,
+      email: course.teacher.user.email
+    },
+    stats: {
+      totalStudents: studentCount,
+      totalSessions,
+      averageAttendance,
+      manualCorrections: manualCorrectionsCount
+    },
+    sessions: sessionsData,
+    defaulters,
+    corrections: corrections.map(c => ({
+      studentName: c.student.name,
+      reason: c.correctionReason,
+      correctedOn: c.modifiedAt || c.markedAt
+    }))
+  };
+}
+
+async function getAdminManualCorrections(filters = {}) {
+  const { teacherId, courseId, reason, startDate, endDate, page = 1, limit = 20 } = filters;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    method: "MANUAL"
+  };
+
+  if (teacherId) {
+    where.modifiedByTeacherId = Number(teacherId);
+  }
+  if (courseId) {
+    where.session = { courseId: Number(courseId) };
+  }
+  if (reason) {
+    where.correctionReason = { contains: reason, mode: "insensitive" };
+  }
+  if (startDate || endDate) {
+    where.modifiedAt = {};
+    if (startDate) where.modifiedAt.gte = new Date(startDate);
+    if (endDate) where.modifiedAt.lte = new Date(endDate);
+  }
+
+  const totalRecords = await prisma.attendance.count({ where });
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  const items = await prisma.attendance.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy: { modifiedAt: "desc" },
+    include: {
+      student: true,
+      session: { include: { course: true } }
+    }
+  });
+
+  const itemsMapped = [];
+  for (const item of items) {
+    let teacherName = "Unknown Teacher";
+    if (item.modifiedByTeacherId) {
+      const teacherUser = await prisma.user.findUnique({
+        where: { id: item.modifiedByTeacherId }
+      });
+      if (teacherUser) teacherName = teacherUser.name;
+    }
+
+    itemsMapped.push({
+      student: {
+        id: item.studentId,
+        name: item.student ? item.student.name : "Unknown Student"
+      },
+      course: {
+        id: item.session.courseId,
+        name: item.session.course ? item.session.course.name : "Unknown Course",
+        code: item.session.course ? item.session.course.code : null
+      },
+      teacher: {
+        id: item.modifiedByTeacherId,
+        name: teacherName
+      },
+      reason: item.correctionReason,
+      correctedOn: item.modifiedAt || item.markedAt
+    });
+  }
+
+  return {
+    items: itemsMapped,
+    page: Number(page),
+    totalPages,
+    totalRecords,
+    hasMore: Number(page) < totalPages
+  };
+}
+
+async function getAdminLiveSessions() {
+  const activeSessions = await prisma.attendanceSession.findMany({
+    where: { isActive: true },
+    include: {
+      course: true,
+      teacher: true,
+      attendanceRecords: true
+    }
+  });
+
+  const list = [];
+  for (const s of activeSessions) {
+    const eligibleCount = await getEligibleStudentCountForSession(s);
+    const attendanceCount = s.attendanceRecords.length;
+    const durationMinutes = Math.floor((new Date() - s.startedAt) / 60000);
+
+    list.push({
+      sessionId: s.id,
+      courseCode: s.course ? s.course.code : null,
+      courseName: s.course ? s.course.name : "Unknown Course",
+      teacherName: s.teacher ? s.teacher.name : "Unknown Teacher",
+      startedAt: s.startedAt,
+      attendanceCount,
+      eligibleCount,
+      durationMinutes: durationMinutes >= 0 ? durationMinutes : 0
+    });
+  }
+
+  return list;
+}
+
+async function getAdminAtRisk() {
+  const students = await prisma.student.findMany({
+    include: { user: true }
+  });
+
+  const list = [];
+  for (const s of students) {
+    try {
+      const report = await reportsService.getStudentCoursesReport(s.userId);
+      let totalSessions = 0;
+      let presentCount = 0;
+      report.courses.forEach(c => {
+        totalSessions += c.totalSessions;
+        presentCount += c.presentCount;
+      });
+
+      if (totalSessions > 0 && report.overallAttendancePercentage < 75.0) {
+        const classesNeededFor75 = Math.max(0, (3 * totalSessions) - (4 * presentCount));
+        list.push({
+          studentId: s.id,
+          name: s.user.name,
+          department: s.department,
+          semester: s.semester,
+          attendancePercentage: report.overallAttendancePercentage,
+          classesNeededFor75
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  list.sort((a, b) => a.attendancePercentage - b.attendancePercentage);
+  return list;
+}
+
+async function getAdminAnalytics() {
+  const coursesList = await getAdminCourses();
+  const totalCourses = coursesList.length;
+
+  let bestCourse = "N/A";
+  let worstCourse = "N/A";
+
+  if (totalCourses > 0) {
+    coursesList.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
+    bestCourse = `${coursesList[0].courseCode ? coursesList[0].courseCode + " - " : ""}${coursesList[0].courseName} (${coursesList[0].attendancePercentage}%)`;
+    worstCourse = `${coursesList[totalCourses - 1].courseCode ? coursesList[totalCourses - 1].courseCode + " - " : ""}${coursesList[totalCourses - 1].courseName} (${coursesList[totalCourses - 1].attendancePercentage}%)`;
+  }
+
+  const teachers = await prisma.teacher.findMany({
+    include: {
+      user: true,
+      courses: { include: { sessions: true } }
+    }
+  });
+
+  let mostActiveTeacher = "N/A";
+  if (teachers.length > 0) {
+    let maxSessions = -1;
+    let bestTeacher = null;
+    teachers.forEach(t => {
+      let count = 0;
+      t.courses.forEach(c => {
+        count += c.sessions.length;
+      });
+      if (count > maxSessions) {
+        maxSessions = count;
+        bestTeacher = t;
+      }
+    });
+    if (bestTeacher && maxSessions > 0) {
+      mostActiveTeacher = `${bestTeacher.user.name} (${maxSessions} sessions)`;
+    }
+  }
+
+  const students = await prisma.student.findMany();
+  const deptAttendanceMap = {};
+  for (const s of students) {
+    try {
+      const report = await reportsService.getStudentCoursesReport(s.userId);
+      let totalSessions = 0;
+      let presentCount = 0;
+      report.courses.forEach(c => {
+        totalSessions += c.totalSessions;
+        presentCount += c.presentCount;
+      });
+
+      if (totalSessions > 0) {
+        if (!deptAttendanceMap[s.department]) {
+          deptAttendanceMap[s.department] = { present: 0, sessions: 0 };
+        }
+        deptAttendanceMap[s.department].present += presentCount;
+        deptAttendanceMap[s.department].sessions += totalSessions;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const deptRankings = [];
+  Object.keys(deptAttendanceMap).forEach(deptName => {
+    const data = deptAttendanceMap[deptName];
+    const pct = data.sessions === 0 ? 100.0 : Number(((data.present / data.sessions) * 100).toFixed(1));
+    deptRankings.push({ department: deptName, attendancePercentage: pct });
+  });
+
+  let highestAttendanceDepartment = "N/A";
+  let lowestAttendanceDepartment = "N/A";
+
+  if (deptRankings.length > 0) {
+    deptRankings.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
+    highestAttendanceDepartment = `${deptRankings[0].department} (${deptRankings[0].attendancePercentage}%)`;
+    lowestAttendanceDepartment = `${deptRankings[deptRankings.length - 1].department} (${deptRankings[deptRankings.length - 1].attendancePercentage}%)`;
+  }
+
+  const allCorrections = await prisma.attendance.findMany({
+    where: { method: "MANUAL" }
+  });
+
+  const manualCorrectionBreakdown = {};
+  allCorrections.forEach(c => {
+    const reason = c.correctionReason || "Other";
+    manualCorrectionBreakdown[reason] = (manualCorrectionBreakdown[reason] || 0) + 1;
+  });
+
+  const totalAttendance = await prisma.attendance.count();
+  if (totalAttendance === 0) {
+    bestCourse = "N/A";
+    worstCourse = "N/A";
+    highestAttendanceDepartment = "N/A";
+    lowestAttendanceDepartment = "N/A";
+    mostActiveTeacher = "N/A";
+  }
+
+  return {
+    bestCourse,
+    worstCourse,
+    mostActiveTeacher,
+    highestAttendanceDepartment,
+    lowestAttendanceDepartment,
+    manualCorrectionBreakdown
+  };
+}
+
+async function archiveCourse(courseId) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: { sessions: true }
+  });
+  if (!course) {
+    throw new AppError("Course not found", 404);
+  }
+  const activeSessionExists = course.sessions.some(s => s.isActive);
+  if (activeSessionExists) {
+    throw new AppError(
+      "Cannot archive a course with an active attendance session",
+      400
+    );
+  }
+  return prisma.course.update({
+    where: { id: courseId },
+    data: {
+      isArchived: true,
+      archivedAt: new Date()
+    }
+  });
+}
+
+async function restoreCourse(courseId) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId }
+  });
+  if (!course) {
+    throw new AppError("Course not found", 404);
+  }
+  return prisma.course.update({
+    where: { id: courseId },
+    data: {
+      isArchived: false,
+      archivedAt: null
+    }
+  });
+}
+
+async function getArchivedCourses() {
+  const courses = await prisma.course.findMany({
+    where: { isArchived: true },
+    include: {
+      teacher: { include: { user: true } },
+      sessions: {
+        include: { attendanceRecords: true }
+      }
+    },
+    orderBy: { archivedAt: "desc" }
+  });
+
+  const list = [];
+  for (const course of courses) {
+    let totalSessions = course.sessions.length;
+    let averageAttendance = 100.0;
+    if (totalSessions > 0) {
+      let totalRecords = 0;
+      let totalPossible = 0;
+      for (const s of course.sessions) {
+        const eligible = await getEligibleStudentCountForSession(s);
+        totalRecords += s.attendanceRecords.length;
+        totalPossible += eligible;
+      }
+      averageAttendance = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
+    }
+
+    const correctionCount = await prisma.attendance.count({
+      where: {
+        sessionId: { in: course.sessions.map(s => s.id) },
+        method: "MANUAL"
+      }
+    });
+
+    list.push({
+      courseId: course.id,
+      courseCode: course.code,
+      courseName: course.name,
+      teacherName: course.teacher.user.name,
+      archivedAt: course.archivedAt,
+      totalSessions,
+      averageAttendance,
+      correctionCount
+    });
+  }
+  return list;
+}
+
+async function getArchivedCourseDetail(courseId) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      teacher: { include: { user: true } },
+      sessions: {
+        orderBy: { startedAt: "desc" },
+        include: { attendanceRecords: true }
+      }
+    }
+  });
+
+  if (!course) {
+    throw new AppError("Course not found", 404);
+  }
+  if (course.isArchived !== true) {
+    throw new AppError("Course is not archived", 400);
+  }
+
+  const totalSessions = course.sessions.length;
+
+  let studentCount = 0;
+  if (course.department && course.semester && course.section) {
+    studentCount = await prisma.student.count({
+      where: {
+        department: { equals: course.department, mode: "insensitive" },
+        semester: course.semester,
+        section: { equals: course.section, mode: "insensitive" }
+      }
+    });
+  }
+
+  let averageAttendance = 100.0;
+  if (totalSessions > 0) {
+    let totalRecords = 0;
+    let totalPossible = 0;
+    for (const s of course.sessions) {
+      const eligible = await getEligibleStudentCountForSession(s);
+      totalRecords += s.attendanceRecords.length;
+      totalPossible += eligible;
+    }
+    averageAttendance = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
+  }
+
+  const manualCorrectionsCount = await prisma.attendance.count({
+    where: {
+      sessionId: { in: course.sessions.map(s => s.id) },
+      method: "MANUAL"
+    }
+  });
+
+  const corrections = await prisma.attendance.findMany({
+    where: {
+      sessionId: { in: course.sessions.map(s => s.id) },
+      method: "MANUAL"
+    },
+    take: 20,
+    orderBy: { modifiedAt: "desc" },
+    include: {
+      student: true
+    }
+  });
+
+  const sessionsData = [];
+  const newestSessions = course.sessions.slice(0, 20);
+  for (const s of newestSessions) {
+    const eligible = await getEligibleStudentCountForSession(s);
+    const recordsCount = s.attendanceRecords.length;
+    const pct = eligible === 0 ? 100.0 : Number(((recordsCount / eligible) * 100).toFixed(1));
+    sessionsData.push({
+      sessionId: s.id,
+      startedAt: s.startedAt,
+      endedAt: s.endedAt,
+      attendanceCount: recordsCount,
+      attendancePercentage: pct
+    });
+  }
+
+  return {
+    course: {
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      department: course.department,
+      semester: course.semester,
+      section: course.section,
+      isArchived: course.isArchived,
+      archivedAt: course.archivedAt
+    },
+    statistics: {
+      totalStudents: studentCount,
+      totalSessions,
+      averageAttendance,
+      manualCorrections: manualCorrectionsCount
+    },
+    recentSessions: sessionsData,
+    recentCorrections: corrections.map(c => ({
+      studentName: c.student.name,
+      reason: c.correctionReason,
+      correctedOn: c.modifiedAt || c.markedAt
+    }))
+  };
+}
+
 module.exports = {
   getAdminDashboard,
   getAdminRecentActivity,
@@ -398,5 +1047,17 @@ module.exports = {
   getAdminStudentDetail,
   getAdminTeachers,
   getAdminTeacherDetail,
-  toggleUserStatus
+  toggleUserStatus,
+  getAdminCourses,
+  getAdminCourseDetail,
+  getAdminManualCorrections,
+  getAdminLiveSessions,
+  getAdminAtRisk,
+  getAdminAnalytics,
+  archiveCourse,
+  restoreCourse,
+  getArchivedCourses,
+  getArchivedCourseDetail,
+  AppError
 };
+

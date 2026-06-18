@@ -131,6 +131,7 @@ async function getTeacherDashboard(userId, range = "all") {
   const courseStats = [];
 
   for (const course of courses) {
+    if (course.isArchived) continue;
     const rangeSessions = course.sessions.filter((s) => {
       if (range === "7d" || range === "30d") {
         return s.startedAt >= cutoff;
@@ -592,7 +593,10 @@ async function getTeacherCoursesReport(userId) {
   const teacher = await getTeacherByUserId(userId);
 
   const courses = await prisma.course.findMany({
-    where: { teacherId: teacher.id },
+    where: {
+      teacherId: teacher.id,
+      isArchived: false,
+    },
     include: {
       sessions: {
         include: {
@@ -1147,7 +1151,6 @@ async function getStudentCoursesReport(studentUserId) {
       department: { equals: student.department, mode: "insensitive" },
       semester: student.semester,
       section: { equals: student.section, mode: "insensitive" },
-      isArchived: false,
     },
     include: {
       sessions: {
@@ -1172,7 +1175,6 @@ async function getStudentCoursesReport(studentUserId) {
           },
         },
       },
-      isArchived: false,
     },
     include: {
       sessions: {

@@ -78,42 +78,63 @@ export default function AdminDashboardScreen({ navigation }) {
           {/* Overview Section */}
           <Text style={styles.sectionTitle}>Overview</Text>
           <View style={styles.gridRow}>
-            <View style={styles.statCard}>
+            <Pressable
+              style={styles.statCard}
+              onPress={() => navigation.navigate("AdminStudentList")}
+            >
               <Text style={styles.statNum}>{dashboard.totalStudents}</Text>
               <Text style={styles.statLabel}>Students</Text>
-            </View>
-            <View style={styles.statCard}>
+            </Pressable>
+            <Pressable
+              style={styles.statCard}
+              onPress={() => navigation.navigate("AdminTeacherList")}
+            >
               <Text style={styles.statNum}>{dashboard.totalTeachers}</Text>
               <Text style={styles.statLabel}>Teachers</Text>
-            </View>
+            </Pressable>
           </View>
 
           <View style={styles.gridRow}>
-            <View style={styles.statCard}>
+            <Pressable
+              style={styles.statCard}
+              onPress={() => navigation.navigate("AdminCourseList")}
+            >
               <Text style={styles.statNum}>{dashboard.activeCourses}</Text>
               <Text style={styles.statLabel}>Active Courses</Text>
-            </View>
-            <View style={styles.statCard}>
+            </Pressable>
+            <Pressable
+              style={styles.statCard}
+              onPress={() => navigation.navigate("AdminLiveSessions")}
+            >
               <Text style={styles.statNum}>{dashboard.activeSessions}</Text>
               <Text style={styles.statLabel}>Active Sessions</Text>
-            </View>
+            </Pressable>
           </View>
 
           {/* Quick Metrics / Admin Notes */}
           <Text style={styles.sectionTitle}>Status Notes</Text>
           <View style={styles.noteCard}>
-            <View style={styles.noteItem}>
+            <Pressable
+              style={styles.noteItem}
+              onPress={() => navigation.navigate("AdminAtRisk")}
+            >
               <Text style={styles.noteTitle}>At-Risk Students (&lt;75%):</Text>
               <Text style={[styles.noteValue, { color: COLORS.error }]}>{dashboard.atRiskStudents}</Text>
-            </View>
-            <View style={styles.noteItem}>
+            </Pressable>
+            <Pressable
+              style={styles.noteItem}
+              onPress={() => navigation.navigate("AdminAuditCenter")}
+            >
               <Text style={styles.noteTitle}>Manual Corrections (Total):</Text>
               <Text style={styles.noteValue}>{dashboard.manualCorrections}</Text>
-            </View>
-            <View style={styles.noteItem}>
-              <Text style={styles.noteTitle}>Avg Attendance Today:</Text>
+            </Pressable>
+            <Pressable
+              style={styles.noteItem}
+              onPress={() => navigation.navigate("AdminAnalytics")}
+            >
+              <Text style={styles.noteTitle}>Avg Attendance Today (View Analytics):</Text>
               <Text style={styles.noteValue}>{dashboard.attendanceToday}%</Text>
-            </View>
+            </Pressable>
           </View>
         </>
       ) : null}
@@ -123,17 +144,41 @@ export default function AdminDashboardScreen({ navigation }) {
       <View style={styles.actionRow}>
         <Pressable
           style={styles.actionButton}
-          onPress={() => navigation.navigate("AdminStudentList")}
+          onPress={() => navigation.navigate("AdminCourseList")}
         >
-          <Text style={styles.actionButtonText}>Manage Students</Text>
+          <Text style={styles.actionButtonText}>View Courses</Text>
         </Pressable>
         <Pressable
           style={styles.actionButton}
-          onPress={() => navigation.navigate("AdminTeacherList")}
+          onPress={() => navigation.navigate("AdminAnalytics")}
         >
-          <Text style={styles.actionButtonText}>Manage Teachers</Text>
+          <Text style={styles.actionButtonText}>Analytics</Text>
         </Pressable>
       </View>
+      <View style={styles.actionRow}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => navigation.navigate("AdminLiveSessions")}
+        >
+          <Text style={styles.actionButtonText}>Live Sessions</Text>
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => navigation.navigate("AdminAuditCenter")}
+        >
+          <Text style={styles.actionButtonText}>Audit Center</Text>
+        </Pressable>
+      </View>
+      <View style={styles.actionRow}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => navigation.navigate("AdminArchivedCourses")}
+        >
+          <Text style={styles.actionButtonText}>Course Archive</Text>
+        </Pressable>
+      </View>
+
+
 
       {/* Recent Activity Feed */}
       <Text style={styles.sectionTitle}>Recent Activity</Text>

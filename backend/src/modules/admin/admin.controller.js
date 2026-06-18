@@ -115,6 +115,160 @@ async function toggleUserStatus(req, res, next) {
   }
 }
 
+async function getAdminCourses(req, res, next) {
+  try {
+    const data = await adminService.getAdminCourses();
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAdminCourseDetail(req, res, next) {
+  try {
+    const courseId = Number(req.params.id);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const data = await adminService.getAdminCourseDetail(courseId);
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAdminManualCorrections(req, res, next) {
+  try {
+    const { teacherId, courseId, reason, startDate, endDate, page, limit } = req.query;
+    const filters = {
+      teacherId: teacherId ? Number(teacherId) : undefined,
+      courseId: courseId ? Number(courseId) : undefined,
+      reason,
+      startDate,
+      endDate,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined
+    };
+    const data = await adminService.getAdminManualCorrections(filters);
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAdminLiveSessions(req, res, next) {
+  try {
+    const data = await adminService.getAdminLiveSessions();
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAdminAtRisk(req, res, next) {
+  try {
+    const data = await adminService.getAdminAtRisk();
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAdminAnalytics(req, res, next) {
+  try {
+    const data = await adminService.getAdminAnalytics();
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getArchivedCourses(req, res, next) {
+  try {
+    const data = await adminService.getArchivedCourses();
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getArchivedCourseDetail(req, res, next) {
+  try {
+    const courseId = Number(req.params.id);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const data = await adminService.getArchivedCourseDetail(courseId);
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function archiveCourse(req, res, next) {
+  try {
+    const courseId = Number(req.params.id);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const data = await adminService.archiveCourse(courseId);
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function restoreCourse(req, res, next) {
+  try {
+    const courseId = Number(req.params.id);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const data = await adminService.restoreCourse(courseId);
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getAdminDashboard,
   getAdminRecentActivity,
@@ -122,5 +276,17 @@ module.exports = {
   getAdminStudentDetail,
   getAdminTeachers,
   getAdminTeacherDetail,
-  toggleUserStatus
+  toggleUserStatus,
+  getAdminCourses,
+  getAdminCourseDetail,
+  getAdminManualCorrections,
+  getAdminLiveSessions,
+  getAdminAtRisk,
+  getAdminAnalytics,
+  getArchivedCourses,
+  getArchivedCourseDetail,
+  archiveCourse,
+  restoreCourse
 };
+
+
