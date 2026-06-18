@@ -68,12 +68,13 @@ async function runVerification() {
     });
 
     // Course B: PHY301 - PHYSICS (safe: 2 / 2 = 100%)
+    // Set to a different department to verify that historical attendance courses are returned even if roster doesn't match!
     courseB = await prisma.course.create({
       data: {
         name: "PHYSICS",
         code: "PHY301",
         teacherId: testTeacher.id,
-        department: testDept,
+        department: `OtherDept-${timestamp}`,
         semester: testSem,
         section: testSec,
       },

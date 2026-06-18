@@ -1231,7 +1231,7 @@ async function getStudentCoursesReport(studentUserId) {
     throw error;
   }
 
-  const courses = await prisma.course.findMany({
+  const rosterCourses = await prisma.course.findMany({
     where: {
       department: { equals: student.department, mode: "insensitive" },
       semester: student.semester,
@@ -1249,6 +1249,36 @@ async function getStudentCoursesReport(studentUserId) {
       },
     },
   });
+
+  const attendanceCourses = await prisma.course.findMany({
+    where: {
+      sessions: {
+        some: {
+          attendanceRecords: {
+            some: {
+              studentId: studentUserId,
+            },
+          },
+        },
+      },
+      isArchived: false,
+    },
+    include: {
+      sessions: {
+        orderBy: { startedAt: "asc" },
+        include: {
+          attendanceRecords: {
+            where: { studentId: studentUserId },
+          },
+        },
+      },
+    },
+  });
+
+  const courseMap = new Map();
+  rosterCourses.forEach((c) => courseMap.set(c.id, c));
+  attendanceCourses.forEach((c) => courseMap.set(c.id, c));
+  const courses = Array.from(courseMap.values());
 
   let totalPresentAcrossCourses = 0;
   let totalSessionsAcrossCourses = 0;
