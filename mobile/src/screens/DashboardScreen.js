@@ -121,7 +121,7 @@ export default function DashboardScreen({ navigation }) {
   }
 >
   <Text style={styles.buttonText}>
-    Attendance History
+    My Courses
   </Text>
 </Pressable>
   </>

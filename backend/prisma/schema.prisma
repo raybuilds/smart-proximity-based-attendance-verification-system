@@ -115,6 +115,7 @@ model SessionQRCode {
 model Course {
   id            Int                 @id @default(autoincrement())
   name          String
+  code          String?
   teacherId     Int
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt

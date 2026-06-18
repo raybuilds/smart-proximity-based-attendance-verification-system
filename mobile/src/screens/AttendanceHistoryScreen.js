@@ -1,38 +1,30 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
-
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-
-import {
-  getStudentHistory,
-} from "../services/reports";
+import { getStudentCourses } from "../services/reports";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
 
-export default function AttendanceHistoryScreen() {
-  const [history, setHistory] =
-    useState([]);
-
-  const [loading, setLoading] =
-    useState(true);
+export default function AttendanceHistoryScreen({ navigation }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadCourses();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
-  async function loadHistory() {
+  async function loadCourses() {
     try {
-      const response =
-        await getStudentHistory();
-
-      setHistory(response.data);
+      const response = await getStudentCourses();
+      setData(response.data);
     } catch (error) {
       console.log(error);
     } finally {
@@ -43,34 +35,134 @@ export default function AttendanceHistoryScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
-  return (
-    <FlatList
-      data={history}
-      keyExtractor={(item) => item.id.toString()}
-      contentContainerStyle={styles.container}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <Text style={styles.courseName}>{item.courseName}</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>✓ Present</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.detailText}>
-            Date: {new Date(item.markedAt).toLocaleDateString()} at {new Date(item.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-          
-          <Text style={styles.detailText}>
-            Section: {item.sectionSnapshot || "N/A"}  |  Method: {item.verificationMethod.toUpperCase()}
-          </Text>
+  const overallAttendancePercentage = data?.overallAttendancePercentage ?? 100.0;
+  const courses = data?.courses ?? [];
+  const atRiskCourses = data?.atRiskQuickView ?? [];
+
+  const renderHeader = () => (
+    <View>
+      {/* Top Summary Card */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>Overall Attendance</Text>
+        <Text style={styles.summaryValue}>{overallAttendancePercentage}%</Text>
+        <Text style={styles.summaryFooter}>Courses Enrolled: {courses.length}</Text>
+      </View>
+
+      {/* At Risk Quick View */}
+      {atRiskCourses.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>At Risk Quick View</Text>
+          {atRiskCourses.map((item) => (
+            <Pressable
+              key={item.courseId}
+              style={[styles.quickViewCard, styles.borderError]}
+              onPress={() =>
+                navigation.navigate("StudentCourseAttendance", {
+                  courseId: item.courseId,
+                })
+              }
+            >
+              <View style={styles.row}>
+                <Text style={styles.quickViewCourseCode}>
+                  {item.courseCode} - {item.courseName}
+                </Text>
+                <Text style={[styles.percentageText, styles.textError]}>
+                  {item.attendancePercentage}%
+                </Text>
+              </View>
+              <Text style={styles.recoveryText}>
+                Need {item.classesNeededFor75} consecutive classes to reach 75%
+              </Text>
+            </Pressable>
+          ))}
         </View>
       )}
+
+      <Text style={styles.sectionTitle}>Enrolled Courses</Text>
+    </View>
+  );
+
+  return (
+    <FlatList
+      data={courses}
+      keyExtractor={(item) => item.courseId.toString()}
+      contentContainerStyle={styles.container}
+      ListHeaderComponent={renderHeader}
+      renderItem={({ item }) => {
+        let badgeStyle = styles.badgeSafe;
+        let badgeText = "SAFE";
+        let cardBorderStyle = styles.borderSafe;
+        let percentageTextStyle = styles.textSafe;
+
+        if (item.riskLevel === "warning") {
+          badgeStyle = styles.badgeWarning;
+          badgeText = "WARNING";
+          cardBorderStyle = styles.borderWarning;
+          percentageTextStyle = styles.textWarning;
+        } else if (item.riskLevel === "atRisk") {
+          badgeStyle = styles.badgeError;
+          badgeText = "AT RISK";
+          cardBorderStyle = styles.borderError;
+          percentageTextStyle = styles.textError;
+        }
+
+        return (
+          <Pressable
+            style={[styles.courseCard, cardBorderStyle]}
+            onPress={() =>
+              navigation.navigate("StudentCourseAttendance", {
+                courseId: item.courseId,
+              })
+            }
+          >
+            <View style={styles.row}>
+              <Text style={styles.courseTitle} numberOfLines={2}>
+                {item.courseCode} - {item.courseName}
+              </Text>
+              <View style={[styles.badge, badgeStyle]}>
+                <Text style={styles.badgeText}>{badgeText}</Text>
+              </View>
+            </View>
+
+            <View style={styles.detailsRow}>
+              <View>
+                <Text style={styles.detailLabel}>Attendance</Text>
+                <Text style={[styles.detailValue, percentageTextStyle]}>
+                  {item.attendancePercentage}%
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.detailLabel}>Present</Text>
+                <Text style={styles.detailValue}>
+                  {item.presentCount} / {item.totalSessions}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.cardFooter}>
+              {item.attendancePercentage < 75 ? (
+                <Text style={styles.recoveryFooterText}>
+                  Need {item.classesNeededFor75} more consecutive classes to reach 75%
+                </Text>
+              ) : (
+                <Text style={styles.safeFooterText}>
+                  Attendance Requirement Met
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        );
+      }}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No enrolled courses found.</Text>
+        </View>
+      }
     />
   );
 }
@@ -82,13 +174,91 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
   },
-
   container: {
     padding: 16,
     backgroundColor: COLORS.background,
   },
-
-  card: {
+  summaryCard: {
+    backgroundColor: COLORS.primary,
+    borderRadius: LAYOUT.cardRadius,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  summaryTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    opacity: 0.9,
+  },
+  summaryValue: {
+    color: "#FFFFFF",
+    fontSize: 36,
+    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    marginVertical: 8,
+  },
+  summaryFooter: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    opacity: 0.8,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    color: COLORS.primary,
+    marginBottom: 12,
+  },
+  quickViewCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.cardRadius,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  quickViewCourseCode: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+    flex: 1,
+    marginRight: 8,
+  },
+  percentageText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.heading.fontFamily,
+  },
+  recoveryText: {
+    fontSize: 13,
+    color: COLORS.error,
+    fontWeight: "600",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  courseCard: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.cardRadius,
     padding: 16,
@@ -98,46 +268,99 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-
-  courseName: {
+  courseTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: COLORS.primary,
+    color: COLORS.text,
     fontFamily: TYPOGRAPHY.heading.fontFamily,
     flex: 1,
     marginRight: 8,
   },
-
-  statusBadge: {
-    backgroundColor: "rgba(44, 95, 45, 0.1)",
+  badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
   },
-
-  statusText: {
-    color: COLORS.primary,
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  badgeSafe: {
+    backgroundColor: COLORS.success,
+  },
+  badgeWarning: {
+    backgroundColor: COLORS.warning,
+  },
+  badgeError: {
+    backgroundColor: COLORS.error,
+  },
+  borderSafe: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.success,
+  },
+  borderWarning: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.warning,
+  },
+  borderError: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.error,
+  },
+  textSafe: {
+    color: COLORS.success,
+  },
+  textWarning: {
+    color: COLORS.warning,
+  },
+  textError: {
+    color: COLORS.error,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  detailLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+  },
+  cardFooter: {
+    marginTop: 4,
+  },
+  recoveryFooterText: {
     fontSize: 12,
+    color: COLORS.error,
     fontWeight: "600",
     fontFamily: TYPOGRAPHY.body.fontFamily,
   },
-
-  detailText: {
+  safeFooterText: {
+    fontSize: 12,
+    color: COLORS.success,
+    fontWeight: "600",
     fontFamily: TYPOGRAPHY.body.fontFamily,
-    color: "#64748b",
-    fontSize: 13,
-    marginTop: 4,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    padding: 30,
+  },
+  emptyText: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontFamily: TYPOGRAPHY.body.fontFamily,
   },
 });

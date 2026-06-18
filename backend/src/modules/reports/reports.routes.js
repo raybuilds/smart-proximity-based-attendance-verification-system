@@ -102,6 +102,16 @@ router.get(
 );
 
 router.get(
+  "/student/courses",
+  reportsController.getStudentCoursesReport
+);
+
+router.get(
+  "/student/courses/:courseId",
+  reportsController.getStudentCourseDetailReport
+);
+
+router.get(
   "/teacher/student/:studentId/history",
   reportsController.teacherStudentHistory
 );

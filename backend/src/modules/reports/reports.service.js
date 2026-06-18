@@ -603,33 +603,22 @@ async function getStudentReports() {
 }
 
 async function getStudentSelfReport(studentId) {
-  const totalSessions =
-    await prisma.attendanceSession.count();
-
-  const presentCount =
-    await prisma.attendance.count({
-      where: {
-        studentId,
-      },
-    });
-
-  const absentCount =
-    totalSessions - presentCount;
-
-  const attendancePercentage =
-    totalSessions === 0
-      ? 0
-      : Number(
-          (
-            (presentCount / totalSessions) *
-            100
-          ).toFixed(1)
-        );
-
+  const coursesReport = await getStudentCoursesReport(studentId);
+  
+  let totalPresent = 0;
+  let totalSessions = 0;
+  
+  coursesReport.courses.forEach((c) => {
+    totalPresent += c.presentCount;
+    totalSessions += c.totalSessions;
+  });
+  
+  const absentCount = totalSessions - totalPresent;
+  
   return {
-    presentCount,
+    presentCount: totalPresent,
     absentCount,
-    attendancePercentage,
+    attendancePercentage: coursesReport.overallAttendancePercentage,
     totalSessions,
   };
 }
@@ -1231,6 +1220,251 @@ async function correctAttendanceManually(userId, attendanceIdParam, reason) {
   return updatedAttendance;
 }
 
+async function getStudentCoursesReport(studentUserId) {
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+  });
+
+  if (!student) {
+    const error = new Error("Student profile not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const courses = await prisma.course.findMany({
+    where: {
+      department: { equals: student.department, mode: "insensitive" },
+      semester: student.semester,
+      section: { equals: student.section, mode: "insensitive" },
+      isArchived: false,
+    },
+    include: {
+      sessions: {
+        orderBy: { startedAt: "asc" },
+        include: {
+          attendanceRecords: {
+            where: { studentId: studentUserId },
+          },
+        },
+      },
+    },
+  });
+
+  let totalPresentAcrossCourses = 0;
+  let totalSessionsAcrossCourses = 0;
+
+  const courseReports = courses.map((course) => {
+    const totalSessions = course.sessions.length;
+    let presentCount = 0;
+    course.sessions.forEach((session) => {
+      if (session.attendanceRecords.length > 0) {
+        presentCount++;
+      }
+    });
+
+    const attendancePercentage = totalSessions === 0 ? 100.0 : Number(((presentCount / totalSessions) * 100).toFixed(1));
+
+    let riskLevel = "atRisk";
+    if (attendancePercentage > 85) {
+      riskLevel = "safe";
+    } else if (attendancePercentage >= 75) {
+      riskLevel = "warning";
+    }
+
+    const classesNeededFor75 = Math.max(0, (3 * totalSessions) - (4 * presentCount));
+    const recoveryTotal = totalSessions + classesNeededFor75;
+    const projectedPercentageAfterRecovery = recoveryTotal === 0 ? 100.0 : Math.round(((presentCount + classesNeededFor75) / recoveryTotal) * 100 * 10) / 10;
+
+    totalPresentAcrossCourses += presentCount;
+    totalSessionsAcrossCourses += totalSessions;
+
+    return {
+      courseId: course.id,
+      courseName: course.name,
+      courseCode: course.code || "Unknown Course",
+      attendancePercentage,
+      presentCount,
+      totalSessions,
+      riskLevel,
+      classesNeededFor75,
+      projectedPercentageAfterRecovery,
+    };
+  });
+
+  const overallAttendancePercentage = totalSessionsAcrossCourses === 0
+    ? 100.0
+    : Math.round((totalPresentAcrossCourses / totalSessionsAcrossCourses) * 100 * 10) / 10;
+
+  const atRiskQuickView = courseReports
+    .filter((c) => c.attendancePercentage < 75)
+    .map((c) => ({
+      courseId: c.courseId,
+      courseCode: c.courseCode,
+      courseName: c.courseName,
+      attendancePercentage: c.attendancePercentage,
+      classesNeededFor75: c.classesNeededFor75,
+    }));
+
+  return {
+    overallAttendancePercentage,
+    courses: courseReports,
+    atRiskQuickView,
+  };
+}
+
+async function getStudentCourseDetailReport(studentUserId, courseId) {
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+  });
+
+  if (!student) {
+    const error = new Error("Student profile not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      sessions: {
+        orderBy: { startedAt: "asc" },
+        include: {
+          attendanceRecords: {
+            where: { studentId: studentUserId },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const isRosterMatched = course.department && course.semester && course.section &&
+    course.department.toLowerCase() === student.department.toLowerCase() &&
+    course.semester === student.semester &&
+    course.section.toLowerCase() === student.section.toLowerCase();
+
+  const hasRecords = course.sessions.some(s => s.attendanceRecords.length > 0);
+
+  if (!isRosterMatched && !hasRecords) {
+    const error = new Error("You do not have access to this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const totalSessions = course.sessions.length;
+  let presentCount = 0;
+  let qrCount = 0;
+  let manualCount = 0;
+
+  course.sessions.forEach((session) => {
+    const record = session.attendanceRecords[0];
+    if (record) {
+      presentCount++;
+      const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
+      if (isManual) {
+        manualCount++;
+      } else {
+        qrCount++;
+      }
+    }
+  });
+
+  const absentCount = totalSessions - presentCount;
+  const attendancePercentage = totalSessions === 0 ? 100.0 : Number(((presentCount / totalSessions) * 100).toFixed(1));
+
+  let currentStreak = 0;
+  let bestStreak = 0;
+  course.sessions.forEach((session) => {
+    const isPresent = session.attendanceRecords.length > 0;
+    if (isPresent) {
+      currentStreak++;
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+    } else {
+      currentStreak = 0;
+    }
+  });
+
+  let lastAttended = null;
+  for (let i = course.sessions.length - 1; i >= 0; i--) {
+    if (course.sessions[i].attendanceRecords.length > 0) {
+      lastAttended = course.sessions[i].startedAt.toISOString();
+      break;
+    }
+  }
+
+  const classesNeededFor75 = Math.max(0, (3 * totalSessions) - (4 * presentCount));
+  const recoveryTotal = totalSessions + classesNeededFor75;
+  const projectedPercentageAfterRecovery = recoveryTotal === 0 ? 100.0 : Math.round(((presentCount + classesNeededFor75) / recoveryTotal) * 100 * 10) / 10;
+
+  const newestTenSessions = course.sessions.slice(-10);
+  const trendData = newestTenSessions.map((session) => {
+    return session.attendanceRecords.length > 0 ? "PRESENT" : "ABSENT";
+  });
+
+  const timeline = course.sessions.map((session) => {
+    const record = session.attendanceRecords[0];
+    const sessionDate = session.startedAt.toISOString();
+
+    if (record) {
+      const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
+      if (isManual) {
+        return {
+          sessionId: session.id,
+          attendanceId: record.id,
+          sessionDate,
+          status: "Present",
+          method: "MANUAL",
+          correctionReason: record.correctionReason || "N/A",
+          correctedOn: record.modifiedAt ? record.modifiedAt.toISOString() : record.markedAt.toISOString(),
+        };
+      } else {
+        return {
+          sessionId: session.id,
+          attendanceId: record.id,
+          sessionDate,
+          status: "Present",
+          method: "QR",
+        };
+      }
+    } else {
+      return {
+        sessionId: session.id,
+        attendanceId: `session-${session.id}-student-${studentUserId}`,
+        sessionDate,
+        status: "Absent",
+      };
+    }
+  });
+
+  timeline.sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate));
+
+  return {
+    course: {
+      id: course.id,
+      name: course.name,
+      code: course.code || "Unknown Course",
+    },
+    attendancePercentage,
+    presentCount,
+    absentCount,
+    totalSessions,
+    currentStreak,
+    bestStreak,
+    lastAttended,
+    classesNeededFor75,
+    projectedPercentageAfterRecovery,
+    trendData,
+    timeline,
+  };
+}
+
 module.exports = {
   getTeacherOverview,
   getStudentReports,
@@ -1240,7 +1474,6 @@ module.exports = {
   getTeacherCoursesReport,
   getTeacherCourseDetailReport,
   getTeacherCourseStudentsReport,
-  // New service methods
   getTeacherDashboard,
   invalidateTeacherDashboardCache,
   getCourseDefaulters,
@@ -1250,4 +1483,7 @@ module.exports = {
   exportCoursePDF,
   getStudentCourseAttendanceHistory,
   correctAttendanceManually,
+  // Student report upgrades
+  getStudentCoursesReport,
+  getStudentCourseDetailReport,
 };

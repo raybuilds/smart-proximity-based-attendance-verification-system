@@ -83,3 +83,13 @@ export async function correctAttendanceManually(attendanceId, reason) {
   const response = await api.patch(`/reports/attendance/${attendanceId}/manual`, { reason });
   return response.data;
 }
+
+export async function getStudentCourses() {
+  const response = await api.get("/reports/student/courses");
+  return response.data;
+}
+
+export async function getStudentCourseDetail(courseId) {
+  const response = await api.get(`/reports/student/courses/${courseId}`);
+  return response.data;
+}

@@ -21,6 +21,7 @@ import StudentAttendanceReportScreen from "../screens/StudentAttendanceReportScr
 import DefaulterReportScreen from "../screens/DefaulterReportScreen";
 import CourseTrendScreen from "../screens/CourseTrendScreen";
 import StudentAttendanceHistoryScreen from "../screens/StudentAttendanceHistoryScreen";
+import StudentCourseAttendanceScreen from "../screens/StudentCourseAttendanceScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -130,12 +131,19 @@ export default function AppNavigator() {
               options={{ title: "WiFi Detection" }}
             />
              <Stack.Screen
-  name="AttendanceHistory"
-  component={AttendanceHistoryScreen}
-  options={{
-    title: "Attendance History",
-  }}
-/>
+              name="AttendanceHistory"
+              component={AttendanceHistoryScreen}
+              options={{
+                title: "My Courses",
+              }}
+            />
+            <Stack.Screen
+              name="StudentCourseAttendance"
+              component={StudentCourseAttendanceScreen}
+              options={{
+                title: "Course Attendance",
+              }}
+            />
             <Stack.Screen
               name="BleTest"
               component={BleTestScreen}
