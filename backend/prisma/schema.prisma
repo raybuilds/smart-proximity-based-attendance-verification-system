@@ -66,18 +66,41 @@ model AttendanceSession {
   @@index([courseId, isActive])
 }
 
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
 model Attendance {
-  id                 Int               @id @default(autoincrement())
-  studentId          Int
-  sessionId          Int
-  markedAt           DateTime          @default(now())
-  verificationMethod String
-  createdAt          DateTime          @default(now())
-  status             String            @default("present")
-  session            AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  student            User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  id                  Int               @id @default(autoincrement())
+  studentId           Int
+  sessionId           Int
+  markedAt            DateTime          @default(now())
+  verificationMethod  String
+  createdAt           DateTime          @default(now())
+  status              String            @default("present")
+  method              AttendanceMethod  @default(QR)
+  modifiedByTeacherId Int?
+  modifiedAt          DateTime?
+  correctionReason    String?
+  session             AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student             User              @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  corrections         AttendanceCorrection[]
 
   @@unique([studentId, sessionId])
+}
+
+model AttendanceCorrection {
+  id                  Int               @id @default(autoincrement())
+  attendanceId        Int
+  sessionId           Int
+  studentId           Int
+  previousMethod      AttendanceMethod?
+  newMethod           AttendanceMethod?
+  correctionReason    String
+  modifiedByTeacherId Int
+  modifiedAt          DateTime          @default(now())
+  attendance          Attendance        @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 }
 
 model SessionQRCode {

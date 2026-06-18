@@ -234,6 +234,58 @@ async function exportCoursePDF(req, res, next) {
   }
 }
 
+async function getStudentCourseAttendanceHistory(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    const studentId = Number(req.params.studentId);
+    if (isNaN(courseId) || isNaN(studentId)) {
+      const error = new Error("Invalid course ID or student ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const data = await reportsService.getStudentCourseAttendanceHistory(
+      req.user.sub,
+      courseId,
+      studentId
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function correctAttendanceManually(req, res, next) {
+  try {
+    const { attendanceId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      const error = new Error("Correction reason is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const data = await reportsService.correctAttendanceManually(
+      req.user.sub,
+      attendanceId,
+      reason
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Attendance corrected successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   teacherOverview,
   teacherStudents,
@@ -250,4 +302,6 @@ module.exports = {
   exportCourseCSV,
   exportCourseDefaultersCSV,
   exportCoursePDF,
+  getStudentCourseAttendanceHistory,
+  correctAttendanceManually,
 };

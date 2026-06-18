@@ -4,12 +4,13 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { getTeacherCourseStudentsReport } from "../services/reports";
 
-export default function StudentAttendanceReportScreen({ route }) {
+export default function StudentAttendanceReportScreen({ route, navigation }) {
   const { courseId } = route.params;
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,14 +92,27 @@ export default function StudentAttendanceReportScreen({ route }) {
           renderItem={({ item }) => {
             const isDefaulter = item.attendancePercentage < 75; // 75% standard threshold indication
             return (
-              <View style={[styles.studentCard, isDefaulter && styles.defaulterCard]}>
+              <TouchableOpacity
+                style={[styles.studentCard, isDefaulter && styles.defaulterCard]}
+                onPress={() =>
+                  navigation.navigate("StudentAttendanceHistory", {
+                    courseId,
+                    studentId: item.studentId,
+                  })
+                }
+              >
                 <View style={styles.studentInfo}>
                   <Text style={styles.studentName}>{item.name}</Text>
                   <Text style={styles.studentRoll}>Roll: {item.rollNumber}</Text>
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsText}>QR Records: {item.qrCount || 0}</Text>
+                    <Text style={styles.detailsText}>Manual Records: {item.manualCount || 0}</Text>
+                    <Text style={styles.detailsText}>Absences: {item.absentCount || 0}</Text>
+                  </View>
                 </View>
                 <View style={styles.studentStats}>
                   <Text style={styles.fractionText}>
-                    {item.attendedSessions} / {item.totalSessions}
+                    Present: {item.presentCount || 0} / {item.totalSessions}
                   </Text>
                   <Text
                     style={[
@@ -109,7 +123,7 @@ export default function StudentAttendanceReportScreen({ route }) {
                     {item.attendancePercentage}%
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
         />
@@ -227,6 +241,15 @@ const styles = StyleSheet.create({
   },
   normalText: {
     color: "#166534",
+  },
+  detailsRow: {
+    marginTop: 6,
+    flexDirection: "column",
+  },
+  detailsText: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
   },
   errorCard: {
     backgroundColor: "#ffffff",
