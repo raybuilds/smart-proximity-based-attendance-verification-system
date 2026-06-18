@@ -29,7 +29,7 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
   useEffect(() => {
     if (courseDetail) {
       navigation.setOptions({
-        title: courseDetail.course.code,
+        title: courseDetail.course.code ? `${courseDetail.course.code}` : courseDetail.course.name,
       });
     }
   }, [courseDetail]);
@@ -99,7 +99,7 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
       <View>
         {/* Forest Green Header Block */}
         <View style={styles.headerBlock}>
-          <Text style={styles.headerTitle}>{course.code} - {course.name}</Text>
+          <Text style={styles.headerTitle}>{course.code ? `${course.code} - ${course.name}` : course.name}</Text>
           <Text style={styles.headerPercentage}>{attendancePercentage}%</Text>
         </View>
 

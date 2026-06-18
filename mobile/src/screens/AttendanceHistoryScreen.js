@@ -70,7 +70,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
             >
               <View style={styles.row}>
                 <Text style={styles.quickViewCourseCode}>
-                  {item.courseCode} - {item.courseName}
+                  {item.courseCode ? `${item.courseCode} - ${item.courseName}` : item.courseName}
                 </Text>
                 <Text style={[styles.percentageText, styles.textError]}>
                   {item.attendancePercentage}%
@@ -123,7 +123,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
           >
             <View style={styles.row}>
               <Text style={styles.courseTitle} numberOfLines={2}>
-                {item.courseCode} - {item.courseName}
+                {item.courseCode ? `${item.courseCode} - ${item.courseName}` : item.courseName}
               </Text>
               <View style={[styles.badge, badgeStyle]}>
                 <Text style={styles.badgeText}>{badgeText}</Text>

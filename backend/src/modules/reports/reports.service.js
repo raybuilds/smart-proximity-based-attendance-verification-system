@@ -1311,7 +1311,7 @@ async function getStudentCoursesReport(studentUserId) {
     return {
       courseId: course.id,
       courseName: course.name,
-      courseCode: course.code || "Unknown Course",
+      courseCode: course.code,
       attendancePercentage,
       presentCount,
       totalSessions,
@@ -1479,7 +1479,7 @@ async function getStudentCourseDetailReport(studentUserId, courseId) {
     course: {
       id: course.id,
       name: course.name,
-      code: course.code || "Unknown Course",
+      code: course.code,
     },
     attendancePercentage,
     presentCount,
