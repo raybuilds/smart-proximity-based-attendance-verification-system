@@ -26,7 +26,7 @@ async function teacherStudents(req, res, next) {
 
 async function studentSelfReport(req, res, next) {
   try {
-    const data = await reportsService.getStudentSelfReport(req.user.id);
+    const data = await reportsService.getStudentSelfReport(req.user.sub);
     res.status(200).json({
       success: true,
       data,
@@ -38,7 +38,7 @@ async function studentSelfReport(req, res, next) {
 
 async function studentHistory(req, res, next) {
   try {
-    const data = await reportsService.getStudentAttendanceHistory(req.user.id);
+    const data = await reportsService.getStudentAttendanceHistory(req.user.sub);
     res.status(200).json({
       success: true,
       data,
@@ -286,6 +286,37 @@ async function correctAttendanceManually(req, res, next) {
   }
 }
 
+async function getStudentCoursesReport(req, res, next) {
+  try {
+    const data = await reportsService.getStudentCoursesReport(req.user.sub);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getStudentCourseDetailReport(req, res, next) {
+  try {
+    const courseId = Number(req.params.courseId);
+    if (isNaN(courseId)) {
+      const error = new Error("Invalid course ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const data = await reportsService.getStudentCourseDetailReport(req.user.sub, courseId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   teacherOverview,
   teacherStudents,
@@ -304,4 +335,7 @@ module.exports = {
   exportCoursePDF,
   getStudentCourseAttendanceHistory,
   correctAttendanceManually,
+  // Student report handlers
+  getStudentCoursesReport,
+  getStudentCourseDetailReport,
 };
