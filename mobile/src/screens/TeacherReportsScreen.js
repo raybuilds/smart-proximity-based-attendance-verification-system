@@ -197,7 +197,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
               <View style={styles.insightRow}>
                 <Text style={styles.insightLabel}>⭐ Best Performer:</Text>
                 <Text style={styles.insightValue}>
-                  {dashboard.bestCourse.name} ({dashboard.bestCourse.attendancePercentage}%)
+                  {dashboard.bestCourse.code ? `${dashboard.bestCourse.code} - ` : ""}{dashboard.bestCourse.name} ({dashboard.bestCourse.attendancePercentage}%)
                 </Text>
               </View>
             ) : null}
@@ -205,7 +205,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
               <View style={[styles.insightRow, { marginTop: 8 }]}>
                 <Text style={styles.insightLabel}>⚠️ Needs Attention:</Text>
                 <Text style={styles.insightValue}>
-                  {dashboard.worstCourse.name} ({dashboard.worstCourse.attendancePercentage}%)
+                  {dashboard.worstCourse.code ? `${dashboard.worstCourse.code} - ` : ""}{dashboard.worstCourse.name} ({dashboard.worstCourse.attendancePercentage}%)
                 </Text>
               </View>
             ) : null}
@@ -261,7 +261,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
               })
             }
           >
-            <Text style={styles.courseName}>{item.name}</Text>
+            <Text style={styles.courseName}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
             
             <EligibilityChips eligibility={item} isArchived={item.isArchived} />
             

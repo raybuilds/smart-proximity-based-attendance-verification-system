@@ -219,7 +219,7 @@ if (__DEV__) console.log('[CourseDetailReportScreen] API response received', res
         </View>
       ) : null}
       <View style={styles.card}>
-        <Text style={styles.courseName}>{course?.name}</Text>
+        <Text style={styles.courseName}>{course?.code ? `${course.code} - ${course.name}` : course?.name}</Text>
         
         <View style={{ alignItems: "center", marginTop: 6, marginBottom: 14 }}>
           <EligibilityChips eligibility={course} isArchived={course?.isArchived} />

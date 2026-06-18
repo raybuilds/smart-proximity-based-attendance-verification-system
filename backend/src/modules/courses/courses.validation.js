@@ -7,6 +7,12 @@ const createCourseSchema = z.object({
     .trim()
     .min(2, "Course name must be at least 2 characters")
     .max(100, "Course name cannot exceed 100 characters"),
+  code: z
+    .string()
+    .trim()
+    .max(20, "Course code cannot exceed 20 characters")
+    .optional()
+    .nullable(),
   department: z
     .string()
     .trim()
@@ -34,6 +40,12 @@ const updateCourseSchema = z.object({
     .trim()
     .min(2, "Course name must be at least 2 characters")
     .max(100, "Course name cannot exceed 100 characters"),
+  code: z
+    .string()
+    .trim()
+    .max(20, "Course code cannot exceed 20 characters")
+    .optional()
+    .nullable(),
   department: z
     .string()
     .trim()

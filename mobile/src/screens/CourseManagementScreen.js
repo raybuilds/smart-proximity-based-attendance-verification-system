@@ -22,6 +22,7 @@ export default function CourseManagementScreen() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [courseName, setCourseName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
   const [department, setDepartment] = useState("");
   const [semester, setSemester] = useState("");
   const [section, setSection] = useState("");
@@ -101,6 +102,7 @@ export default function CourseManagementScreen() {
 
     const payload = {
       name: trimmed,
+      code: courseCode.trim() || null,
       department: department.trim() || null,
       semester: semester.trim() ? parseInt(semester, 10) : null,
       section: section.trim() || null,
@@ -121,6 +123,7 @@ export default function CourseManagementScreen() {
       }
       
       setCourseName("");
+      setCourseCode("");
       setDepartment("");
       setSemester("");
       setSection("");
@@ -140,6 +143,7 @@ export default function CourseManagementScreen() {
   function startEditCourse(course) {
     setEditingCourse(course);
     setCourseName(course.name);
+    setCourseCode(course.code || "");
     setDepartment(course.department || "");
     setSemester(course.semester ? course.semester.toString() : "");
     setSection(course.section || "");
@@ -150,6 +154,7 @@ export default function CourseManagementScreen() {
   function cancelEdit() {
     setEditingCourse(null);
     setCourseName("");
+    setCourseCode("");
     setDepartment("");
     setSemester("");
     setSection("");
@@ -211,7 +216,7 @@ export default function CourseManagementScreen() {
           {editingCourse ? "Edit Course" : "Add New Course"}
         </Text>
         
-        <Text style={styles.fieldLabel}>Course Name</Text>
+        <Text style={styles.fieldLabel}>Course Name *</Text>
         <TextInput
           placeholder="e.g. Data Mining"
           placeholderTextColor="#94a3b8"
@@ -219,6 +224,20 @@ export default function CourseManagementScreen() {
           value={courseName}
           onChangeText={(text) => {
             setCourseName(text);
+            if (errorMessage) setErrorMessage("");
+            if (successMessage) setSuccessMessage("");
+          }}
+        />
+
+        <Text style={styles.fieldLabel}>Course Code (Optional)</Text>
+        <TextInput
+          placeholder="e.g. MTH401"
+          placeholderTextColor="#94a3b8"
+          autoCapitalize="characters"
+          style={styles.input}
+          value={courseCode}
+          onChangeText={(text) => {
+            setCourseCode(text);
             if (errorMessage) setErrorMessage("");
             if (successMessage) setSuccessMessage("");
           }}
@@ -337,7 +356,7 @@ export default function CourseManagementScreen() {
             <View style={styles.courseItemCard}>
               <View style={styles.courseInfo}>
                 <View style={styles.courseTitleRow}>
-                  <Text style={styles.courseName}>{item.name}</Text>
+                  <Text style={styles.courseName}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
                 </View>
                 
                 <EligibilityChips eligibility={item} isArchived={item.isArchived} />

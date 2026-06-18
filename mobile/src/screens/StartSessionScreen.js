@@ -132,7 +132,7 @@ export default function StartSessionScreen({ navigation }) {
           onPress={() => setShowDropdown(true)}
         >
           <Text style={styles.dropdownSelectorText}>
-            {selectedCourse ? selectedCourse.name : "Select a Course ▼"}
+            {selectedCourse ? (selectedCourse.code ? `${selectedCourse.code} - ${selectedCourse.name}` : selectedCourse.name) : "Select a Course ▼"}
           </Text>
         </Pressable>
 
@@ -183,7 +183,7 @@ export default function StartSessionScreen({ navigation }) {
                     setErrorMessage("");
                   }}
                 >
-                  <Text style={styles.modalItemText}>{item.name}</Text>
+                  <Text style={styles.modalItemText}>{item.code ? `${item.code} - ${item.name}` : item.name}</Text>
                 </Pressable>
               )}
             />
