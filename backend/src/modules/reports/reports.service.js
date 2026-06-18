@@ -828,22 +828,41 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
   const sessions = course.sessions;
   const totalSessions = sessions.length;
 
+  // Query all students matching the course's department, semester, and section
+  let rosterStudents = [];
+  if (course.department && course.semester && course.section) {
+    rosterStudents = await prisma.student.findMany({
+      where: {
+        department: { equals: course.department, mode: "insensitive" },
+        semester: course.semester,
+        section: { equals: course.section, mode: "insensitive" },
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
   const participantMap = new Map();
-  const attendanceCounts = {};
+
+  rosterStudents.forEach((student) => {
+    participantMap.set(student.userId, {
+      studentId: student.userId,
+      name: student.user.name,
+      rollNumber: student.rollNumber,
+    });
+  });
 
   sessions.forEach((session) => {
     session.attendanceRecords.forEach((record) => {
       const studentUser = record.student;
-      if (studentUser) {
+      if (studentUser && !participantMap.has(studentUser.id)) {
         const studentProfile = studentUser.student;
-        if (!participantMap.has(studentUser.id)) {
-          participantMap.set(studentUser.id, {
-            studentId: studentUser.id,
-            name: studentUser.name,
-            rollNumber: studentProfile ? studentProfile.rollNumber : "N/A",
-          });
-        }
-        attendanceCounts[studentUser.id] = (attendanceCounts[studentUser.id] || 0) + 1;
+        participantMap.set(studentUser.id, {
+          studentId: studentUser.id,
+          name: studentUser.name,
+          rollNumber: studentProfile ? studentProfile.rollNumber : "N/A",
+        });
       }
     });
   });
@@ -851,7 +870,25 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
   const participants = Array.from(participantMap.values());
 
   const studentsReport = participants.map((participant) => {
-    const attendedSessions = attendanceCounts[participant.studentId] || 0;
+    let qrCount = 0;
+    let manualCount = 0;
+    let absentCount = 0;
+
+    sessions.forEach((session) => {
+      const record = session.attendanceRecords.find((r) => r.studentId === participant.studentId);
+      if (record) {
+        const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
+        if (isManual) {
+          manualCount++;
+        } else {
+          qrCount++;
+        }
+      } else {
+        absentCount++;
+      }
+    });
+
+    const attendedSessions = qrCount + manualCount;
     const attendancePercentage =
       totalSessions === 0
         ? 0.0
@@ -864,6 +901,10 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
       attendedSessions,
       totalSessions,
       attendancePercentage,
+      presentCount: attendedSessions,
+      absentCount,
+      qrCount,
+      manualCount,
     };
   });
 
@@ -895,6 +936,301 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
   };
 }
 
+async function getStudentCourseAttendanceHistory(userId, courseId, studentId) {
+  const teacher = await getTeacherByUserId(userId);
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      sessions: {
+        orderBy: { startedAt: "asc" },
+        include: {
+          attendanceRecords: {
+            where: { studentId },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (course.teacherId !== teacher.id) {
+    const error = new Error("You do not have permission to access this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Get student details
+  const studentUser = await prisma.user.findUnique({
+    where: { id: studentId },
+    include: { student: true },
+  });
+
+  if (!studentUser) {
+    const error = new Error("Student not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const sessions = course.sessions;
+  const totalSessions = sessions.length;
+
+  let qrCount = 0;
+  let manualCount = 0;
+  let absentCount = 0;
+
+  // Compute Last Attended & Streak
+  let lastAttendedDate = null;
+  let currentAbsenceStreak = 0;
+  let foundPresent = false;
+
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const session = sessions[i];
+    const record = session.attendanceRecords[0];
+    if (record) {
+      if (!foundPresent) {
+        lastAttendedDate = session.startedAt.toISOString();
+        foundPresent = true;
+      }
+    } else {
+      if (!foundPresent) {
+        currentAbsenceStreak++;
+      }
+    }
+  }
+
+  if (!foundPresent) {
+    currentAbsenceStreak = totalSessions;
+  }
+
+  const timelinePromises = sessions.map(async (session) => {
+    const record = session.attendanceRecords[0];
+    const sessionDate = session.startedAt.toISOString();
+
+    if (record) {
+      const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
+      if (isManual) {
+        manualCount++;
+      } else {
+        qrCount++;
+      }
+
+      return {
+        sessionId: session.id,
+        attendanceId: record.id,
+        sessionDate,
+        correctionDate: isManual && record.modifiedAt ? record.modifiedAt.toISOString() : null,
+        status: "Present",
+        method: isManual ? "MANUAL" : "QR",
+        correctionReason: record.correctionReason || null,
+        modifiedBy: isManual && record.modifiedByTeacherId ? "You" : null,
+        modifiedAt: record.modifiedAt ? record.modifiedAt.toISOString() : null,
+      };
+    } else {
+      absentCount++;
+      return {
+        sessionId: session.id,
+        attendanceId: `session-${session.id}-student-${studentId}`,
+        sessionDate,
+        correctionDate: null,
+        status: "Absent",
+        method: null,
+        correctionReason: null,
+        modifiedBy: null,
+        modifiedAt: null,
+      };
+    }
+  });
+
+  const timeline = await Promise.all(timelinePromises);
+
+  const presentCount = qrCount + manualCount;
+  const reliabilityPercentage =
+    presentCount === 0
+      ? null
+      : Math.round((qrCount / presentCount) * 100);
+
+  // Correction count is the count of AttendanceCorrection records for that student and sessions within the course
+  const sessionIds = sessions.map((s) => s.id);
+  const correctionCount = await prisma.attendanceCorrection.count({
+    where: {
+      studentId,
+      sessionId: { in: sessionIds },
+    },
+  });
+
+  return {
+    student: {
+      id: studentUser.id,
+      name: studentUser.name,
+      rollNumber: studentUser.student ? studentUser.student.rollNumber : "N/A",
+      department: studentUser.student ? studentUser.student.department : "N/A",
+      semester: studentUser.student ? studentUser.student.semester : 0,
+      section: studentUser.student ? studentUser.student.section : "N/A",
+    },
+    course: {
+      id: course.id,
+      name: course.name,
+    },
+    summary: {
+      totalSessions,
+      presentCount,
+      absentCount,
+      qrCount,
+      manualCount,
+      attendancePercentage: totalSessions === 0 ? 0.0 : Number(((presentCount / totalSessions) * 100).toFixed(2)),
+      reliabilityPercentage,
+      hasAttendanceData: presentCount > 0,
+      correctionCount,
+      lastAttendedDate,
+      currentAbsenceStreak,
+    },
+    timeline,
+  };
+}
+
+async function correctAttendanceManually(userId, attendanceIdParam, reason) {
+  const teacher = await getTeacherByUserId(userId);
+
+  // Validate reason
+  const validReasons = ["QR Scan Failed", "Phone Issue", "Network Issue", "Emergency", "Other"];
+  if (!validReasons.includes(reason)) {
+    const error = new Error(`Invalid correction reason. Must be one of: ${validReasons.join(", ")}`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let sessionId, studentId, recordId;
+  const idStr = String(attendanceIdParam);
+
+  if (idStr.startsWith("session-")) {
+    const match = idStr.match(/^session-(\d+)-student-(\d+)$/);
+    if (!match) {
+      const error = new Error("Invalid synthetic attendance ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    sessionId = Number(match[1]);
+    studentId = Number(match[2]);
+  } else {
+    recordId = Number(idStr);
+    if (isNaN(recordId)) {
+      const error = new Error("Invalid attendance ID");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const record = await prisma.attendance.findUnique({
+      where: { id: recordId },
+    });
+
+    if (!record) {
+      const error = new Error("Attendance record not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    sessionId = record.sessionId;
+    studentId = record.studentId;
+  }
+
+  // Authorize that the teacher owns the course associated with the session
+  const session = await prisma.attendanceSession.findUnique({
+    where: { id: sessionId },
+    include: { course: true },
+  });
+
+  if (!session) {
+    const error = new Error("Attendance session not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (session.course && session.course.teacherId !== teacher.id) {
+    const error = new Error("You do not have permission to correct attendance for this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Check if attendance is already present or manual corrected
+  const existingRecord = await prisma.attendance.findUnique({
+    where: {
+      studentId_sessionId: {
+        studentId,
+        sessionId,
+      },
+    },
+  });
+
+  if (existingRecord) {
+    if (existingRecord.method === "MANUAL" || existingRecord.verificationMethod === "manual" || existingRecord.verificationMethod === "MANUAL") {
+      const error = new Error("Attendance record has already been manually corrected");
+      error.statusCode = 409;
+      throw error;
+    }
+    if (existingRecord.status === "present" || existingRecord.status === "PRESENT") {
+      const error = new Error("Attendance is already marked as present. Only absent records can be corrected.");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  // Perform transaction: update/create attendance record and create AttendanceCorrection audit trail
+  const updatedAttendance = await prisma.$transaction(async (tx) => {
+    const attendance = await tx.attendance.upsert({
+      where: {
+        studentId_sessionId: {
+          studentId,
+          sessionId,
+        },
+      },
+      update: {
+        status: "present",
+        method: "MANUAL",
+        verificationMethod: "manual",
+        modifiedByTeacherId: teacher.userId,
+        modifiedAt: new Date(),
+        correctionReason: reason,
+      },
+      create: {
+        studentId,
+        sessionId,
+        status: "present",
+        method: "MANUAL",
+        verificationMethod: "manual",
+        modifiedByTeacherId: teacher.userId,
+        modifiedAt: new Date(),
+        correctionReason: reason,
+      },
+    });
+
+    await tx.attendanceCorrection.create({
+      data: {
+        attendanceId: attendance.id,
+        sessionId,
+        studentId,
+        previousMethod: null,
+        newMethod: "MANUAL",
+        correctionReason: reason,
+        modifiedByTeacherId: teacher.userId,
+        modifiedAt: new Date(),
+      },
+    });
+
+    return attendance;
+  });
+
+  // Invalidate cache
+  invalidateTeacherDashboardCache(teacher.userId);
+
+  return updatedAttendance;
+}
+
 module.exports = {
   getTeacherOverview,
   getStudentReports,
@@ -912,4 +1248,6 @@ module.exports = {
   exportCourseCSV,
   exportCourseDefaultersCSV,
   exportCoursePDF,
+  getStudentCourseAttendanceHistory,
+  correctAttendanceManually,
 };

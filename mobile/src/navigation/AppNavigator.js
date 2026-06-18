@@ -20,6 +20,7 @@ import CourseDetailReportScreen from "../screens/CourseDetailReportScreen";
 import StudentAttendanceReportScreen from "../screens/StudentAttendanceReportScreen";
 import DefaulterReportScreen from "../screens/DefaulterReportScreen";
 import CourseTrendScreen from "../screens/CourseTrendScreen";
+import StudentAttendanceHistoryScreen from "../screens/StudentAttendanceHistoryScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -94,6 +95,11 @@ export default function AppNavigator() {
               name="StudentAttendanceReport"
               component={StudentAttendanceReportScreen}
               options={{ title: "Student Attendance" }}
+            />
+            <Stack.Screen
+              name="StudentAttendanceHistory"
+              component={StudentAttendanceHistoryScreen}
+              options={{ title: "Student Attendance History" }}
             />
             <Stack.Screen
               name="DefaulterReport"

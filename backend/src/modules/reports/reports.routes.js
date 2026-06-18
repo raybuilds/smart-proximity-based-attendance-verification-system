@@ -107,13 +107,15 @@ router.get(
 );
 
 router.get(
-  "/teacher/history-test",
-  (req, res) => {
-    res.json({
-      success: true,
-      message: "History route loaded",
-    });
-  }
+  "/courses/:courseId/students/:studentId/history",
+  requireRole(ROLES.TEACHER),
+  reportsController.getStudentCourseAttendanceHistory
+);
+
+router.patch(
+  "/attendance/:attendanceId/manual",
+  requireRole(ROLES.TEACHER),
+  reportsController.correctAttendanceManually
 );
 
 module.exports = router;

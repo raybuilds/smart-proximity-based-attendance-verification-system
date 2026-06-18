@@ -73,3 +73,13 @@ export async function getCourseTrends(courseId) {
   const response = await api.get(`/reports/courses/${courseId}/trends`);
   return response.data;
 }
+
+export async function getStudentAttendanceHistoryForCourse(courseId, studentId) {
+  const response = await api.get(`/reports/courses/${courseId}/students/${studentId}/history`);
+  return response.data;
+}
+
+export async function correctAttendanceManually(attendanceId, reason) {
+  const response = await api.patch(`/reports/attendance/${attendanceId}/manual`, { reason });
+  return response.data;
+}
