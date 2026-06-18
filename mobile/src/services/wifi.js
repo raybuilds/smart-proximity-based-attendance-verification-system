@@ -10,6 +10,12 @@ export async function getNearbyWifi() {
     throw new Error("Location permission is required to scan nearby WiFi");
   }
 
+  if (!WifiManager) {
+    throw new Error(
+      "WiFi scanning is unavailable in Expo Go. Use the APK build."
+    );
+  }
+
   await WifiManager.reScanAndLoadWifiList();
   const wifiList = await WifiManager.loadWifiList();
 
