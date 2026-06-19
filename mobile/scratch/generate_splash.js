@@ -12,17 +12,13 @@ const adaptiveIconPath = path.join(process.cwd(), 'assets', 'adaptive-icon.png')
 fs.copyFileSync(iconPath, adaptiveIconPath);
 console.log('Copied icon.png to adaptive-icon.png');
 
-// For splash.png, we need a 1242x2436 image with #FAF7F0 background.
-// Instead of complex PIL script, we can generate a basic PNG file using canvas or a simple html generator.
-// Wait, we can write a quick node script that writes a splash page HTML and screenshots it via Playwright, 
-// since we have playwright installed! Let's check package.json: we have "playwright" in devDependencies.
-
+// For splash.png, we need a 1242x2688 image with #FAF7F0 background.
 async function generateSplash() {
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage();
   
-  // HTML Template for Splash Screen
+  // HTML Template for Splash Screen optimized for containment
   const html = `
     <!DOCTYPE html>
     <html>
@@ -37,63 +33,66 @@ async function generateSplash() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
+          justify-content: space-between;
           font-family: 'Georgia', serif;
+          box-sizing: border-box;
+          padding-top: 250px;
+          padding-bottom: 200px;
         }
         .container {
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          margin-top: -150px;
+          flex-grow: 1;
         }
         .icon {
-          width: 480px;
-          height: 480px;
-          border-radius: 96px;
-          margin-bottom: 70px;
+          width: 620px;
+          height: 620px;
+          border-radius: 120px;
+          margin-bottom: 60px;
         }
         .title {
-          font-size: 68px;
+          font-size: 76px;
           font-weight: bold;
           color: #0f172a;
           text-align: center;
           margin-bottom: 24px;
           letter-spacing: 0.5px;
+          max-width: 1000px;
         }
         .subtitle {
-          font-size: 36px;
+          font-size: 42px;
           color: #475569;
           text-align: center;
-          margin-bottom: 350px;
+          max-width: 900px;
         }
         .footer {
           display: flex;
           flex-direction: column;
           align-items: center;
-          position: absolute;
-          bottom: 240px;
+          margin-top: 100px;
         }
         .powered-by {
-          font-size: 24px;
+          font-size: 26px;
           text-transform: uppercase;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
           color: #94a3b8;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
           font-family: 'sans-serif';
           font-weight: 600;
         }
         .brand-container {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 24px;
         }
         .brand-logo {
-          width: 64px;
-          height: 64px;
+          width: 80px;
+          height: 80px;
         }
         .brand-text {
-          font-size: 42px;
+          font-size: 48px;
           font-weight: bold;
           color: #334155;
           letter-spacing: 0.5px;
