@@ -34,7 +34,6 @@ import EligibilityChips from "../components/EligibilityChips";
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
 export default function CourseManagementScreen() {
-  console.log("[CourseManagement] render");
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,13 +80,10 @@ export default function CourseManagementScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Let the focus effect run loadCourses
       loadCourses();
     }, [loadCourses])
   );
-
-  useEffect(() => {
-    loadCourses();
-  }, [showArchived, loadCourses]);
 
   async function handleSubmit() {
     const trimmed = courseName.trim();
@@ -212,162 +208,6 @@ export default function CourseManagementScreen() {
     section: section || null,
   };
 
-  const renderHeader = () => (
-    <View>
-      {/* 1. Add/Edit Course Card */}
-      <View style={[styles.card, editingCourse && styles.editingCard]}>
-        <View style={styles.formHeaderRow}>
-          <BookOpen size={20} color={COLORS.primary} style={styles.formIcon} />
-          <Text style={styles.sectionTitle}>
-            {editingCourse ? "Edit Course Parameters" : "Create New Course"}
-          </Text>
-        </View>
-        
-        <Text style={styles.fieldLabel}>Course Name *</Text>
-        <TextInput
-          placeholder="e.g. Operating Systems"
-          placeholderTextColor={COLORS.textSecondary}
-          style={styles.input}
-          value={courseName}
-          onChangeText={(text) => {
-            setCourseName(text);
-            if (errorMessage) setErrorMessage("");
-            if (successMessage) setSuccessMessage("");
-          }}
-        />
-
-        <Text style={styles.fieldLabel}>Course Code (Optional)</Text>
-        <TextInput
-          placeholder="e.g. CS401"
-          placeholderTextColor={COLORS.textSecondary}
-          autoCapitalize="characters"
-          style={styles.input}
-          value={courseCode}
-          onChangeText={(text) => {
-            setCourseCode(text);
-            if (errorMessage) setErrorMessage("");
-            if (successMessage) setSuccessMessage("");
-          }}
-        />
-
-        <View style={styles.row}>
-          <View style={styles.col}>
-            <Text style={styles.fieldLabel}>Dept</Text>
-            <TextInput
-              placeholder="CSE"
-              placeholderTextColor={COLORS.textSecondary}
-              autoCapitalize="characters"
-              style={styles.input}
-              value={department}
-              onChangeText={(text) => {
-                setDepartment(text);
-                if (errorMessage) setErrorMessage("");
-                if (successMessage) setSuccessMessage("");
-              }}
-            />
-          </View>
-          <View style={[styles.col, { marginHorizontal: SPACING.md }]}>
-            <Text style={styles.fieldLabel}>Semester</Text>
-            <TextInput
-              placeholder="e.g. 6"
-              placeholderTextColor={COLORS.textSecondary}
-              keyboardType="number-pad"
-              style={styles.input}
-              value={semester}
-              onChangeText={(text) => {
-                setSemester(text);
-                if (errorMessage) setErrorMessage("");
-                if (successMessage) setSuccessMessage("");
-              }}
-            />
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.fieldLabel}>Section</Text>
-            <TextInput
-              placeholder="e.g. A"
-              placeholderTextColor={COLORS.textSecondary}
-              autoCapitalize="characters"
-              style={styles.input}
-              value={section}
-              onChangeText={(text) => {
-                setSection(text);
-                if (errorMessage) setErrorMessage("");
-                if (successMessage) setSuccessMessage("");
-              }}
-            />
-          </View>
-        </View>
-
-        {/* Live Preview UI */}
-        <View style={styles.previewContainer}>
-          <View style={styles.previewHeaderRow}>
-            <Sparkles size={14} color={COLORS.primary} style={styles.previewIcon} />
-            <Text style={styles.previewLabel}>Eligible Students Preview</Text>
-          </View>
-          <View style={styles.chipsWrapper}>
-            <EligibilityChips eligibility={livePreviewData} />
-          </View>
-        </View>
-
-        {successMessage ? (
-          <View style={[styles.feedbackBox, styles.successBox]}>
-            <CheckCircle size={16} color={COLORS.success} style={styles.feedbackIcon} />
-            <Text style={styles.successText}>{successMessage}</Text>
-          </View>
-        ) : null}
-        
-        {errorMessage ? (
-          <View style={[styles.feedbackBox, styles.errorBox]}>
-            <XCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.formActions}>
-          {editingCourse ? (
-            <Pressable
-              style={styles.cancelFormBtn}
-              onPress={cancelEdit}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.cancelFormBtnText}>Cancel</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            style={[styles.submitBtn, isSubmitting && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color={COLORS.textInverse} />
-            ) : (
-              <>
-                <Plus size={16} color={COLORS.textInverse} />
-                <Text style={styles.buttonText}>
-                  {editingCourse ? "Save Changes" : "Create Course"}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </View>
-      </View>
-
-      {/* 2. Course Header & Filter Toggle */}
-      <View style={styles.listHeaderRow}>
-        <Text style={styles.listHeader}>Your Enrolled Courses</Text>
-        <View style={styles.toggleContainer}>
-          <Text style={styles.toggleLabel}>Show Archived</Text>
-          <Switch
-            value={showArchived}
-            onValueChange={setShowArchived}
-            trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-            thumbColor={showArchived ? COLORS.primary : COLORS.textSecondary}
-          />
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -381,7 +221,31 @@ export default function CourseManagementScreen() {
         <FlatList
           data={courses}
           keyExtractor={(item) => item.id.toString()}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={
+            <HeaderComponent
+              editingCourse={editingCourse}
+              courseName={courseName}
+              setCourseName={setCourseName}
+              courseCode={courseCode}
+              setCourseCode={setCourseCode}
+              department={department}
+              setDepartment={setDepartment}
+              semester={semester}
+              setSemester={setSemester}
+              section={section}
+              setSection={setSection}
+              livePreviewData={livePreviewData}
+              errorMessage={errorMessage}
+              setErrorMessage={setErrorMessage}
+              successMessage={successMessage}
+              setSuccessMessage={setSuccessMessage}
+              cancelEdit={cancelEdit}
+              isSubmitting={isSubmitting}
+              handleSubmit={handleSubmit}
+              showArchived={showArchived}
+              setShowArchived={setShowArchived}
+            />
+          }
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -496,6 +360,182 @@ export default function CourseManagementScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+// Fixed Header component moved outside to prevent unmounting/remounting on parent state changes
+const HeaderComponent = React.memo(({
+  editingCourse,
+  courseName,
+  setCourseName,
+  courseCode,
+  setCourseCode,
+  department,
+  setDepartment,
+  semester,
+  setSemester,
+  section,
+  setSection,
+  livePreviewData,
+  errorMessage,
+  setErrorMessage,
+  successMessage,
+  setSuccessMessage,
+  cancelEdit,
+  isSubmitting,
+  handleSubmit,
+  showArchived,
+  setShowArchived,
+}) => {
+  return (
+    <View>
+      {/* 1. Add/Edit Course Card */}
+      <View style={[styles.card, editingCourse && styles.editingCard]}>
+        <View style={styles.formHeaderRow}>
+          <BookOpen size={20} color={COLORS.primary} style={styles.formIcon} />
+          <Text style={styles.sectionTitle}>
+            {editingCourse ? "Edit Course Parameters" : "Create New Course"}
+          </Text>
+        </View>
+        
+        <Text style={styles.fieldLabel}>Course Name *</Text>
+        <TextInput
+          placeholder="e.g. Operating Systems"
+          placeholderTextColor={COLORS.textSecondary}
+          style={styles.input}
+          value={courseName}
+          onChangeText={(text) => {
+            setCourseName(text);
+            if (errorMessage) setErrorMessage("");
+            if (successMessage) setSuccessMessage("");
+          }}
+        />
+
+        <Text style={styles.fieldLabel}>Course Code (Optional)</Text>
+        <TextInput
+          placeholder="e.g. CS401"
+          placeholderTextColor={COLORS.textSecondary}
+          autoCapitalize="characters"
+          style={styles.input}
+          value={courseCode}
+          onChangeText={(text) => {
+            setCourseCode(text);
+            if (errorMessage) setErrorMessage("");
+            if (successMessage) setSuccessMessage("");
+          }}
+        />
+
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <Text style={styles.fieldLabel}>Dept</Text>
+            <TextInput
+              placeholder="CSE"
+              placeholderTextColor={COLORS.textSecondary}
+              autoCapitalize="characters"
+              style={styles.input}
+              value={department}
+              onChangeText={(text) => {
+                setDepartment(text);
+                if (errorMessage) setErrorMessage("");
+                if (successMessage) setSuccessMessage("");
+              }}
+            />
+          </View>
+          <View style={[styles.col, { marginHorizontal: SPACING.md }]}>
+            <Text style={styles.fieldLabel}>Semester</Text>
+            <TextInput
+              placeholder="e.g. 6"
+              placeholderTextColor={COLORS.textSecondary}
+              keyboardType="number-pad"
+              style={styles.input}
+              value={semester}
+              onChangeText={(text) => {
+                setSemester(text);
+                if (errorMessage) setErrorMessage("");
+                if (successMessage) setSuccessMessage("");
+              }}
+            />
+          </View>
+          <View style={styles.col}>
+            <Text style={styles.fieldLabel}>Section</Text>
+            <TextInput
+              placeholder="A"
+              placeholderTextColor={COLORS.textSecondary}
+              autoCapitalize="characters"
+              style={styles.input}
+              value={section}
+              onChangeText={(text) => {
+                setSection(text);
+                if (errorMessage) setErrorMessage("");
+                if (successMessage) setSuccessMessage("");
+              }}
+            />
+          </View>
+        </View>
+
+        <EligibilityChips
+          eligibility={livePreviewData}
+          isArchived={false}
+          isPreview
+        />
+        
+        {successMessage ? (
+          <View style={[styles.feedbackBox, styles.successBox]}>
+            <CheckCircle size={16} color={COLORS.success} style={styles.feedbackIcon} />
+            <Text style={styles.successText}>{successMessage}</Text>
+          </View>
+        ) : null}
+        
+        {errorMessage ? (
+          <View style={[styles.feedbackBox, styles.errorBox]}>
+            <XCircle size={16} color={COLORS.error} style={styles.feedbackIcon} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.formActions}>
+          {editingCourse ? (
+            <Pressable
+              style={styles.cancelFormBtn}
+              onPress={cancelEdit}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.cancelFormBtnText}>Cancel</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={[styles.submitBtn, isSubmitting && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={COLORS.textInverse} />
+            ) : (
+              <>
+                <Plus size={16} color={COLORS.textInverse} />
+                <Text style={styles.buttonText}>
+                  {editingCourse ? "Save Changes" : "Create Course"}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      </View>
+
+      {/* 2. Course Header & Filter Toggle */}
+      <View style={styles.listHeaderRow}>
+        <Text style={styles.listHeader}>Your Enrolled Courses</Text>
+        <View style={styles.toggleContainer}>
+          <Text style={styles.toggleLabel}>Show Archived</Text>
+          <Switch
+            value={showArchived}
+            onValueChange={setShowArchived}
+            trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+            thumbColor={showArchived ? COLORS.primary : COLORS.textSecondary}
+          />
+        </View>
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
