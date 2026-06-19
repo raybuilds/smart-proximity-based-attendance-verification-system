@@ -1,13 +1,15 @@
 {
   "expo": {
-    "name": "Attendance System App",
+    "name": "Digital Proximity Attendance",
     "slug": "attendance-system-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FAF7F0"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -28,9 +30,11 @@
         "BLUETOOTH_CONNECT"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FAF7F0"
       },
-      "package": "com.anonymous.attendancesystemapp"
+      "package": "com.anonymous.attendancesystemapp",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro"

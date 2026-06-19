@@ -53,8 +53,8 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.iconWrapper}>
             <GraduationCap size={44} color={COLORS.primary} strokeWidth={1.5} />
           </View>
-          <Text style={styles.portalTitle}>University Portal</Text>
-          <Text style={styles.portalSubtitle}>Attendance & Verification System</Text>
+          <Text style={styles.portalTitle}>Digital Proximity Attendance</Text>
+          <Text style={styles.portalSubtitle}>Smart Attendance Verification System</Text>
         </View>
 
         <View style={styles.card}>

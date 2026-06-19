@@ -18,7 +18,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Attendance System App</Text>
+      <Text style={styles.title}>Digital Proximity Attendance</Text>
       <Text style={styles.status}>{status}</Text>
       <Pressable style={styles.button} onPress={handleConnectionTest}>
         <Text style={styles.buttonText}>Test Backend Connection</Text>
