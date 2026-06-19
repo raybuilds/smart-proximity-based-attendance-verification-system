@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GraduationCap,
   Camera,
@@ -34,29 +35,62 @@ export default function DashboardScreen({ navigation }) {
   const [attendanceReport, setAttendanceReport] = useState(null);
   const [coursesReport, setCoursesReport] = useState(null);
 
-  useEffect(() => {
-    async function loadReport() {
-      try {
-        const response = await getStudentSelfReport();
-        setAttendanceReport(response.data);
-      } catch (error) {
-        console.log("Error loading self report:", error);
-      }
-    }
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-    async function loadCourses() {
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      // 1. Try to load from Cache first for instantaneous render
+      const cacheKeyReport = `cache_student_report_${user?.id}`;
+      const cacheKeyCourses = `cache_student_courses_${user?.id}`;
       try {
-        const response = await getStudentCourses();
-        setCoursesReport(response.data);
+        const cachedReport = await AsyncStorage.getItem(cacheKeyReport);
+        const cachedCourses = await AsyncStorage.getItem(cacheKeyCourses);
+        if (cachedReport && active) {
+          setAttendanceReport(JSON.parse(cachedReport));
+        }
+        if (cachedCourses && active) {
+          setCoursesReport(JSON.parse(cachedCourses));
+        }
+      } catch (cacheErr) {
+        if (__DEV__) console.log("Failed to load dashboard cache:", cacheErr);
+      }
+
+      // 2. Fetch in background/parallel (Promise.all)
+      try {
+        if (!attendanceReport || !coursesReport) {
+          setIsRefreshing(true);
+        }
+        const [reportRes, coursesRes] = await Promise.all([
+          getStudentSelfReport(),
+          getStudentCourses()
+        ]);
+        
+        if (active) {
+          setAttendanceReport(reportRes.data);
+          setCoursesReport(coursesRes.data);
+          
+          // Write to Cache
+          await AsyncStorage.setItem(cacheKeyReport, JSON.stringify(reportRes.data));
+          await AsyncStorage.setItem(cacheKeyCourses, JSON.stringify(coursesRes.data));
+        }
       } catch (error) {
-        console.log("Error loading student courses:", error);
+        if (__DEV__) console.log("Error loading student dashboard data:", error);
+      } finally {
+        if (active) {
+          setIsRefreshing(false);
+        }
       }
     }
 
     if (user?.role === "student") {
-      loadReport();
-      loadCourses();
+      loadData();
     }
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   async function handleProtectedCheck() {

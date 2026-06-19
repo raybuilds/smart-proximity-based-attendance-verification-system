@@ -8,6 +8,7 @@ import {
   Pressable,
   RefreshControl,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import NetInfo from "@react-native-community/netinfo";
 import {
@@ -30,22 +31,6 @@ export default function TeacherReportsScreen({ navigation, route }) {
   if (__DEV__) {
     console.log("[TeacherReports] Screen mounted");
   }
-
-  useEffect(() => {
-    console.log('[TeacherReports] mounted');
-    return () => {
-      console.log('[TeacherReports] unmounted');
-    };
-  }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log("[TeacherReports] focused");
-      return () => {
-        console.log("[TeacherReports] blurred");
-      };
-    }, [])
-  );
 
   const [courses, setCourses] = useState([]);
   const [dashboard, setDashboard] = useState(null);
@@ -80,6 +65,24 @@ export default function TeacherReportsScreen({ navigation, route }) {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
+    // 1. Try to load from cache first for immediate responsiveness
+    const cacheKeyCourses = `cache_teacher_report_courses`;
+    const cacheKeyDashboard = `cache_teacher_report_dashboard_${range}`;
+    if (!isPull && courses.length === 0 && !dashboard) {
+      try {
+        const cachedCourses = await AsyncStorage.getItem(cacheKeyCourses);
+        const cachedDashboard = await AsyncStorage.getItem(cacheKeyDashboard);
+        if (cachedCourses && isMountedRef.current) {
+          setCourses(JSON.parse(cachedCourses));
+        }
+        if (cachedDashboard && isMountedRef.current) {
+          setDashboard(JSON.parse(cachedDashboard));
+        }
+      } catch (cacheErr) {
+        if (__DEV__) console.log("Failed to load reports cache:", cacheErr);
+      }
+    }
+
     if (isPull) {
       setRefreshing(true);
     } else {
@@ -88,12 +91,22 @@ export default function TeacherReportsScreen({ navigation, route }) {
     setErrorMessage("");
     
     try {
-      const coursesRes = await getTeacherCoursesReport({ signal });
-      const dashboardRes = await getTeacherDashboard(range, { signal });
+      // 2. Fetch both parallel requests using Promise.all
+      const [coursesRes, dashboardRes] = await Promise.all([
+        getTeacherCoursesReport({ signal }),
+        getTeacherDashboard(range, { signal })
+      ]);
 
       if (isMountedRef.current) {
-        setCourses(coursesRes.data || []);
-        setDashboard(dashboardRes.dashboard || dashboardRes.data || null);
+        const parsedCourses = coursesRes.data || [];
+        const parsedDashboard = dashboardRes.dashboard || dashboardRes.data || null;
+
+        setCourses(parsedCourses);
+        setDashboard(parsedDashboard);
+
+        // Update Cache on success
+        await AsyncStorage.setItem(cacheKeyCourses, JSON.stringify(parsedCourses));
+        await AsyncStorage.setItem(cacheKeyDashboard, JSON.stringify(parsedDashboard));
       }
     } catch (error) {
       if (isMountedRef.current && error.name !== "CanceledError" && error.name !== "AbortError") {
@@ -107,7 +120,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
         setRefreshing(false);
       }
     }
-  }, [range]);
+  }, [range, courses.length, dashboard]);
 
   useFocusEffect(
     useCallback(() => {

@@ -32,7 +32,7 @@ async function generateSplash() {
           margin: 0;
           padding: 0;
           width: 1242px;
-          height: 2436px;
+          height: 2688px;
           background-color: #FAF7F0;
           display: flex;
           flex-direction: column;
@@ -45,55 +45,55 @@ async function generateSplash() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          margin-top: -100px;
+          margin-top: -150px;
         }
         .icon {
-          width: 320px;
-          height: 320px;
-          border-radius: 64px;
-          margin-bottom: 60px;
+          width: 480px;
+          height: 480px;
+          border-radius: 96px;
+          margin-bottom: 70px;
         }
         .title {
-          font-size: 54px;
+          font-size: 68px;
           font-weight: bold;
           color: #0f172a;
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
           letter-spacing: 0.5px;
         }
         .subtitle {
-          font-size: 28px;
+          font-size: 36px;
           color: #475569;
           text-align: center;
-          margin-bottom: 300px;
+          margin-bottom: 350px;
         }
         .footer {
           display: flex;
           flex-direction: column;
           align-items: center;
           position: absolute;
-          bottom: 200px;
+          bottom: 240px;
         }
         .powered-by {
-          font-size: 20px;
+          font-size: 24px;
           text-transform: uppercase;
           letter-spacing: 2px;
           color: #94a3b8;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
           font-family: 'sans-serif';
           font-weight: 600;
         }
         .brand-container {
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 20px;
         }
         .brand-logo {
-          width: 48px;
-          height: 48px;
+          width: 64px;
+          height: 64px;
         }
         .brand-text {
-          font-size: 32px;
+          font-size: 42px;
           font-weight: bold;
           color: #334155;
           letter-spacing: 0.5px;
@@ -118,12 +118,12 @@ async function generateSplash() {
   `;
   
   await page.setContent(html);
-  await page.setViewportSize({ width: 1242, height: 2436 });
+  await page.setViewportSize({ width: 1242, height: 2688 });
   
   const splashOutPath = path.join(process.cwd(), 'assets', 'splash.png');
   await page.screenshot({
     path: splashOutPath,
-    clip: { x: 0, y: 0, width: 1242, height: 2436 }
+    clip: { x: 0, y: 0, width: 1242, height: 2688 }
   });
   
   console.log('Successfully generated splash.png at:', splashOutPath);

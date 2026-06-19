@@ -56,12 +56,7 @@ export default function CourseManagementScreen() {
   // Show archived toggle state
   const [showArchived, setShowArchived] = useState(false);
 
-  useEffect(() => {
-    console.log("[CourseManagement] mounted");
-    return () => {
-      console.log("[CourseManagement] unmounted");
-    };
-  }, []);
+
 
   const loadCourses = useCallback(async () => {
     try {
