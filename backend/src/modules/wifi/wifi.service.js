@@ -4,12 +4,13 @@ const jwt = require("jsonwebtoken");
 const { prisma } = require("../../config/database");
 const { HTTP_STATUS, WIFI } = require("../../utils/constants");
 
-async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, studentId }) {
+async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, wifiList, studentId }) {
   console.log("=================================");
   console.log("SESSION CODE:", sessionCode);
   console.log("SCANNED SSID:", ssid);
   console.log("SCANNED BSSID:", bssid);
   console.log("SCANNED RSSI:", rssi);
+  console.log("WIFI LIST LENGTH:", wifiList ? wifiList.length : "N/A");
   console.log("STUDENT ID:", studentId);
 
   const session = await prisma.attendanceSession.findUnique({
@@ -36,7 +37,7 @@ async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, studentId
     throw error;
   }
 
-  if (!session.teacherSSID) {
+  if (!session.teacherSSID || !session.teacherBSSID) {
     const error = new Error(
       "Teacher hotspot is not configured for this session"
     );
@@ -44,19 +45,54 @@ async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, studentId
     throw error;
   }
 
-  // Validate SSID only
-  if (session.teacherSSID !== ssid) {
-    return {
-      success: false,
-      message: "Teacher hotspot not detected",
-    };
+  let finalRssi = rssi;
+
+  if (wifiList && Array.isArray(wifiList)) {
+    const normalizedTeacherBssid = session.teacherBSSID.trim().toLowerCase();
+    
+    // Search for a network matching both SSID and BSSID
+    const targetNetwork = wifiList.find(net => {
+      const matchSSID = net.SSID === session.teacherSSID;
+      const matchBSSID = net.BSSID && net.BSSID.trim().toLowerCase() === normalizedTeacherBssid;
+      return matchSSID && matchBSSID;
+    });
+
+    if (!targetNetwork) {
+      return {
+        success: false,
+        message: "Network verification failed.",
+      };
+    }
+
+    finalRssi = Number(targetNetwork.level);
+  } else {
+    // Fallback: Validate SSID
+    if (session.teacherSSID !== ssid) {
+      return {
+        success: false,
+        message: "Network verification failed.",
+      };
+    }
+
+    // Validate BSSID
+    if (bssid) {
+      const normalizedSessionBssid = session.teacherBSSID.trim().toLowerCase();
+      const normalizedScannedBssid = bssid.trim().toLowerCase();
+      if (normalizedSessionBssid !== normalizedScannedBssid) {
+        return {
+          success: false,
+          message: "Network verification failed.",
+        };
+      }
+    }
   }
 
   // Validate proximity using RSSI
-  if (rssi < WIFI.MIN_RSSI) {
+  const threshold = session.rssiThreshold !== null ? session.rssiThreshold : WIFI.MIN_RSSI;
+  if (finalRssi === undefined || finalRssi < threshold) {
     return {
       success: false,
-      message: "Move closer to teacher hotspot",
+      message: "Network verification failed. Move closer to the teacher hotspot.",
     };
   }
 

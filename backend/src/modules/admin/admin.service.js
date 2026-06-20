@@ -67,7 +67,7 @@ async function getAdminDashboard() {
     let totalPctSum = 0;
     for (const session of todaySessions) {
       const eligibleCount = await getEligibleStudentCountForSession(session);
-      const recordsCount = session.attendanceRecords.length;
+      const recordsCount = session.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
       const pct = eligibleCount === 0 ? 0 : (recordsCount / eligibleCount) * 100;
       totalPctSum += pct;
     }
@@ -366,6 +366,8 @@ async function getAdminTeacherDetail(teacherId) {
       email: teacher.user.email,
       employeeId: teacher.employeeId,
       department: teacher.department,
+      registeredSSID: teacher.registeredSSID,
+      registeredBSSID: teacher.registeredBSSID,
       isActive: teacher.user.isActive
     },
     courses: teacher.courses.map((c) => ({
@@ -433,7 +435,8 @@ async function getAdminCourses() {
       let totalPossible = 0;
       for (const s of course.sessions) {
         const eligible = await getEligibleStudentCountForSession(s);
-        totalRecords += s.attendanceRecords.length;
+        const presentRecordsCount = s.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+        totalRecords += presentRecordsCount;
         totalPossible += eligible;
       }
       attendancePercentage = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
@@ -495,7 +498,8 @@ async function getAdminCourseDetail(courseId) {
     let totalPossible = 0;
     for (const s of course.sessions) {
       const eligible = await getEligibleStudentCountForSession(s);
-      totalRecords += s.attendanceRecords.length;
+      const presentRecordsCount = s.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+      totalRecords += presentRecordsCount;
       totalPossible += eligible;
     }
     averageAttendance = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
@@ -557,13 +561,13 @@ async function getAdminCourseDetail(courseId) {
   const newestSessions = course.sessions.slice(0, 20);
   for (const s of newestSessions) {
     const eligible = await getEligibleStudentCountForSession(s);
-    const recordsCount = s.attendanceRecords.length;
-    const pct = eligible === 0 ? 100.0 : Number(((recordsCount / eligible) * 100).toFixed(1));
+    const presentRecordsCount = s.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+    const pct = eligible === 0 ? 100.0 : Number(((presentRecordsCount / eligible) * 100).toFixed(1));
     sessionsData.push({
       sessionId: s.id,
       startedAt: s.startedAt,
       endedAt: s.endedAt,
-      attendanceCount: recordsCount,
+      attendanceCount: presentRecordsCount,
       attendancePercentage: pct
     });
   }
@@ -974,7 +978,8 @@ async function getArchivedCourseDetail(courseId) {
     let totalPossible = 0;
     for (const s of course.sessions) {
       const eligible = await getEligibleStudentCountForSession(s);
-      totalRecords += s.attendanceRecords.length;
+      const presentRecordsCount = s.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+      totalRecords += presentRecordsCount;
       totalPossible += eligible;
     }
     averageAttendance = totalPossible === 0 ? 100.0 : Number(((totalRecords / totalPossible) * 100).toFixed(1));
@@ -1003,13 +1008,13 @@ async function getArchivedCourseDetail(courseId) {
   const newestSessions = course.sessions.slice(0, 20);
   for (const s of newestSessions) {
     const eligible = await getEligibleStudentCountForSession(s);
-    const recordsCount = s.attendanceRecords.length;
-    const pct = eligible === 0 ? 100.0 : Number(((recordsCount / eligible) * 100).toFixed(1));
+    const presentRecordsCount = s.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+    const pct = eligible === 0 ? 100.0 : Number(((presentRecordsCount / eligible) * 100).toFixed(1));
     sessionsData.push({
       sessionId: s.id,
       startedAt: s.startedAt,
       endedAt: s.endedAt,
-      attendanceCount: recordsCount,
+      attendanceCount: presentRecordsCount,
       attendancePercentage: pct
     });
   }
@@ -1040,6 +1045,57 @@ async function getArchivedCourseDetail(courseId) {
   };
 }
 
+async function updateTeacherNetwork(teacherId, { registeredSSID, registeredBSSID }) {
+  const teacher = await prisma.teacher.findUnique({
+    where: { id: teacherId }
+  });
+
+  if (!teacher) {
+    const error = new Error("Teacher not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return prisma.teacher.update({
+    where: { id: teacherId },
+    data: {
+      registeredSSID: registeredSSID !== undefined ? registeredSSID : undefined,
+      registeredBSSID: registeredBSSID !== undefined ? registeredBSSID : undefined
+    }
+  });
+}
+
+async function resetUserPassword(userId, { temporaryPassword }) {
+  const bcrypt = require("bcryptjs");
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(temporaryPassword, salt);
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash,
+      needsPasswordChange: true,
+    },
+  });
+
+  return {
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    needsPasswordChange: updatedUser.needsPasswordChange,
+  };
+}
+
 module.exports = {
   getAdminDashboard,
   getAdminRecentActivity,
@@ -1047,6 +1103,7 @@ module.exports = {
   getAdminStudentDetail,
   getAdminTeachers,
   getAdminTeacherDetail,
+  updateTeacherNetwork,
   toggleUserStatus,
   getAdminCourses,
   getAdminCourseDetail,
@@ -1058,6 +1115,7 @@ module.exports = {
   restoreCourse,
   getArchivedCourses,
   getArchivedCourseDetail,
+  resetUserPassword,
   AppError
 };
 

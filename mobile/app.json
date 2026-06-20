@@ -2,7 +2,7 @@
   "expo": {
     "name": "Digital Proximity Attendance",
     "slug": "attendance-system-app",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -34,7 +34,7 @@
         "backgroundColor": "#FAF7F0"
       },
       "package": "com.anonymous.attendancesystemapp",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "bundler": "metro"

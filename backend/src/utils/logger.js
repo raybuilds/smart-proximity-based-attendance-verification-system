@@ -1,9 +1,15 @@
+const appConfig = require("../config");
+
 function info(message) {
-  console.log(`[INFO] ${message}`);
+  if (appConfig.isDevelopment) {
+    console.log(`[INFO] ${message}`);
+  }
 }
 
 function success(message) {
-  console.log(`[SUCCESS] ${message}`);
+  if (appConfig.isDevelopment) {
+    console.log(`[SUCCESS] ${message}`);
+  }
 }
 
 function error(message, details) {

@@ -146,7 +146,7 @@ async function getTeacherDashboard(userId, range = "all") {
 
     for (const session of rangeSessions) {
       const eligibleCount = await cachedStudentCount(session);
-      const recordsCount = session.attendanceRecords.length;
+      const recordsCount = session.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
 
       courseRecords += recordsCount;
       coursePossible += eligibleCount;
@@ -505,7 +505,8 @@ async function getTeacherOverview(userId) {
       countCache[key] = await getEligibleStudentCountForSession(session);
     }
     const eligibleCount = countCache[key];
-    totalPresent += session.attendanceRecords.length;
+    const presentRecordsCount = session.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+    totalPresent += presentRecordsCount;
     totalPossible += eligibleCount;
   }
 
@@ -539,7 +540,7 @@ async function getTeacherOverview(userId) {
     });
 
     for (const student of roster) {
-      const presentCount = attendances.filter((a) => a.studentId === student.userId).length;
+      const presentCount = attendances.filter((a) => a.studentId === student.userId && a.status !== "absent" && a.status !== "ABSENT").length;
       const pct = (presentCount / totalCourseSessions) * 100;
       if (pct < 75.0) {
         atRiskSet.add(student.userId);
@@ -569,7 +570,8 @@ async function getTeacherOverview(userId) {
     for (const session of courseSessions) {
       const key = `${session.departmentSnapshot || ""}-${session.semesterSnapshot || ""}-${session.sectionSnapshot || ""}`;
       const eligibleCount = countCache[key] !== undefined ? countCache[key] : await getEligibleStudentCountForSession(session);
-      present += session.attendanceRecords.length;
+      const presentRecCount = session.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
+      present += presentRecCount;
       possible += eligibleCount;
     }
 
@@ -931,15 +933,23 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
     let qrCount = 0;
     let manualCount = 0;
     let absentCount = 0;
+    let autoAbsentCount = 0;
 
     sessions.forEach((session) => {
       const record = session.attendanceRecords.find((r) => r.studentId === participant.studentId);
       if (record) {
-        const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
-        if (isManual) {
-          manualCount++;
+        if (record.status === "absent" || record.status === "ABSENT") {
+          absentCount++;
+          if (record.method === "AUTO_ABSENT" || record.verificationMethod === "AUTO_ABSENT") {
+            autoAbsentCount++;
+          }
         } else {
-          qrCount++;
+          const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
+          if (isManual) {
+            manualCount++;
+          } else {
+            qrCount++;
+          }
         }
       } else {
         absentCount++;
@@ -961,6 +971,7 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
       attendancePercentage,
       presentCount: attendedSessions,
       absentCount,
+      autoAbsentCount,
       qrCount,
       manualCount,
     };
@@ -1071,6 +1082,21 @@ async function getStudentCourseAttendanceHistory(userId, courseId, studentId) {
     const sessionDate = session.startedAt.toISOString();
 
     if (record) {
+      if (record.status === "absent" || record.status === "ABSENT") {
+        absentCount++;
+        return {
+          sessionId: session.id,
+          attendanceId: record.id,
+          sessionDate,
+          correctionDate: null,
+          status: "Absent",
+          method: record.method || "AUTO_ABSENT",
+          correctionReason: null,
+          modifiedBy: null,
+          modifiedAt: null,
+        };
+      }
+
       const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
       if (isManual) {
         manualCount++;
@@ -1097,7 +1123,7 @@ async function getStudentCourseAttendanceHistory(userId, courseId, studentId) {
         sessionDate,
         correctionDate: null,
         status: "Absent",
-        method: null,
+        method: "AUTO_ABSENT",
         correctionReason: null,
         modifiedBy: null,
         modifiedAt: null,
@@ -1354,7 +1380,8 @@ async function getStudentCoursesReport(studentUserId) {
     const totalSessions = course.sessions.length;
     let presentCount = 0;
     course.sessions.forEach((session) => {
-      if (session.attendanceRecords.length > 0) {
+      const rec = session.attendanceRecords[0];
+      if (rec && rec.status !== "absent" && rec.status !== "ABSENT") {
         presentCount++;
       }
     });
@@ -1460,7 +1487,7 @@ async function getStudentCourseDetailReport(studentUserId, courseId) {
 
   course.sessions.forEach((session) => {
     const record = session.attendanceRecords[0];
-    if (record) {
+    if (record && record.status !== "absent" && record.status !== "ABSENT") {
       presentCount++;
       const isManual = record.method === "MANUAL" || record.verificationMethod === "manual" || record.verificationMethod === "MANUAL";
       if (isManual) {
@@ -1477,7 +1504,8 @@ async function getStudentCourseDetailReport(studentUserId, courseId) {
   let currentStreak = 0;
   let bestStreak = 0;
   course.sessions.forEach((session) => {
-    const isPresent = session.attendanceRecords.length > 0;
+    const rec = session.attendanceRecords[0];
+    const isPresent = rec && rec.status !== "absent" && rec.status !== "ABSENT";
     if (isPresent) {
       currentStreak++;
       if (currentStreak > bestStreak) {

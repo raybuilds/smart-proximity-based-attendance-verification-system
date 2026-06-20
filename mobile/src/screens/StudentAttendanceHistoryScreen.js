@@ -242,9 +242,10 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
         contentContainerStyle={styles.timelineList}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          const isPresent = item.status === "Present";
+          const isPresent = item.status === "Present" || item.status === "present";
           const isManual = item.method === "MANUAL";
           const isQR = item.method === "QR";
+          const isAutoAbsent = item.method === "AUTO_ABSENT";
 
           let statusStyle = BADGES.danger;
           let statusBadgeText = "ABSENT";
@@ -258,6 +259,10 @@ export default function StudentAttendanceHistoryScreen({ route, navigation }) {
             statusStyle = BADGES.warning;
             statusBadgeText = "MANUAL PRESENT";
             StatusIcon = Clock;
+          } else if (isAutoAbsent) {
+            statusStyle = BADGES.neutral;
+            statusBadgeText = "AUTO ABSENT";
+            StatusIcon = XCircle;
           }
 
           return (

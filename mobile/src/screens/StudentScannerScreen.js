@@ -26,12 +26,40 @@ export default function StudentScannerScreen({ navigation }) {
   const [isScanned, setIsScanned] = useState(false);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [explanationDismissed, setExplanationDismissed] = useState(false);
 
   useEffect(() => {
-    if (!permission) {
+    async function checkAcknowledge() {
+      try {
+        const value = await AsyncStorage.getItem("location_explanation_acknowledged");
+        if (value === "true") {
+          setExplanationDismissed(true);
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    checkAcknowledge();
+  }, []);
+
+  async function acknowledgeExplanation() {
+    try {
+      const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+      await AsyncStorage.setItem("location_explanation_acknowledged", "true");
+      setExplanationDismissed(true);
+      if (!permission) {
+        requestPermission();
+      }
+    } catch (e) {
+      setExplanationDismissed(true);
+    }
+  }
+
+  useEffect(() => {
+    if (explanationDismissed && !permission) {
       requestPermission();
     }
-  }, [permission, requestPermission]);
+  }, [permission, requestPermission, explanationDismissed]);
 
   async function handleBarcodeScanned({ data }) {
     if (isSubmitting || isScanned) {
@@ -134,6 +162,33 @@ export default function StudentScannerScreen({ navigation }) {
       setMessage("Failed to decode image.");
       console.error(error);
     }
+  }
+
+  if (!explanationDismissed) {
+    return (
+      <View style={styles.centeredContainer}>
+        <View style={styles.permissionCard}>
+          <View style={styles.alertIconWrap}>
+            <AlertTriangle size={32} color={COLORS.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>WiFi Verification Notice</Text>
+          <Text style={styles.permissionSubtitle}>
+            Android requires Location permission to access nearby WiFi network information.{"\n\n"}
+            Digital Proximity Attendance does NOT store or track your location.{"\n\n"}
+            The permission is used only to verify proximity to the classroom network.
+          </Text>
+          <Pressable style={styles.primaryButton} onPress={acknowledgeExplanation}>
+            <Text style={styles.primaryButtonText}>Continue</Text>
+          </Pressable>
+          <Pressable
+            style={styles.outlineButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.outlineButtonText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   if (!permission) {

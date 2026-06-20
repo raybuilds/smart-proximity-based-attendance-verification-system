@@ -228,6 +228,11 @@ async function updateCourse(userId, courseId, data) {
       },
     });
 
+    if (deptChanged || semChanged || secChanged) {
+      const { backfillCourseStudents } = require("../attendance/backfill.service");
+      await backfillCourseStudents(tx, courseId, { department: dept, semester: sem, section: sec });
+    }
+
     return updatedCourse;
   });
 

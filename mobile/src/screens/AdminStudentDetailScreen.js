@@ -146,6 +146,49 @@ export default function AdminStudentDetailScreen({ route }) {
           </View>
         ))
       )}
+
+      {/* Admin Password Recovery Section */}
+      <Text style={styles.sectionTitle}>Administrative Actions</Text>
+      <View style={styles.profileCard}>
+        <Text style={styles.recoveryTitle}>Account Password Reset</Text>
+        <Text style={styles.recoveryText}>
+          Generate a temporary password for this student. They will be forced to change it on their next login.
+        </Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.resetButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => {
+            const tempPass = "TempPass" + Math.floor(1000 + Math.random() * 9000);
+            Alert.alert(
+              "Confirm Reset",
+              `Are you sure you want to reset this user's password to: ${tempPass}?`,
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Reset",
+                  onPress: async () => {
+                    try {
+                      const { resetUserPassword } = require("../services/admin");
+                      await resetUserPassword(profile.id, tempPass);
+                      Alert.alert(
+                        "Password Reset",
+                        `Password reset successful.\n\nTemporary Password: ${tempPass}\n\nPlease share this password securely with the student.`,
+                        [{ text: "OK" }]
+                      );
+                    } catch (err) {
+                      Alert.alert("Error", err.response?.data?.message || "Failed to reset password.");
+                    }
+                  }
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.resetButtonText}>Reset Student Password</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -377,5 +420,22 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontFamily: TYPOGRAPHY.body.fontFamily,
     textAlign: "center"
+  },
+  resetButton: {
+    backgroundColor: COLORS.error,
+    borderRadius: 8,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12
+  },
+  resetButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.body.fontFamily
+  },
+  buttonPressed: {
+    opacity: 0.8
   }
 });

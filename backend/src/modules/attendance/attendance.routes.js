@@ -12,5 +12,6 @@ router.use(authenticate, requireRole(ROLES.TEACHER));
 router.post("/session/start", attendanceController.startSession);
 router.post("/session/end", attendanceController.endSession);
 router.get("/session/active", attendanceController.getActiveSession);
+router.get("/active/stats", attendanceController.getActiveSessionStats);
 
 module.exports = router;

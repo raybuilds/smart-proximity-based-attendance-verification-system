@@ -269,6 +269,49 @@ async function restoreCourse(req, res, next) {
   }
 }
 
+async function updateTeacherNetwork(req, res, next) {
+  try {
+    const teacherId = Number(req.params.id);
+    if (isNaN(teacherId)) {
+      const error = new Error("Invalid teacher ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const { registeredSSID, registeredBSSID } = req.body || {};
+    const data = await adminService.updateTeacherNetwork(teacherId, { registeredSSID, registeredBSSID });
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function resetUserPassword(req, res, next) {
+  try {
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      const error = new Error("Invalid user ID");
+      error.statusCode = 400;
+      throw error;
+    }
+    const { temporaryPassword } = req.body || {};
+    if (!temporaryPassword || temporaryPassword.trim().length < 6) {
+      const error = new Error("Temporary password must be at least 6 characters");
+      error.statusCode = 400;
+      throw error;
+    }
+    const data = await adminService.resetUserPassword(userId, { temporaryPassword });
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getAdminDashboard,
   getAdminRecentActivity,
@@ -276,6 +319,7 @@ module.exports = {
   getAdminStudentDetail,
   getAdminTeachers,
   getAdminTeacherDetail,
+  updateTeacherNetwork,
   toggleUserStatus,
   getAdminCourses,
   getAdminCourseDetail,
@@ -286,7 +330,8 @@ module.exports = {
   getArchivedCourses,
   getArchivedCourseDetail,
   archiveCourse,
-  restoreCourse
+  restoreCourse,
+  resetUserPassword
 };
 
 

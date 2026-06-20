@@ -4,9 +4,16 @@ const wifiService = require("./wifi.service");
 
 const wifiValidationSchema = z.object({
   sessionCode: z.string().trim().min(1, "Session code is required"),
-  ssid: z.string().trim().min(1, "SSID is required"),
-  bssid: z.string().trim().min(1, "BSSID is required"),
-  rssi: z.number().int(),
+  ssid: z.string().trim().optional(),
+  bssid: z.string().trim().optional(),
+  rssi: z.number().int().optional(),
+  wifiList: z.array(
+    z.object({
+      SSID: z.string().trim(),
+      BSSID: z.string().trim(),
+      level: z.number().int(),
+    })
+  ).optional(),
 });
 
 async function validateWifi(req, res, next) {

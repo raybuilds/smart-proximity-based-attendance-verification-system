@@ -104,4 +104,9 @@ export async function restoreCourse(courseId) {
   return response.data;
 }
 
+export async function resetUserPassword(userId, temporaryPassword) {
+  const response = await api.post(`/admin/users/${userId}/reset-password`, { temporaryPassword });
+  return response.data;
+}
+
 

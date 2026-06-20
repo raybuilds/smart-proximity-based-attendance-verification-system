@@ -55,7 +55,7 @@ async function getTeacherActiveSession(teacherId) {
   });
 }
 
-async function startSession(userId, courseId) {
+async function startSession(userId, courseId, rssiThreshold) {
   try {
     const createdSession = await prisma.$transaction(async (tx) => {
       // 1. Acquire course lock
@@ -85,6 +85,12 @@ async function startSession(userId, courseId) {
       if (!teacher) {
         const error = new Error("Teacher profile not found");
         error.statusCode = HTTP_STATUS.NOT_FOUND;
+        throw error;
+      }
+
+      if (!teacher.registeredSSID || !teacher.registeredBSSID) {
+        const error = new Error("Please configure your hotspot settings before starting attendance.");
+        error.statusCode = HTTP_STATUS.BAD_REQUEST;
         throw error;
       }
 
@@ -182,8 +188,9 @@ async function startSession(userId, courseId) {
           teacherId: userId,
           courseId,
           sessionCode,
-          teacherSSID: WIFI.DEMO_SSID,
-          teacherBSSID: WIFI.DEMO_BSSID,
+          teacherSSID: teacher.registeredSSID,
+          teacherBSSID: teacher.registeredBSSID,
+          rssiThreshold: rssiThreshold ? parseInt(rssiThreshold, 10) : -70,
           isActive: true,
           departmentSnapshot: course.department,
           semesterSnapshot: course.semester,
@@ -284,9 +291,104 @@ async function endSession(teacherId) {
   return updatedSession;
 }
 
+async function getActiveSessionStats(teacherId) {
+  const session = await prisma.attendanceSession.findFirst({
+    where: {
+      teacherId,
+      isActive: true,
+    },
+    include: {
+      course: true,
+      attendanceRecords: {
+        include: {
+          student: {
+            include: {
+              student: true,
+            },
+          },
+        },
+        orderBy: {
+          markedAt: "desc",
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    return {
+      attendanceMarked: 0,
+      enrolledCount: 0,
+      attendancePercentage: 0,
+      verificationSummary: {
+        Verified: 0,
+        Rejected: 0,
+        "WiFi Only": 0,
+        Pending: 0,
+        "BLE Verified": 0,
+      },
+      recentCheckIns: [],
+    };
+  }
+
+  // Count eligible students
+  let enrolledCount = 0;
+  if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
+    enrolledCount = await prisma.student.count();
+  } else {
+    const where = {};
+    if (session.departmentSnapshot) {
+      where.department = {
+        equals: session.departmentSnapshot,
+        mode: "insensitive",
+      };
+    }
+    if (session.semesterSnapshot) {
+      where.semester = session.semesterSnapshot;
+    }
+    if (session.sectionSnapshot) {
+      where.section = {
+        equals: session.sectionSnapshot,
+        mode: "insensitive",
+      };
+    }
+    enrolledCount = await prisma.student.count({ where });
+  }
+
+  const attendanceMarked = session.attendanceRecords.length;
+  const attendancePercentage = enrolledCount === 0 ? 0 : Number(((attendanceMarked / enrolledCount) * 100).toFixed(1));
+
+  const recentCheckIns = session.attendanceRecords.map((record) => {
+    // Extract HH:MM:SS from markedAt timestamp adjusted for timezone split
+    const parts = record.markedAt.toISOString().split("T")[1].split(".")[0].split(":");
+    // Simple HH:MM:SS format
+    const timestamp = `${parts[0]}:${parts[1]}:${parts[2]}`;
+
+    return {
+      rollNumber: record.student.student?.rollNumber || "N/A",
+      name: record.student.name,
+      timestamp,
+    };
+  });
+
+  return {
+    attendanceMarked,
+    enrolledCount,
+    attendancePercentage,
+    verificationSummary: {
+      Verified: attendanceMarked,
+      Rejected: 0,
+      "WiFi Only": 0,
+      Pending: 0,
+      "BLE Verified": 0,
+    },
+    recentCheckIns,
+  };
+}
+
 module.exports = {
   getTeacherActiveSession,
   startSession,
   endSession,
+  getActiveSessionStats,
 };
 

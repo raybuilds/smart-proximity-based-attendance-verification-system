@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   Modal,
   FlatList,
@@ -13,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { getActiveSession, startSession } from "../services/attendance";
 import { getCourses } from "../services/courses";
+import { getProfile, updateTeacherHotspot } from "../services/auth";
 import EligibilityChips from "../components/EligibilityChips";
 import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS, RADIUS, SPACING, BUTTON_VARIANTS, BADGES, FONTS } from "../utils/theme";
 import {
@@ -25,7 +27,16 @@ import {
   Users,
   BookMarked,
   Info,
+  Wifi,
+  Signal,
 } from "lucide-react-native";
+
+const RSSI_OPTIONS = [
+  { label: "Strict (-65 dBm)", value: -65 },
+  { label: "Normal (-70 dBm)", value: -70 },
+  { label: "Relaxed (-75 dBm)", value: -75 },
+  { label: "Very Relaxed (-80 dBm)", value: -80 },
+];
 
 export default function StartSessionScreen({ navigation }) {
   const { user } = useAuth();
@@ -36,6 +47,12 @@ export default function StartSessionScreen({ navigation }) {
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Hotspot & RSSI states
+  const [registeredSSID, setRegisteredSSID] = useState("");
+  const [registeredBSSID, setRegisteredBSSID] = useState("");
+  const [rssiThreshold, setRssiThreshold] = useState(-70);
+  const [showRssiModal, setShowRssiModal] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       async function checkActiveSessionAndLoadCourses() {
@@ -43,9 +60,10 @@ export default function StartSessionScreen({ navigation }) {
           setIsLoading(true);
           setErrorMessage("");
 
-          const [sessionResponse, coursesResponse] = await Promise.all([
+          const [sessionResponse, coursesResponse, profileResponse] = await Promise.all([
             getActiveSession(),
             getCourses(),
+            getProfile(),
           ]);
 
           if (sessionResponse.session) {
@@ -58,6 +76,11 @@ export default function StartSessionScreen({ navigation }) {
           const teacherCourses = coursesResponse.courses || [];
           setCourses(teacherCourses);
           setSelectedCourse(null);
+
+          if (profileResponse?.user?.teacher) {
+            setRegisteredSSID(profileResponse.user.teacher.registeredSSID || "");
+            setRegisteredBSSID(profileResponse.user.teacher.registeredBSSID || "");
+          }
         } catch (error) {
           setErrorMessage(
             error.response?.data?.message ||
@@ -78,10 +101,22 @@ export default function StartSessionScreen({ navigation }) {
       return;
     }
 
+    if (!registeredSSID.trim() || !registeredBSSID.trim()) {
+      setErrorMessage("Please configure your hotspot SSID and BSSID settings before starting attendance.");
+      return;
+    }
+
     try {
       setIsStarting(true);
       setErrorMessage("");
-      const response = await startSession(selectedCourse.id);
+
+      // Update hotspot configuration in backend
+      await updateTeacherHotspot({
+        registeredSSID: registeredSSID.trim(),
+        registeredBSSID: registeredBSSID.trim(),
+      });
+
+      const response = await startSession(selectedCourse.id, rssiThreshold);
       navigation.replace("ActiveSession", {
         session: response.session,
       });
@@ -255,6 +290,56 @@ export default function StartSessionScreen({ navigation }) {
         </View>
       ) : null}
 
+      {/* Network Configuration Card */}
+      <View style={styles.configCard}>
+        <View style={styles.configCardHeader}>
+          <Wifi size={18} color={COLORS.primary} />
+          <Text style={styles.configCardTitle}>Hotspot & Verification Settings</Text>
+        </View>
+        <View style={styles.previewDivider} />
+
+        <Text style={styles.configLabel}>SSID (Hotspot Name)</Text>
+        <TextInput
+          style={styles.configInput}
+          placeholder="e.g. MyTeacherHotspot"
+          placeholderTextColor={COLORS.textSecondary}
+          value={registeredSSID}
+          onChangeText={(text) => {
+            setRegisteredSSID(text);
+            setErrorMessage("");
+          }}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.configLabel}>BSSID (MAC Address)</Text>
+        <TextInput
+          style={styles.configInput}
+          placeholder="e.g. AA:BB:CC:DD:EE:FF"
+          placeholderTextColor={COLORS.textSecondary}
+          value={registeredBSSID}
+          onChangeText={(text) => {
+            setRegisteredBSSID(text);
+            setErrorMessage("");
+          }}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.configLabel}>Proximity RSSI Threshold</Text>
+        <Pressable
+          style={styles.thresholdSelector}
+          onPress={() => setShowRssiModal(true)}
+        >
+          <Signal size={16} color={COLORS.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.thresholdSelectorText}>
+            {RSSI_OPTIONS.find((opt) => opt.value === rssiThreshold)?.label ||
+              `Custom (${rssiThreshold} dBm)`}
+          </Text>
+          <ChevronRight size={16} color={COLORS.textSecondary} />
+        </Pressable>
+      </View>
+
       <Pressable
         style={[
           styles.primaryButton,
@@ -274,6 +359,60 @@ export default function StartSessionScreen({ navigation }) {
           </>
         )}
       </Pressable>
+
+      {/* RSSI Selection Modal */}
+      <Modal transparent visible={showRssiModal} animationType="fade">
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowRssiModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>RSSI Threshold</Text>
+            <Text style={styles.modalSubtitle}>
+              Select signal strength sensitivity. Students must be closer to mark attendance at stricter settings.
+            </Text>
+            <FlatList
+              data={RSSI_OPTIONS}
+              keyExtractor={(item) => item.value.toString()}
+              renderItem={({ item }) => {
+                const isSelected = rssiThreshold === item.value;
+                return (
+                  <Pressable
+                    style={styles.modalItem}
+                    onPress={() => {
+                      setRssiThreshold(item.value);
+                      setShowRssiModal(false);
+                    }}
+                  >
+                    <Signal
+                      size={16}
+                      color={isSelected ? COLORS.primary : COLORS.textSecondary}
+                      style={{ marginRight: 10 }}
+                    />
+                    <Text
+                      style={[
+                        styles.modalItemText,
+                        isSelected && { color: COLORS.primary, fontWeight: "bold" },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.courseRadioDot} />
+                    )}
+                  </Pressable>
+                );
+              }}
+            />
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setShowRssiModal(false)}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal transparent visible={showDropdown} animationType="fade">
         <Pressable
@@ -635,5 +774,70 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.sizes.bodyLg,
     fontWeight: TYPOGRAPHY.weights.semibold,
     fontFamily: FONTS.body,
+  },
+  configCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: LAYOUT.cardPadding,
+    marginBottom: LAYOUT.cardGap,
+    ...SHADOWS.sm,
+  },
+  configCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  configCardTitle: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
+  },
+  configLabel: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
+    fontFamily: FONTS.body,
+    textTransform: "uppercase",
+  },
+  configInput: {
+    height: 52,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+    backgroundColor: COLORS.background,
+  },
+  thresholdSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 52,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.background,
+    justifyContent: "space-between",
+  },
+  thresholdSelectorText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  modalSubtitle: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginBottom: SPACING.md,
+    textAlign: "center",
   },
 });

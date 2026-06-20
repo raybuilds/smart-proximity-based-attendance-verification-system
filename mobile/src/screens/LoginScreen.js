@@ -15,8 +15,8 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, LAYOUT }
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("admin@attendance.local");
-  const [password, setPassword] = useState("Password@123");
+  const [email, setEmail] = useState(__DEV__ ? "admin@attendance.local" : "");
+  const [password, setPassword] = useState(__DEV__ ? "Password@123" : "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -127,9 +127,11 @@ export default function LoginScreen({ navigation }) {
           </Pressable>
 
           {/* Helper */}
-          <Text style={styles.helperText}>
-            Test with the seeded admin, teacher, or student credentials.
-          </Text>
+          {__DEV__ ? (
+            <Text style={styles.helperText}>
+              Test with the seeded admin, teacher, or student credentials.
+            </Text>
+          ) : null}
         </View>
       </View>
     </ScrollView>
