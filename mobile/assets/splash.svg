@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cream background -->
+  <rect width="1080" height="1920" fill="#FAF7F0"/>
+  
+  <!-- Green icon outer -->
+  <rect x="400" y="330" width="280" height="280" rx="40" fill="#2D7555"/>
+  
+  <!-- White inner -->
+  <rect x="420" y="350" width="240" height="240" rx="30" fill="#FFFFFF"/>
+  
+  <!-- Green inner icon -->
+  <rect x="480" y="410" width="120" height="120" fill="#2D7555"/>
+  
+  <!-- Title text -->
+  <text x="540" y="680" font-family="Arial, sans-serif" font-size="60" font-weight="bold" 
+        fill="#1A1A1A" text-anchor="middle">Digital Proximity</text>
+  <text x="540" y="760" font-family="Arial, sans-serif" font-size="60" font-weight="bold" 
+        fill="#1A1A1A" text-anchor="middle">Attendance</text>
+  
+  <!-- Subtitle -->
+  <text x="540" y="840" font-family="Arial, sans-serif" font-size="30" 
+        fill="#666666" text-anchor="middle">Secure Classroom Verification</text>
+  
+  <!-- Footer -->
+  <text x="540" y="1850" font-family="Arial, sans-serif" font-size="26" font-weight="bold" 
+        fill="#2D7555" text-anchor="middle">Powered by raybuilds</text>
+</svg>

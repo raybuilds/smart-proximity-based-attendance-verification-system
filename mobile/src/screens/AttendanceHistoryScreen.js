@@ -27,7 +27,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
       const response = await getStudentCourses();
       setData(response.data);
     } catch (error) {
-      console.log(error);
+      if (__DEV__) console.log(error);
     } finally {
       setLoading(false);
     }

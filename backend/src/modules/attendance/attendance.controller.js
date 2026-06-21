@@ -7,7 +7,7 @@ const {
 async function startSession(req, res, next) {
   try {
     const payload = startSessionSchema.parse(req.body || {});
-    const session = await attendanceService.startSession(req.user.sub, payload.courseId);
+    const session = await attendanceService.startSession(req.user.sub, payload.courseId, payload.rssiThreshold);
 
     res.status(201).json({
       success: true,
@@ -49,8 +49,21 @@ async function getActiveSession(req, res, next) {
   }
 }
 
+async function getActiveSessionStats(req, res, next) {
+  try {
+    const stats = await attendanceService.getActiveSessionStats(req.user.sub);
+    res.status(200).json({
+      success: true,
+      ...stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   startSession,
   endSession,
   getActiveSession,
+  getActiveSessionStats,
 };

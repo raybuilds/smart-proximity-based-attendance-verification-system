@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -12,15 +12,20 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Clock,
   QrCode,
   StopCircle,
   Share2,
   AlertCircle,
+  Users,
+  CheckCircle,
+  Activity,
+  Wifi,
 } from "lucide-react-native";
 
-import { endSession, getActiveSession } from "../services/attendance";
+import { endSession, getActiveSession, getActiveSessionStats } from "../services/attendance";
 import { getCurrentQR } from "../services/qr";
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
@@ -39,6 +44,15 @@ export default function ActiveSessionScreen({ navigation, route }) {
   const isFetchingQrRef = useRef(false);
   const qrRef = useRef(null);
   const progressAnimation = useRef(new Animated.Value(1)).current;
+
+  // Stats state
+  const [stats, setStats] = useState({
+    markedCount: 0,
+    expectedCount: 0,
+    verifiedCount: 0,
+    recentCheckIns: [],
+    networkConsistency: null,
+  });
 
   useEffect(() => {
     async function loadSession() {
@@ -65,6 +79,37 @@ export default function ActiveSessionScreen({ navigation, route }) {
 
     loadSession();
   }, [navigation, session]);
+
+  // Focus-dependent live stats polling
+  useFocusEffect(
+    useCallback(() => {
+      if (!session?.id) return;
+
+      async function fetchStats() {
+        try {
+          const data = await getActiveSessionStats();
+          if (data) {
+            setStats({
+              markedCount: data.attendanceMarked || 0,
+              expectedCount: data.enrolledCount || 0,
+              verifiedCount: data.verificationSummary?.Verified || 0,
+              recentCheckIns: data.recentCheckIns || [],
+              networkConsistency: data.networkConsistency || null,
+            });
+          }
+        } catch (err) {
+          console.error("Error polling stats:", err);
+        }
+      }
+
+      fetchStats();
+      const interval = setInterval(fetchStats, 5000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }, [session?.id])
+  );
 
   async function fetchQrCode(targetSessionId, options = {}) {
     const { silent = false } = options;
@@ -256,6 +301,140 @@ export default function ActiveSessionScreen({ navigation, route }) {
               <Text style={styles.heroRatioLabel}>Next QR Rotation</Text>
             </View>
           </View>
+        </View>
+
+        {/* Live Attendance Dashboard Section */}
+        <View style={styles.dashboardGrid}>
+          {/* Card 1: Attendance Marked */}
+          <View style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <Users size={16} color={COLORS.primary} />
+              <Text style={styles.statTitle}>Marked</Text>
+            </View>
+            <Text style={styles.statValue}>
+              {stats.markedCount} <Text style={styles.statTotal}>/ {stats.expectedCount}</Text>
+            </Text>
+            <Text style={styles.statSubText}>Students present</Text>
+          </View>
+
+          {/* Card 2: Verification Status */}
+          <View style={styles.statCard}>
+            <View style={styles.statHeader}>
+              <CheckCircle size={16} color={COLORS.success} />
+              <Text style={styles.statTitle}>Verified</Text>
+            </View>
+            <Text style={[styles.statValue, { color: COLORS.success }]}>
+              {stats.verifiedCount}
+            </Text>
+            <Text style={styles.statSubText}>Network validated</Text>
+          </View>
+        </View>
+
+        {/* Network Consistency Audit Card */}
+        {stats.networkConsistency ? (
+          <View style={styles.feedCard}>
+            <View style={styles.feedHeader}>
+              <Wifi size={16} color={COLORS.primary} style={{ marginRight: 8 }} />
+              <Text style={styles.feedTitle}>Network Consistency Audit</Text>
+              <View style={[
+                styles.riskBadge,
+                stats.networkConsistency.riskLevel === "HIGH" ? BADGES.error :
+                stats.networkConsistency.riskLevel === "MEDIUM" ? BADGES.warning : BADGES.success,
+                { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }
+              ]}>
+                <Text style={styles.riskBadgeText}>
+                  {stats.networkConsistency.riskLevel} RISK
+                </Text>
+              </View>
+            </View>
+            <View style={styles.dividerLine} />
+            <View style={styles.consistencyGrid}>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Dominant BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.dominantBssid}</Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Mismatches</Text>
+                <Text style={[styles.consistencyValue, stats.networkConsistency.mismatchCount > 0 && { color: COLORS.error }]}>
+                  {stats.networkConsistency.mismatchCount}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Missing BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.nullBssidCount}</Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Valid BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.validBssidCount}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.dividerLine, { marginVertical: SPACING.md }]} />
+            <Text style={[styles.feedTitle, { fontSize: TYPOGRAPHY.sizes.body, marginBottom: SPACING.xs }]}>Signal Calibration Reference</Text>
+            
+            <View style={styles.consistencyGrid}>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Expected Signal</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.expectedRssi !== null && stats.networkConsistency.expectedRssi !== undefined ? `${stats.networkConsistency.expectedRssi} dBm` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Avg Observed</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.averageRssi !== null && stats.networkConsistency.averageRssi !== undefined ? `${stats.networkConsistency.averageRssi} dBm` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Strongest / Weakest</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.strongestRssi !== null && stats.networkConsistency.strongestRssi !== undefined ? `${stats.networkConsistency.strongestRssi}` : "N/A"} / {stats.networkConsistency.weakestRssi !== null && stats.networkConsistency.weakestRssi !== undefined ? `${stats.networkConsistency.weakestRssi}` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Signal Variance</Text>
+                <Text style={[styles.consistencyValue, stats.networkConsistency.rssiVariance > 0 ? { color: COLORS.success } : stats.networkConsistency.rssiVariance < 0 ? { color: COLORS.error } : null]}>
+                  {stats.networkConsistency.rssiVariance !== null && stats.networkConsistency.rssiVariance !== undefined ? (stats.networkConsistency.rssiVariance >= 0 ? `+${stats.networkConsistency.rssiVariance} dB` : `${stats.networkConsistency.rssiVariance} dB`) : "N/A"}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.consistencySubtext}>
+              Note: Network consistency and signal calibration metrics are advisory only. BSSID or RSSI variance does not block attendance check-ins.
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Card 3: Recent Check-ins */}
+        <View style={styles.feedCard}>
+          <View style={styles.feedHeader}>
+            <Activity size={16} color={COLORS.primary} />
+            <Text style={styles.feedTitle}>Live Check-in Feed</Text>
+          </View>
+          <View style={styles.dividerLine} />
+          {stats.recentCheckIns.length === 0 ? (
+            <Text style={styles.feedEmptyText}>Waiting for check-ins...</Text>
+          ) : (
+            stats.recentCheckIns.map((checkIn, index) => {
+              const timeString = new Date(checkIn.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              });
+              return (
+                <View key={checkIn.id || index.toString()} style={styles.feedRow}>
+                  <View style={styles.feedStudentInfo}>
+                    <Text style={styles.feedRollNumber}>{checkIn.student.rollNumber}</Text>
+                    <Text style={styles.feedStudentName} numberOfLines={1}>
+                      {checkIn.student.user.name}
+                    </Text>
+                  </View>
+                  <Text style={styles.feedTime}>{timeString}</Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* QR Code Container */}
@@ -529,5 +708,157 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  dashboardGrid: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    marginBottom: SPACING.base,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  statTitle: {
+    fontSize: TYPOGRAPHY.sizes.label,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    fontWeight: "600",
+  },
+  statValue: {
+    fontSize: TYPOGRAPHY.sizes.cardMetricSm,
+    fontFamily: FONTS.heading,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginVertical: 2,
+  },
+  statTotal: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.textSecondary,
+    fontWeight: "normal",
+  },
+  statSubText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+  },
+  feedCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.base,
+    ...SHADOWS.sm,
+  },
+  feedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  feedTitle: {
+    fontSize: TYPOGRAPHY.sizes.bodyLg,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    fontFamily: FONTS.heading,
+  },
+  feedEmptyText: {
+    textAlign: "center",
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
+    paddingVertical: SPACING.md,
+  },
+  feedRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderSubtle,
+  },
+  feedStudentInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  feedRollNumber: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
+    width: 70,
+  },
+  feedStudentName: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: "600",
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  feedTime: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+  },
+  consistencyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  consistencyItem: {
+    width: "48%",
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    alignItems: "center",
+  },
+  consistencyLabel: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginBottom: 2,
+    textTransform: "uppercase",
+  },
+  consistencyValue: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: "bold",
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  consistencySubtext: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginTop: SPACING.md,
+    textAlign: "center",
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  riskBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  riskBadgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: "bold",
+    color: COLORS.textInverse,
   },
 });

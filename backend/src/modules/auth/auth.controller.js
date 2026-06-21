@@ -91,7 +91,66 @@ async function register(req, res, next) {
   }
 }
 
+async function getProfile(req, res, next) {
+  try {
+    const user = await authService.getUserProfile(req.user.sub);
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+const hotspotSchema = z.object({
+  registeredSSID: z.string().trim().min(1, "SSID is required"),
+  registeredBSSID: z.string().trim().nullable().optional(),
+});
+
+async function updateTeacherHotspot(req, res, next) {
+  try {
+    const data = hotspotSchema.parse(req.body);
+    const teacher = await authService.updateTeacherHotspot(req.user.sub, data);
+    res.status(200).json({
+      success: true,
+      teacher,
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      error.statusCode = 400;
+      error.message = error.issues[0]?.message || "Invalid validation payload";
+    }
+    next(error);
+  }
+}
+
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters long"),
+});
+
+async function changePassword(req, res, next) {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+    const user = await authService.changePassword(req.user.sub, data);
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      error.statusCode = 400;
+      error.message = error.issues[0]?.message || "Invalid validation payload";
+    }
+    next(error);
+  }
+}
+
 module.exports = {
   login,
   register,
+  getProfile,
+  updateTeacherHotspot,
+  changePassword,
 };

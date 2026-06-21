@@ -32,7 +32,6 @@ export default function StudentDetailScreen({
 
   async function loadHistory() {
     try {
-        console.log("STUDENT:", student);
       const response =
         await getTeacherStudentHistory(
           student.id
@@ -40,7 +39,7 @@ export default function StudentDetailScreen({
 
       setHistory(response.data);
     } catch (error) {
-      console.log(error);
+      if (__DEV__) console.log(error);
     } finally {
       setLoading(false);
     }

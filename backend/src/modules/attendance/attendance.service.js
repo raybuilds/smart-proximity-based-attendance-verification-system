@@ -55,7 +55,7 @@ async function getTeacherActiveSession(teacherId) {
   });
 }
 
-async function startSession(userId, courseId) {
+async function startSession(userId, courseId, rssiThreshold) {
   try {
     const createdSession = await prisma.$transaction(async (tx) => {
       // 1. Acquire course lock
@@ -85,6 +85,12 @@ async function startSession(userId, courseId) {
       if (!teacher) {
         const error = new Error("Teacher profile not found");
         error.statusCode = HTTP_STATUS.NOT_FOUND;
+        throw error;
+      }
+
+      if (!teacher.registeredSSID) {
+        const error = new Error("Please configure your hotspot settings before starting attendance.");
+        error.statusCode = HTTP_STATUS.BAD_REQUEST;
         throw error;
       }
 
@@ -182,8 +188,9 @@ async function startSession(userId, courseId) {
           teacherId: userId,
           courseId,
           sessionCode,
-          teacherSSID: WIFI.DEMO_SSID,
-          teacherBSSID: WIFI.DEMO_BSSID,
+          teacherSSID: teacher.registeredSSID,
+          teacherBSSID: teacher.registeredBSSID,
+          rssiThreshold: rssiThreshold ? parseInt(rssiThreshold, 10) : -70,
           isActive: true,
           departmentSnapshot: course.department,
           semesterSnapshot: course.semester,
@@ -284,9 +291,188 @@ async function endSession(teacherId) {
   return updatedSession;
 }
 
+async function getActiveSessionStats(teacherId) {
+  const session = await prisma.attendanceSession.findFirst({
+    where: {
+      teacherId,
+      isActive: true,
+    },
+    include: {
+      course: true,
+      attendanceRecords: {
+        include: {
+          student: {
+            include: {
+              student: true,
+            },
+          },
+        },
+        orderBy: {
+          markedAt: "desc",
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    return {
+      attendanceMarked: 0,
+      enrolledCount: 0,
+      attendancePercentage: 0,
+      verificationSummary: {
+        Verified: 0,
+        Rejected: 0,
+        "WiFi Only": 0,
+        Pending: 0,
+        "BLE Verified": 0,
+      },
+      recentCheckIns: [],
+    };
+  }
+
+  // Count eligible students
+  let enrolledCount = 0;
+  if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
+    enrolledCount = await prisma.student.count();
+  } else {
+    const where = {};
+    if (session.departmentSnapshot) {
+      where.department = {
+        equals: session.departmentSnapshot,
+        mode: "insensitive",
+      };
+    }
+    if (session.semesterSnapshot) {
+      where.semester = session.semesterSnapshot;
+    }
+    if (session.sectionSnapshot) {
+      where.section = {
+        equals: session.sectionSnapshot,
+        mode: "insensitive",
+      };
+    }
+    enrolledCount = await prisma.student.count({ where });
+  }
+
+  const attendanceMarked = session.attendanceRecords.length;
+  const attendancePercentage = enrolledCount === 0 ? 0 : Number(((attendanceMarked / enrolledCount) * 100).toFixed(1));
+
+  const recentCheckIns = session.attendanceRecords.map((record) => {
+    // Extract HH:MM:SS from markedAt timestamp adjusted for timezone split
+    const parts = record.markedAt.toISOString().split("T")[1].split(".")[0].split(":");
+    // Simple HH:MM:SS format
+    const timestamp = `${parts[0]}:${parts[1]}:${parts[2]}`;
+
+    return {
+      rollNumber: record.student.student?.rollNumber || "N/A",
+      name: record.student.name,
+      timestamp,
+    };
+  });
+
+  // Compute Network Consistency Stats dynamically
+  const bssidCounts = {};
+  let validBssidCount = 0;
+  let nullBssidCount = 0;
+  
+  // RSSI statistics calculations
+  let totalRssi = 0;
+  let rssiCount = 0;
+  let strongestRssi = null;
+  let weakestRssi = null;
+
+  session.attendanceRecords.forEach((record) => {
+    const rawBssid = record.bssid ? record.bssid.trim().toLowerCase() : null;
+    const isDummy = !rawBssid || rawBssid === "02:00:00:00:00:00" || rawBssid === "unknown";
+    
+    if (isDummy) {
+      nullBssidCount++;
+    } else {
+      validBssidCount++;
+      bssidCounts[rawBssid] = (bssidCounts[rawBssid] || 0) + 1;
+    }
+
+    if (record.rssi !== null && record.rssi !== undefined) {
+      totalRssi += record.rssi;
+      rssiCount += 1;
+      if (strongestRssi === null || record.rssi > strongestRssi) {
+        strongestRssi = record.rssi;
+      }
+      if (weakestRssi === null || record.rssi < weakestRssi) {
+        weakestRssi = record.rssi;
+      }
+    }
+  });
+
+  const averageRssi = rssiCount > 0 ? Math.round(totalRssi / rssiCount) : null;
+  const rssiVariance = (averageRssi !== null && session.rssiThreshold !== null && session.rssiThreshold !== undefined)
+    ? (averageRssi - session.rssiThreshold)
+    : null;
+
+  // Find dominant BSSID
+  let dominantBssid = null;
+  let maxCount = 0;
+  Object.entries(bssidCounts).forEach(([bssid, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantBssid = bssid;
+    }
+  });
+
+  // Count mismatches (BSSID is valid but !== dominantBssid)
+  let mismatchCount = 0;
+  if (dominantBssid) {
+    session.attendanceRecords.forEach((record) => {
+      const rawBssid = record.bssid ? record.bssid.trim().toLowerCase() : null;
+      const isDummy = !rawBssid || rawBssid === "02:00:00:00:00:00" || rawBssid === "unknown";
+      if (!isDummy && rawBssid !== dominantBssid) {
+        mismatchCount++;
+      }
+    });
+  }
+
+  // Calculate Risk Level
+  let riskLevel = "LOW";
+  if (attendanceMarked > 0) {
+    const mismatchPercentage = (mismatchCount / attendanceMarked) * 100;
+    if (mismatchPercentage > 15) {
+      riskLevel = "HIGH";
+    } else if (mismatchPercentage > 5) {
+      riskLevel = "MEDIUM";
+    }
+  }
+
+  return {
+    attendanceMarked,
+    enrolledCount,
+    attendancePercentage,
+    verificationSummary: {
+      Verified: attendanceMarked,
+      Rejected: 0,
+      "WiFi Only": 0,
+      Pending: 0,
+      "BLE Verified": 0,
+    },
+    networkConsistency: {
+      dominantBssid: dominantBssid ? dominantBssid.toUpperCase() : "N/A",
+      validBssidCount,
+      nullBssidCount,
+      mismatchCount,
+      riskLevel,
+      expectedRssi: session.rssiThreshold,
+      averageRssi,
+      strongestRssi,
+      weakestRssi,
+      rssiVariance,
+    },
+    recentCheckIns,
+  };
+}
+
 module.exports = {
   getTeacherActiveSession,
   startSession,
   endSession,
+  getActiveSessionStats,
 };
 

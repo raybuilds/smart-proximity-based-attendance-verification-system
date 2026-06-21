@@ -4,12 +4,13 @@ const jwt = require("jsonwebtoken");
 const { prisma } = require("../../config/database");
 const { HTTP_STATUS, WIFI } = require("../../utils/constants");
 
-async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, studentId }) {
+async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, wifiList, studentId }) {
   console.log("=================================");
   console.log("SESSION CODE:", sessionCode);
   console.log("SCANNED SSID:", ssid);
   console.log("SCANNED BSSID:", bssid);
   console.log("SCANNED RSSI:", rssi);
+  console.log("WIFI LIST LENGTH:", wifiList ? wifiList.length : "N/A");
   console.log("STUDENT ID:", studentId);
 
   const session = await prisma.attendanceSession.findUnique({
@@ -42,22 +43,6 @@ async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, studentId
     );
     error.statusCode = HTTP_STATUS.BAD_REQUEST;
     throw error;
-  }
-
-  // Validate SSID only
-  if (session.teacherSSID !== ssid) {
-    return {
-      success: false,
-      message: "Teacher hotspot not detected",
-    };
-  }
-
-  // Validate proximity using RSSI
-  if (rssi < WIFI.MIN_RSSI) {
-    return {
-      success: false,
-      message: "Move closer to teacher hotspot",
-    };
   }
 
   // Fetch active QR code to bind to proximity token

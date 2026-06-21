@@ -15,6 +15,7 @@ router.get("/students", adminController.getAdminStudents);
 router.get("/students/:id", adminController.getAdminStudentDetail);
 router.get("/teachers", adminController.getAdminTeachers);
 router.get("/teachers/:id", adminController.getAdminTeacherDetail);
+router.put("/teachers/:id/network", adminController.updateTeacherNetwork);
 router.patch("/users/:id/status", adminController.toggleUserStatus);
 
 router.get("/courses/archived", adminController.getArchivedCourses);
@@ -27,6 +28,7 @@ router.get("/corrections", adminController.getAdminManualCorrections);
 router.get("/live-sessions", adminController.getAdminLiveSessions);
 router.get("/at-risk", adminController.getAdminAtRisk);
 router.get("/analytics", adminController.getAdminAnalytics);
+router.post("/users/:id/reset-password", adminController.resetUserPassword);
 
 module.exports = router;
 

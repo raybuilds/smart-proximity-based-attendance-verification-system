@@ -128,7 +128,7 @@ export default function StudentAttendanceReportScreen({ route, navigation }) {
                   {/* Clean Horizontal Metadata */}
                   <View style={styles.detailsRow}>
                     <Text style={styles.detailsText}>
-                      QR: {item.qrCount || 0}  •  Manual: {item.manualCount || 0}  •  Absent: {item.absentCount || 0}
+                      QR: {item.qrCount || 0}  •  Manual: {item.manualCount || 0}  •  Auto-Absent: {item.autoAbsentCount || 0}
                     </Text>
                   </View>
                 </View>

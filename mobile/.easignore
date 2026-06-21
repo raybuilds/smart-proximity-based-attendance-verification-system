@@ -9,6 +9,7 @@ web-build/
 dist/
 
 # Android local build files & caches
+android/
 android/build/
 android/app/build/
 android/.gradle/

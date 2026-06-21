@@ -17,6 +17,12 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "pilot": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

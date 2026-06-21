@@ -37,12 +37,12 @@ import AdminAtRiskScreen from "../screens/AdminAtRiskScreen";
 import AdminAnalyticsScreen from "../screens/AdminAnalyticsScreen";
 import AdminArchivedCoursesScreen from "../screens/AdminArchivedCoursesScreen";
 import AdminArchivedCourseDetailScreen from "../screens/AdminArchivedCourseDetailScreen";
+import ChangePasswordScreen from "../screens/ChangePasswordScreen";
 
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  console.log('[Navigator] render');
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -53,12 +53,19 @@ export default function AppNavigator() {
     );
   }
 
+  // Determine stack to show based on Auth state
   return (
     <Stack.Navigator
       screenOptions={NAVIGATOR_STYLE}
     >
       {isAuthenticated ? (
-        user?.role === "admin" ? (
+        user?.needsPasswordChange ? (
+          <Stack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ title: "Update Password", headerBackVisible: false }}
+          />
+        ) : user?.role === "admin" ? (
           <>
             <Stack.Screen
               name="AdminDashboard"
@@ -244,4 +251,3 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 });
-

@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { getTeacherOverview } from "../services/reports";
 import { useAuth } from "../context/AuthContext";
@@ -33,7 +34,6 @@ import {
 } from "lucide-react-native";
 
 export default function TeacherDashboardScreen({ navigation }) {
-  console.log('[Dashboard] render');
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +81,7 @@ export default function TeacherDashboardScreen({ navigation }) {
   }, []);
 
   const loadDashboardData = useCallback(async (options = {}) => {
-    console.log('[Dashboard] loadDashboardData entered');
+    if (__DEV__) console.log('[Dashboard] loadDashboardData entered');
     const { isPull = false } = options;
 
     if (isLoading || refreshing) {
@@ -93,6 +93,19 @@ export default function TeacherDashboardScreen({ navigation }) {
     }
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
+
+    // Load from cache first for immediate responsiveness
+    const cacheKey = `cache_teacher_overview_${user?.id}`;
+    if (!isPull && !overview) {
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (cached && isMountedRef.current) {
+          setOverview(JSON.parse(cached));
+        }
+      } catch (cacheErr) {
+        if (__DEV__) console.log("Failed to load teacher overview cache:", cacheErr);
+      }
+    }
 
     if (isPull) {
       setRefreshing(true);
@@ -111,7 +124,9 @@ export default function TeacherDashboardScreen({ navigation }) {
         setOverview(overviewResponse.data);
         setActiveSession(sessionResponse.session);
 
-        console.log('[Dashboard] session found:', !!sessionResponse.session);
+        // Store success response in cache
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(overviewResponse.data));
+
         if (sessionResponse.session) {
           navigation.replace('ActiveSession', {
             session: sessionResponse.session,
@@ -131,7 +146,7 @@ export default function TeacherDashboardScreen({ navigation }) {
         setRefreshing(false);
       }
     }
-  }, [navigation]);
+  }, [navigation, user]);
 
   useFocusEffect(
     useCallback(() => {
