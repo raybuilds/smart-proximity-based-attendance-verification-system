@@ -135,7 +135,7 @@ function validateCourseEligibility(student, session) {
   return true;
 }
 
-async function markAttendanceFromQr({ studentId, sessionCode, nonce, proximityToken }) {
+async function markAttendanceFromQr({ studentId, sessionCode, nonce, proximityToken, ssid, bssid, rssi, devicePlatform }) {
   const session = await prisma.attendanceSession.findUnique({
     where: { sessionCode },
     include: {
@@ -254,6 +254,10 @@ async function markAttendanceFromQr({ studentId, sessionCode, nonce, proximityTo
         status: "present",
         verificationMethod: "qr",
         markedAt: new Date(),
+        ssid,
+        bssid,
+        rssi,
+        devicePlatform,
       },
     });
   });

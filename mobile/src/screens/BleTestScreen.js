@@ -31,14 +31,14 @@ export default function BleTestScreen() {
   }
 
   async function startScan() {
-    console.log("STARTING BLE SCAN");
+    if (__DEV__) console.log("STARTING BLE SCAN");
 
     await requestPermissions();
 
     // Use BLE manager from service if available
     manager = bleManager;
     if (!manager) {
-      console.log('BLE not supported in this environment');
+      if (__DEV__) console.log('BLE not supported in this environment');
       return;
     }
 
@@ -48,19 +48,21 @@ export default function BleTestScreen() {
 
     manager.startDeviceScan(null, null, (error, device) => {
     if (error) {
-      console.log("BLE ERROR:", error);
+      if (__DEV__) console.log("BLE ERROR:", error);
       return;
     }
 
     if (!device) return;
 
-    console.log(
-      "DEVICE:",
-      device.name,
-      device.localName,
-      device.id,
-      device.rssi
-    );
+    if (__DEV__) {
+      console.log(
+        "DEVICE:",
+        device.name,
+        device.localName,
+        device.id,
+        device.rssi
+      );
+    }
 
     found[device.id] = {
       id: device.id,
@@ -76,7 +78,7 @@ export default function BleTestScreen() {
 
     setTimeout(() => {
       if (manager) manager.stopDeviceScan();
-      console.log("SCAN STOPPED");
+      if (__DEV__) console.log("SCAN STOPPED");
     }, 10000);
 }
 

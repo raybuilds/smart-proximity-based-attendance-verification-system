@@ -87,6 +87,12 @@ model Attendance {
   student             User                   @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
   corrections         AttendanceCorrection[]
 
+  // Audit trail metadata
+  ssid           String?
+  bssid          String?
+  rssi           Int?
+  devicePlatform String?
+
   @@unique([studentId, sessionId])
 }
 

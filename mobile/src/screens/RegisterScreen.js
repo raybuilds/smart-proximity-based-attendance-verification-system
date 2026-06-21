@@ -87,12 +87,14 @@ export default function RegisterScreen({ navigation }) {
     try {
       setIsSubmitting(true);
       setErrorMessage("");
-      console.log("REGISTER PAYLOAD", registrationData);
+      if (__DEV__) console.log("REGISTER PAYLOAD", registrationData);
       const response = await signUp(registrationData);
-      console.log("REGISTER RESPONSE", response);
+      if (__DEV__) console.log("REGISTER RESPONSE", response);
     } catch (error) {
-      console.log("REGISTER ERROR", error);
-      console.log("REGISTER ERROR DATA", error?.response?.data);
+      if (__DEV__) {
+        console.log("REGISTER ERROR", error);
+        console.log("REGISTER ERROR DATA", error?.response?.data);
+      }
       
       let message = "Registration failed. Please try again.";
       if (error.response?.data?.message) {

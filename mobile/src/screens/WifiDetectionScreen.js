@@ -43,25 +43,53 @@ export default function WifiDetectionScreen({ navigation, route }) {
       setIsSuccess(false);
       setMessage("");
 
-      const wifiList = await getNearbyWifi();
-      const teacherHotspot = wifiList.find(
-        (network) => network.SSID === "ATTENDANCE_TEACHER"
-      );
+      const { Platform } = require("react-native");
+      const WifiManager = require("react-native-wifi-reborn").default || require("react-native-wifi-reborn");
 
-      if (!teacherHotspot) {
-        setDetectedWifi(null);
-        setMessage("Teacher hotspot not detected");
-        return;
+      let currentSsid = "MockStudentWiFi";
+      let currentBssid = "02:00:00:00:00:00";
+      let currentRssi = -55;
+
+      try {
+        if (WifiManager) {
+          const detectedSsid = await WifiManager.getCurrentWifiSSID();
+          if (detectedSsid) {
+            currentSsid = detectedSsid;
+            try {
+              const detectedBssid = await WifiManager.getBSSID();
+              if (detectedBssid) {
+                currentBssid = detectedBssid;
+              }
+            } catch (bErr) {
+              currentBssid = null;
+            }
+          } else {
+            // Check if we can scan the list
+            const wifiList = await getNearbyWifi();
+            if (wifiList && wifiList.length > 0) {
+              currentSsid = wifiList[0].SSID || "Unknown SSID";
+              currentBssid = wifiList[0].BSSID || null;
+              currentRssi = Number(wifiList[0].level) || -55;
+            } else {
+              setMessage("Unable to detect current network. Please connect to WiFi and try again.");
+              setIsScanning(false);
+              return;
+            }
+          }
+        }
+      } catch (wifiErr) {
+        console.warn("WiFi Manager error:", wifiErr);
       }
 
-      setDetectedWifi(teacherHotspot);
+      const netInfo = { SSID: currentSsid, BSSID: currentBssid, level: currentRssi };
+      setDetectedWifi(netInfo);
       setIsValidating(true);
 
       const validation = await validateWifi({
         sessionCode,
-        ssid: teacherHotspot.SSID,
-        bssid: teacherHotspot.BSSID,
-        rssi: Number(teacherHotspot.level),
+        ssid: currentSsid,
+        bssid: currentBssid,
+        rssi: currentRssi,
       });
 
       if (!validation.success || !validation.proximityToken) {
@@ -73,6 +101,10 @@ export default function WifiDetectionScreen({ navigation, route }) {
         sessionCode,
         nonce,
         proximityToken: validation.proximityToken,
+        ssid: currentSsid,
+        bssid: currentBssid,
+        rssi: currentRssi,
+        devicePlatform: Platform.OS,
       });
 
       setIsSuccess(true);

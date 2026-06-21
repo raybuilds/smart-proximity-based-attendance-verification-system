@@ -88,7 +88,7 @@ async function startSession(userId, courseId, rssiThreshold) {
         throw error;
       }
 
-      if (!teacher.registeredSSID || !teacher.registeredBSSID) {
+      if (!teacher.registeredSSID) {
         const error = new Error("Please configure your hotspot settings before starting attendance.");
         error.statusCode = HTTP_STATUS.BAD_REQUEST;
         throw error;
@@ -370,6 +370,78 @@ async function getActiveSessionStats(teacherId) {
     };
   });
 
+  // Compute Network Consistency Stats dynamically
+  const bssidCounts = {};
+  let validBssidCount = 0;
+  let nullBssidCount = 0;
+  
+  // RSSI statistics calculations
+  let totalRssi = 0;
+  let rssiCount = 0;
+  let strongestRssi = null;
+  let weakestRssi = null;
+
+  session.attendanceRecords.forEach((record) => {
+    const rawBssid = record.bssid ? record.bssid.trim().toLowerCase() : null;
+    const isDummy = !rawBssid || rawBssid === "02:00:00:00:00:00" || rawBssid === "unknown";
+    
+    if (isDummy) {
+      nullBssidCount++;
+    } else {
+      validBssidCount++;
+      bssidCounts[rawBssid] = (bssidCounts[rawBssid] || 0) + 1;
+    }
+
+    if (record.rssi !== null && record.rssi !== undefined) {
+      totalRssi += record.rssi;
+      rssiCount += 1;
+      if (strongestRssi === null || record.rssi > strongestRssi) {
+        strongestRssi = record.rssi;
+      }
+      if (weakestRssi === null || record.rssi < weakestRssi) {
+        weakestRssi = record.rssi;
+      }
+    }
+  });
+
+  const averageRssi = rssiCount > 0 ? Math.round(totalRssi / rssiCount) : null;
+  const rssiVariance = (averageRssi !== null && session.rssiThreshold !== null && session.rssiThreshold !== undefined)
+    ? (averageRssi - session.rssiThreshold)
+    : null;
+
+  // Find dominant BSSID
+  let dominantBssid = null;
+  let maxCount = 0;
+  Object.entries(bssidCounts).forEach(([bssid, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantBssid = bssid;
+    }
+  });
+
+  // Count mismatches (BSSID is valid but !== dominantBssid)
+  let mismatchCount = 0;
+  if (dominantBssid) {
+    session.attendanceRecords.forEach((record) => {
+      const rawBssid = record.bssid ? record.bssid.trim().toLowerCase() : null;
+      const isDummy = !rawBssid || rawBssid === "02:00:00:00:00:00" || rawBssid === "unknown";
+      if (!isDummy && rawBssid !== dominantBssid) {
+        mismatchCount++;
+      }
+    });
+  }
+
+  // Calculate Risk Level
+  let riskLevel = "LOW";
+  if (attendanceMarked > 0) {
+    const mismatchPercentage = (mismatchCount / attendanceMarked) * 100;
+    if (mismatchPercentage > 15) {
+      riskLevel = "HIGH";
+    } else if (mismatchPercentage > 5) {
+      riskLevel = "MEDIUM";
+    }
+  }
+
   return {
     attendanceMarked,
     enrolledCount,
@@ -380,6 +452,18 @@ async function getActiveSessionStats(teacherId) {
       "WiFi Only": 0,
       Pending: 0,
       "BLE Verified": 0,
+    },
+    networkConsistency: {
+      dominantBssid: dominantBssid ? dominantBssid.toUpperCase() : "N/A",
+      validBssidCount,
+      nullBssidCount,
+      mismatchCount,
+      riskLevel,
+      expectedRssi: session.rssiThreshold,
+      averageRssi,
+      strongestRssi,
+      weakestRssi,
+      rssiVariance,
     },
     recentCheckIns,
   };

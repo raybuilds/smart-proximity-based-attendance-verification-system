@@ -43,7 +43,6 @@ import ChangePasswordScreen from "../screens/ChangePasswordScreen";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  console.log('[Navigator] render');
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -252,4 +251,3 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 });
-

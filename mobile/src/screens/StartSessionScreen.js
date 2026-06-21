@@ -10,6 +10,8 @@ import {
   FlatList,
   ScrollView,
 } from "react-native";
+import * as Location from "expo-location";
+import WifiManager from "react-native-wifi-reborn";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { getActiveSession, startSession } from "../services/attendance";
@@ -32,10 +34,10 @@ import {
 } from "lucide-react-native";
 
 const RSSI_OPTIONS = [
-  { label: "Strict (-65 dBm)", value: -65 },
-  { label: "Normal (-70 dBm)", value: -70 },
-  { label: "Relaxed (-75 dBm)", value: -75 },
-  { label: "Very Relaxed (-80 dBm)", value: -80 },
+  { label: "Close Proximity (-65 dBm)", value: -65 },
+  { label: "Normal Range (-70 dBm)", value: -70 },
+  { label: "Mid Range (-75 dBm)", value: -75 },
+  { label: "Wide Range (-80 dBm)", value: -80 },
 ];
 
 export default function StartSessionScreen({ navigation }) {
@@ -46,54 +48,130 @@ export default function StartSessionScreen({ navigation }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  // Distinguishes a genuine empty list from a network/server failure
+  const [loadError, setLoadError] = useState(false);
 
   // Hotspot & RSSI states
   const [registeredSSID, setRegisteredSSID] = useState("");
   const [registeredBSSID, setRegisteredBSSID] = useState("");
   const [rssiThreshold, setRssiThreshold] = useState(-70);
   const [showRssiModal, setShowRssiModal] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectedSSID, setDetectedSSID] = useState("");
+  const [detectedBSSID, setDetectedBSSID] = useState("");
+  const [detectionFailed, setDetectionFailed] = useState(false);
+  const [isManualInput, setIsManualInput] = useState(false);
+  const [manualHotspotName, setManualHotspotName] = useState("");
 
-  useFocusEffect(
-    useCallback(() => {
-      async function checkActiveSessionAndLoadCourses() {
-        try {
-          setIsLoading(true);
-          setErrorMessage("");
+  const detectCurrentNetwork = useCallback(async () => {
+    try {
+      setIsDetecting(true);
+      setErrorMessage("");
+      setDetectionFailed(false);
 
-          const [sessionResponse, coursesResponse, profileResponse] = await Promise.all([
-            getActiveSession(),
-            getCourses(),
-            getProfile(),
-          ]);
-
-          if (sessionResponse.session) {
-            navigation.replace("ActiveSession", {
-              session: sessionResponse.session,
-            });
-            return;
-          }
-
-          const teacherCourses = coursesResponse.courses || [];
-          setCourses(teacherCourses);
-          setSelectedCourse(null);
-
-          if (profileResponse?.user?.teacher) {
-            setRegisteredSSID(profileResponse.user.teacher.registeredSSID || "");
-            setRegisteredBSSID(profileResponse.user.teacher.registeredBSSID || "");
-          }
-        } catch (error) {
-          setErrorMessage(
-            error.response?.data?.message ||
-              "Could not load courses or session status."
-          );
-        } finally {
-          setIsLoading(false);
-        }
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMessage("Location permission is required to detect WiFi Hotspot Name.");
+        setDetectionFailed(true);
+        setIsDetecting(false);
+        return;
       }
 
-      checkActiveSessionAndLoadCourses();
-    }, [navigation])
-  );
+      if (!WifiManager) {
+        setDetectedSSID("MockTeacherWiFi");
+        setDetectedBSSID(null);
+        setIsDetecting(false);
+        return;
+      }
+
+      const ssidVal = await WifiManager.getCurrentWifiSSID();
+      if (!ssidVal) {
+        setDetectionFailed(true);
+        setIsDetecting(false);
+        return;
+      }
+
+      let bssidVal = null;
+      try {
+        bssidVal = await WifiManager.getBSSID();
+      } catch (err) {
+        // Fallback: ignore BSSID detection failure
+      }
+
+      setDetectedSSID(ssidVal);
+      setDetectedBSSID(bssidVal);
+      setDetectionFailed(false);
+    } catch (error) {
+      setDetectionFailed(true);
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+      setLoadError(false);
+
+      // Use allSettled so that a failure in one call (e.g. getActiveSession
+      // on a cold Render.com start, or a 403/500 from any endpoint) does NOT
+      // prevent courses from loading.
+      const [sessionResult, coursesResult, profileResult] = await Promise.allSettled([
+        getActiveSession(),
+        getCourses(),
+        getProfile(),
+      ]);
+
+      // 1. Handle active session check (non-fatal if it fails)
+      if (sessionResult.status === "fulfilled" && sessionResult.value?.session) {
+        navigation.replace("ActiveSession", {
+          session: sessionResult.value.session,
+        });
+        return;
+      }
+
+      // 2. Handle courses (critical — show error if this fails)
+      if (coursesResult.status === "fulfilled") {
+        const teacherCourses = coursesResult.value?.courses || [];
+        setCourses(teacherCourses);
+        setSelectedCourse(null);
+        setLoadError(false);
+      } else {
+        // courses fetch itself failed — show a meaningful error and stop
+        const err = coursesResult.reason;
+        setErrorMessage(
+          err?.response?.data?.message ||
+            "Could not load your courses. Please check your connection and try again."
+        );
+        setLoadError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. Handle profile (non-fatal — pre-fill hotspot if available)
+      if (profileResult.status === "fulfilled" && profileResult.value?.user?.teacher) {
+        setRegisteredSSID(profileResult.value.user.teacher.registeredSSID || "");
+        setRegisteredBSSID(profileResult.value.user.teacher.registeredBSSID || "");
+        // Auto-detect network when opening the screen
+        detectCurrentNetwork();
+      }
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Could not load courses or session status."
+      );
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigation]);
+
+  useFocusEffect(loadData);
+
+  async function handleRetry() {
+    await loadData();
+  }
 
   async function handleStartSession() {
     if (!selectedCourse) {
@@ -101,8 +179,8 @@ export default function StartSessionScreen({ navigation }) {
       return;
     }
 
-    if (!registeredSSID.trim() || !registeredBSSID.trim()) {
-      setErrorMessage("Please configure your hotspot SSID and BSSID settings before starting attendance.");
+    if (!registeredSSID.trim()) {
+      setErrorMessage("Please configure your hotspot SSID settings before starting attendance.");
       return;
     }
 
@@ -113,7 +191,7 @@ export default function StartSessionScreen({ navigation }) {
       // Update hotspot configuration in backend
       await updateTeacherHotspot({
         registeredSSID: registeredSSID.trim(),
-        registeredBSSID: registeredBSSID.trim(),
+        registeredBSSID: registeredBSSID ? registeredBSSID.trim() : null,
       });
 
       const response = await startSession(selectedCourse.id, rssiThreshold);
@@ -152,28 +230,46 @@ export default function StartSessionScreen({ navigation }) {
           </View>
           <Text style={styles.screenTitle}>Start Session</Text>
           <Text style={styles.screenSubtitle}>
-            Launch a live attendance session for your class
+            {loadError
+              ? "There was a problem loading your courses."
+              : "Launch a live attendance session for your class"}
           </Text>
         </View>
 
-        <View style={styles.warningCard}>
+        <View style={loadError ? styles.errorCard : styles.warningCard}>
           <View style={styles.warningCardHeader}>
-            <AlertTriangle size={20} color={COLORS.warning} />
-            <Text style={styles.warningCardTitle}>No Courses Found</Text>
+            <AlertTriangle size={20} color={loadError ? COLORS.error : COLORS.warning} />
+            <Text
+              style={[
+                styles.warningCardTitle,
+                loadError && { color: COLORS.error },
+              ]}
+            >
+              {loadError ? "Connection Error" : "No Courses Found"}
+            </Text>
           </View>
           <Text style={styles.warningCardBody}>
-            You must create a course before starting an attendance session.
-            Head over to Course Management to set up your first course.
+            {loadError
+              ? errorMessage ||
+                "Could not reach the server. Please check your internet connection and try again."
+              : "You must create a course before starting an attendance session. Head over to Course Management to set up your first course."}
           </Text>
         </View>
 
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate("CourseManagement")}
-        >
-          <BookMarked size={18} color={COLORS.textInverse} />
-          <Text style={styles.primaryButtonText}>Manage Courses</Text>
-        </Pressable>
+        {loadError ? (
+          <Pressable style={styles.primaryButton} onPress={handleRetry}>
+            <Info size={18} color={COLORS.textInverse} />
+            <Text style={styles.primaryButtonText}>Retry</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("CourseManagement")}
+          >
+            <BookMarked size={18} color={COLORS.textInverse} />
+            <Text style={styles.primaryButtonText}>Manage Courses</Text>
+          </Pressable>
+        )}
       </ScrollView>
     );
   }
@@ -298,35 +394,103 @@ export default function StartSessionScreen({ navigation }) {
         </View>
         <View style={styles.previewDivider} />
 
-        <Text style={styles.configLabel}>SSID (Hotspot Name)</Text>
-        <TextInput
-          style={styles.configInput}
-          placeholder="e.g. MyTeacherHotspot"
-          placeholderTextColor={COLORS.textSecondary}
-          value={registeredSSID}
-          onChangeText={(text) => {
-            setRegisteredSSID(text);
-            setErrorMessage("");
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <Text style={styles.configLabel}>Registered WiFi Network</Text>
+        <View style={styles.wifiDetailsContainer}>
+          <Text style={styles.wifiDetailText}>
+            Hotspot Name: <Text style={styles.boldText}>{registeredSSID || "Not Registered"}</Text>
+          </Text>
+          <Text style={styles.wifiDetailText}>
+            MAC Address: <Text style={styles.boldText}>{registeredBSSID || "Optional / Auto-detect"}</Text>
+          </Text>
+        </View>
 
-        <Text style={styles.configLabel}>BSSID (MAC Address)</Text>
-        <TextInput
-          style={styles.configInput}
-          placeholder="e.g. AA:BB:CC:DD:EE:FF"
-          placeholderTextColor={COLORS.textSecondary}
-          value={registeredBSSID}
-          onChangeText={(text) => {
-            setRegisteredBSSID(text);
-            setErrorMessage("");
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        {/* Auto-detected Network Block */}
+        {isDetecting ? (
+          <View style={[styles.wifiDetailsContainer, { marginTop: 12, alignItems: "center" }]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={[styles.wifiDetailText, { marginTop: 4 }]}>Detecting WiFi network...</Text>
+          </View>
+        ) : detectedSSID ? (
+          <View style={[styles.wifiDetailsContainer, { marginTop: 12, borderColor: COLORS.success, backgroundColor: "rgba(45, 117, 85, 0.05)" }]}>
+            <Text style={[styles.configLabel, { marginTop: 0, color: COLORS.success }]}>Detected Network</Text>
+            <Text style={styles.wifiDetailText}>
+              Hotspot Name: <Text style={styles.boldText}>{detectedSSID}</Text>
+            </Text>
+            {detectedBSSID ? (
+              <Text style={styles.wifiDetailText}>
+                MAC Address: <Text style={styles.boldText}>{detectedBSSID}</Text>
+              </Text>
+            ) : null}
+            <Pressable
+              style={[styles.primaryButton, { marginTop: 12 }]}
+              onPress={() => {
+                setRegisteredSSID(detectedSSID);
+                setRegisteredBSSID(detectedBSSID || null);
+                setDetectedSSID("");
+                setDetectedBSSID("");
+              }}
+            >
+              <Text style={styles.primaryButtonText}>Use Current Network</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
-        <Text style={styles.configLabel}>Proximity RSSI Threshold</Text>
+        {/* Detection Failed & Retry Block */}
+        {detectionFailed && !detectedSSID && !isDetecting ? (
+          <View style={[styles.wifiDetailsContainer, { marginTop: 12, borderColor: COLORS.error, backgroundColor: "rgba(220, 53, 69, 0.05)" }]}>
+            <Text style={[styles.wifiDetailText, { color: COLORS.error, fontWeight: "600" }]}>
+              Unable to detect your current network.
+            </Text>
+            <Pressable
+              style={[styles.secondaryButton, { marginTop: 8 }]}
+              onPress={detectCurrentNetwork}
+            >
+              <Text style={styles.secondaryButtonText}>Retry Detection</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Manual Fallback Option */}
+        {!isManualInput ? (
+          <Pressable
+            style={{ marginTop: 12, marginBottom: 8 }}
+            onPress={() => setIsManualInput(true)}
+          >
+            <Text style={{ color: COLORS.primary, fontWeight: "600", textDecorationLine: "underline" }}>
+              Can't detect your network? Enter Hotspot Name Manually
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.configLabel}>Manual Hotspot Name</Text>
+            <TextInput
+              style={styles.configInput}
+              placeholder="e.g. Teacher_Hotspot, MyPhone, Ray_5G"
+              placeholderTextColor={COLORS.textSecondary}
+              value={manualHotspotName}
+              onChangeText={(text) => {
+                setManualHotspotName(text);
+                setRegisteredSSID(text);
+                setRegisteredBSSID(null); // Manual hotspot name has no BSSID
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Pressable
+              style={{ marginTop: 8 }}
+              onPress={() => {
+                setIsManualInput(false);
+                setManualHotspotName("");
+              }}
+            >
+              <Text style={{ color: COLORS.textSecondary, textDecorationLine: "underline" }}>
+                Switch back to auto-detection
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Text style={styles.configLabel}>Expected Classroom Signal</Text>
         <Pressable
           style={styles.thresholdSelector}
           onPress={() => setShowRssiModal(true)}
@@ -367,9 +531,9 @@ export default function StartSessionScreen({ navigation }) {
           onPress={() => setShowRssiModal(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>RSSI Threshold</Text>
+            <Text style={styles.modalTitle}>Expected Classroom Signal</Text>
             <Text style={styles.modalSubtitle}>
-              Select signal strength sensitivity. Students must be closer to mark attendance at stricter settings.
+              Select the calibration reference for classroom network analytics. This is used for signal strength auditing and does not block student check-ins.
             </Text>
             <FlatList
               data={RSSI_OPTIONS}
@@ -839,5 +1003,37 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     marginBottom: SPACING.md,
     textAlign: "center",
+  },
+  secondaryButton: {
+    height: 48,
+    borderRadius: RADIUS.md,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+  },
+  secondaryButtonText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    fontFamily: FONTS.body,
+  },
+  wifiDetailsContainer: {
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    padding: SPACING.md,
+    gap: SPACING.xs,
+  },
+  wifiDetailText: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  boldText: {
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
 });

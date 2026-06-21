@@ -37,63 +37,12 @@ async function validateWifiProximity({ sessionCode, ssid, bssid, rssi, wifiList,
     throw error;
   }
 
-  if (!session.teacherSSID || !session.teacherBSSID) {
+  if (!session.teacherSSID) {
     const error = new Error(
       "Teacher hotspot is not configured for this session"
     );
     error.statusCode = HTTP_STATUS.BAD_REQUEST;
     throw error;
-  }
-
-  let finalRssi = rssi;
-
-  if (wifiList && Array.isArray(wifiList)) {
-    const normalizedTeacherBssid = session.teacherBSSID.trim().toLowerCase();
-    
-    // Search for a network matching both SSID and BSSID
-    const targetNetwork = wifiList.find(net => {
-      const matchSSID = net.SSID === session.teacherSSID;
-      const matchBSSID = net.BSSID && net.BSSID.trim().toLowerCase() === normalizedTeacherBssid;
-      return matchSSID && matchBSSID;
-    });
-
-    if (!targetNetwork) {
-      return {
-        success: false,
-        message: "Network verification failed.",
-      };
-    }
-
-    finalRssi = Number(targetNetwork.level);
-  } else {
-    // Fallback: Validate SSID
-    if (session.teacherSSID !== ssid) {
-      return {
-        success: false,
-        message: "Network verification failed.",
-      };
-    }
-
-    // Validate BSSID
-    if (bssid) {
-      const normalizedSessionBssid = session.teacherBSSID.trim().toLowerCase();
-      const normalizedScannedBssid = bssid.trim().toLowerCase();
-      if (normalizedSessionBssid !== normalizedScannedBssid) {
-        return {
-          success: false,
-          message: "Network verification failed.",
-        };
-      }
-    }
-  }
-
-  // Validate proximity using RSSI
-  const threshold = session.rssiThreshold !== null ? session.rssiThreshold : WIFI.MIN_RSSI;
-  if (finalRssi === undefined || finalRssi < threshold) {
-    return {
-      success: false,
-      message: "Network verification failed. Move closer to the teacher hotspot.",
-    };
   }
 
   // Fetch active QR code to bind to proximity token

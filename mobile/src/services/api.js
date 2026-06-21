@@ -8,18 +8,11 @@ const getApiBaseUrl = () => {
   // Production environment configuration
   if (!__DEV__) {
     const productionBaseUrl = "https://attendance-system-backend-unu2.onrender.com/api";
-    console.log("[API] Running in PRODUCTION mode");
-    console.log("[API] Production Base URL:", productionBaseUrl);
     return productionBaseUrl;
   }
 
   // Development environment configuration
-  console.log("[API] Running in DEVELOPMENT mode");
-
   if (Platform.OS === "web") {
-    console.log("[API] Host URI: web");
-    console.log("[API] Resolved IP: localhost");
-    console.log("[API] Resolved Base URL: http://localhost:5000/api");
     return "http://localhost:5000/api";
   }
 
@@ -37,9 +30,11 @@ const getApiBaseUrl = () => {
 
   const resolvedBaseUrl = `http://${resolvedIp}:5000/api`;
 
-  console.log("[API] Host URI:", hostUri || "Not available");
-  console.log("[API] Resolved IP:", resolvedIp);
-  console.log("[API] Resolved Base URL:", resolvedBaseUrl);
+  if (__DEV__) {
+    console.log("[API] Host URI:", hostUri || "Not available");
+    console.log("[API] Resolved IP:", resolvedIp);
+    console.log("[API] Resolved Base URL:", resolvedBaseUrl);
+  }
 
   return resolvedBaseUrl;
 };

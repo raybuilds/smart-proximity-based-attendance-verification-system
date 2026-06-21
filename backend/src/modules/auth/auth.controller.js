@@ -105,7 +105,7 @@ async function getProfile(req, res, next) {
 
 const hotspotSchema = z.object({
   registeredSSID: z.string().trim().min(1, "SSID is required"),
-  registeredBSSID: z.string().trim().min(1, "BSSID is required"),
+  registeredBSSID: z.string().trim().nullable().optional(),
 });
 
 async function updateTeacherHotspot(req, res, next) {

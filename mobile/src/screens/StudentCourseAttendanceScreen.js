@@ -49,7 +49,7 @@ export default function StudentCourseAttendanceScreen({ route, navigation }) {
       const response = await getStudentCourseDetail(courseId);
       setCourseDetail(response.data);
     } catch (error) {
-      console.log(error);
+      if (__DEV__) console.log(error);
     } finally {
       setLoading(false);
     }

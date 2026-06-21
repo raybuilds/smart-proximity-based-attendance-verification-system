@@ -6,6 +6,10 @@ const scanSchema = z.object({
   sessionCode: z.string().trim().min(1, "Session code is required"),
   nonce: z.string().trim().min(1, "QR nonce is required"),
   proximityToken: z.string().trim().min(1, "Proximity token is required"),
+  ssid: z.string().trim().nullable().optional(),
+  bssid: z.string().trim().nullable().optional(),
+  rssi: z.number().int().nullable().optional(),
+  devicePlatform: z.string().trim().nullable().optional(),
 });
 
 async function scanAttendance(req, res, next) {
@@ -16,6 +20,10 @@ async function scanAttendance(req, res, next) {
       sessionCode: payload.sessionCode,
       nonce: payload.nonce,
       proximityToken: payload.proximityToken,
+      ssid: payload.ssid,
+      bssid: payload.bssid,
+      rssi: payload.rssi,
+      devicePlatform: payload.devicePlatform,
     });
 
     res.status(200).json(result);

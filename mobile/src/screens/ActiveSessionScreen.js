@@ -22,6 +22,7 @@ import {
   Users,
   CheckCircle,
   Activity,
+  Wifi,
 } from "lucide-react-native";
 
 import { endSession, getActiveSession, getActiveSessionStats } from "../services/attendance";
@@ -50,6 +51,7 @@ export default function ActiveSessionScreen({ navigation, route }) {
     expectedCount: 0,
     verifiedCount: 0,
     recentCheckIns: [],
+    networkConsistency: null,
   });
 
   useEffect(() => {
@@ -88,10 +90,11 @@ export default function ActiveSessionScreen({ navigation, route }) {
           const data = await getActiveSessionStats();
           if (data) {
             setStats({
-              markedCount: data.markedCount || 0,
-              expectedCount: data.expectedCount || 0,
-              verifiedCount: data.verifiedCount || 0,
+              markedCount: data.attendanceMarked || 0,
+              expectedCount: data.enrolledCount || 0,
+              verifiedCount: data.verificationSummary?.Verified || 0,
               recentCheckIns: data.recentCheckIns || [],
+              networkConsistency: data.networkConsistency || null,
             });
           }
         } catch (err) {
@@ -326,6 +329,81 @@ export default function ActiveSessionScreen({ navigation, route }) {
             <Text style={styles.statSubText}>Network validated</Text>
           </View>
         </View>
+
+        {/* Network Consistency Audit Card */}
+        {stats.networkConsistency ? (
+          <View style={styles.feedCard}>
+            <View style={styles.feedHeader}>
+              <Wifi size={16} color={COLORS.primary} style={{ marginRight: 8 }} />
+              <Text style={styles.feedTitle}>Network Consistency Audit</Text>
+              <View style={[
+                styles.riskBadge,
+                stats.networkConsistency.riskLevel === "HIGH" ? BADGES.error :
+                stats.networkConsistency.riskLevel === "MEDIUM" ? BADGES.warning : BADGES.success,
+                { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }
+              ]}>
+                <Text style={styles.riskBadgeText}>
+                  {stats.networkConsistency.riskLevel} RISK
+                </Text>
+              </View>
+            </View>
+            <View style={styles.dividerLine} />
+            <View style={styles.consistencyGrid}>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Dominant BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.dominantBssid}</Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Mismatches</Text>
+                <Text style={[styles.consistencyValue, stats.networkConsistency.mismatchCount > 0 && { color: COLORS.error }]}>
+                  {stats.networkConsistency.mismatchCount}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Missing BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.nullBssidCount}</Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Valid BSSID</Text>
+                <Text style={styles.consistencyValue}>{stats.networkConsistency.validBssidCount}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.dividerLine, { marginVertical: SPACING.md }]} />
+            <Text style={[styles.feedTitle, { fontSize: TYPOGRAPHY.sizes.body, marginBottom: SPACING.xs }]}>Signal Calibration Reference</Text>
+            
+            <View style={styles.consistencyGrid}>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Expected Signal</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.expectedRssi !== null && stats.networkConsistency.expectedRssi !== undefined ? `${stats.networkConsistency.expectedRssi} dBm` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Avg Observed</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.averageRssi !== null && stats.networkConsistency.averageRssi !== undefined ? `${stats.networkConsistency.averageRssi} dBm` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Strongest / Weakest</Text>
+                <Text style={styles.consistencyValue}>
+                  {stats.networkConsistency.strongestRssi !== null && stats.networkConsistency.strongestRssi !== undefined ? `${stats.networkConsistency.strongestRssi}` : "N/A"} / {stats.networkConsistency.weakestRssi !== null && stats.networkConsistency.weakestRssi !== undefined ? `${stats.networkConsistency.weakestRssi}` : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.consistencyItem}>
+                <Text style={styles.consistencyLabel}>Signal Variance</Text>
+                <Text style={[styles.consistencyValue, stats.networkConsistency.rssiVariance > 0 ? { color: COLORS.success } : stats.networkConsistency.rssiVariance < 0 ? { color: COLORS.error } : null]}>
+                  {stats.networkConsistency.rssiVariance !== null && stats.networkConsistency.rssiVariance !== undefined ? (stats.networkConsistency.rssiVariance >= 0 ? `+${stats.networkConsistency.rssiVariance} dB` : `${stats.networkConsistency.rssiVariance} dB`) : "N/A"}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.consistencySubtext}>
+              Note: Network consistency and signal calibration metrics are advisory only. BSSID or RSSI variance does not block attendance check-ins.
+            </Text>
+          </View>
+        ) : null}
 
         {/* Card 3: Recent Check-ins */}
         <View style={styles.feedCard}>
@@ -732,5 +810,55 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.sizes.metadata,
     color: COLORS.textSecondary,
     fontFamily: FONTS.body,
+  },
+  consistencyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  consistencyItem: {
+    width: "48%",
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    alignItems: "center",
+  },
+  consistencyLabel: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginBottom: 2,
+    textTransform: "uppercase",
+  },
+  consistencyValue: {
+    fontSize: TYPOGRAPHY.sizes.body,
+    fontWeight: "bold",
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+  },
+  consistencySubtext: {
+    fontSize: TYPOGRAPHY.sizes.metadata,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    marginTop: SPACING.md,
+    textAlign: "center",
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  riskBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  riskBadgeText: {
+    fontSize: TYPOGRAPHY.sizes.micro,
+    fontWeight: "bold",
+    color: COLORS.textInverse,
   },
 });
