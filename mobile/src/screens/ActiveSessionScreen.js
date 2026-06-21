@@ -393,7 +393,11 @@ export default function ActiveSessionScreen({ navigation, route }) {
               </View>
               <View style={styles.consistencyItem}>
                 <Text style={styles.consistencyLabel}>Signal Variance</Text>
-                <Text style={[styles.consistencyValue, stats.networkConsistency.rssiVariance > 0 ? { color: COLORS.success } : stats.networkConsistency.rssiVariance < 0 ? { color: COLORS.error } : null]}>
+                <Text style={[
+                  styles.consistencyValue,
+                  (stats.networkConsistency.rssiVariance !== null && stats.networkConsistency.rssiVariance !== undefined && stats.networkConsistency.rssiVariance > 0) ? { color: COLORS.success } :
+                  (stats.networkConsistency.rssiVariance !== null && stats.networkConsistency.rssiVariance !== undefined && stats.networkConsistency.rssiVariance < 0) ? { color: COLORS.error } : null
+                ]}>
                   {stats.networkConsistency.rssiVariance !== null && stats.networkConsistency.rssiVariance !== undefined ? (stats.networkConsistency.rssiVariance >= 0 ? `+${stats.networkConsistency.rssiVariance} dB` : `${stats.networkConsistency.rssiVariance} dB`) : "N/A"}
                 </Text>
               </View>
@@ -416,21 +420,15 @@ export default function ActiveSessionScreen({ navigation, route }) {
             <Text style={styles.feedEmptyText}>Waiting for check-ins...</Text>
           ) : (
             stats.recentCheckIns.map((checkIn, index) => {
-              const timeString = new Date(checkIn.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-              });
               return (
                 <View key={checkIn.id || index.toString()} style={styles.feedRow}>
                   <View style={styles.feedStudentInfo}>
-                    <Text style={styles.feedRollNumber}>{checkIn.student.rollNumber}</Text>
+                    <Text style={styles.feedRollNumber}>{checkIn.rollNumber || "N/A"}</Text>
                     <Text style={styles.feedStudentName} numberOfLines={1}>
-                      {checkIn.student.user.name}
+                      {checkIn.name || "Unknown"}
                     </Text>
                   </View>
-                  <Text style={styles.feedTime}>{timeString}</Text>
+                  <Text style={styles.feedTime}>{checkIn.timestamp || "N/A"}</Text>
                 </View>
               );
             })
