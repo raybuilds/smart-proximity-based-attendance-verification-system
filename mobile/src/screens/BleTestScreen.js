@@ -7,7 +7,7 @@ import {
   Alert,
 } from "react-native";
 import { PermissionsAndroid, Platform } from "react-native";
-import { bleManager } from "../services/ble";
+import { getBleManager } from "../services/ble";
 
 let manager = null; // will be set in startScan if BLE supported
 
@@ -36,7 +36,7 @@ export default function BleTestScreen() {
     await requestPermissions();
 
     // Use BLE manager from service if available
-    manager = bleManager;
+    manager = getBleManager();
     if (!manager) {
       if (__DEV__) console.log('BLE not supported in this environment');
       return;

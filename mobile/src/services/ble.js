@@ -15,4 +15,15 @@ if (canUseBle) {
   }
 }
 
-export const bleManager = canUseBle && BleManagerClass ? new BleManagerClass() : null;
+let instance = null;
+
+export function getBleManager() {
+  if (!instance && canUseBle && BleManagerClass) {
+    try {
+      instance = new BleManagerClass();
+    } catch (e) {
+      if (__DEV__) console.warn("Failed to initialize BleManager:", e);
+    }
+  }
+  return instance;
+}

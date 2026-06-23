@@ -49,6 +49,20 @@
             ]
           }
         }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Allow Digital Proximity Attendance to connect to Bluetooth devices."
+        }
+      ],
+      [
+        "react-native-wifi-reborn",
+        {
+          "fineLocationPermission": true
+        }
       ]
     ],
     "extra": {
