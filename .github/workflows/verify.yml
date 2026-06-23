@@ -1,0 +1,49 @@
+name: Backend Build & Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Lint, Test & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run Schema Validation
+        working-directory: backend
+        run: npx prisma validate
+
+      - name: Run Linter & Singleton Verification
+        working-directory: backend
+        run: npm run lint
+
+      - name: Run Test Suite
+        working-directory: backend
+        run: npm test
+
+      - name: CI Prisma Singleton Enforcement Check
+        run: |
+          COUNT=$(grep -Ro "new PrismaClient(" backend/src | wc -l)
+          echo "Found $COUNT instances of 'new PrismaClient(' in backend/src."
+          if [ "$COUNT" -ne 1 ]; then
+            echo "ERROR: Exactly one PrismaClient instantiation is allowed (found $COUNT)."
+            exit 1
+          fi
+          echo "Singleton check passed."
