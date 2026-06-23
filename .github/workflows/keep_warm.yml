@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Ping API Health
         run: |
-          echo "Running at $(date -u)"
-          RESPONSE=$(curl -s -f -H "Accept-Encoding: gzip" https://raybuilds-proximity-attendance.onrender.com/api/health)
-          echo "Response: $RESPONSE"
+          echo "UTC Time: $(date -u)"
+          curl -w "\nResponse Time: %{time_total}s\nHTTP Status: %{http_code}\n" -L -s https://attendance-system-backend-unu2.onrender.com/api/health
+
