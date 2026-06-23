@@ -29,7 +29,7 @@ import { endSession, getActiveSession, getActiveSessionStats } from "../services
 import { getCurrentQR } from "../services/qr";
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
 
-const QR_LIFETIME_SECONDS = 30;
+const QR_LIFETIME_SECONDS = 40;
 
 export default function ActiveSessionScreen({ navigation, route }) {
   console.log('[ActiveSession] mounted');
