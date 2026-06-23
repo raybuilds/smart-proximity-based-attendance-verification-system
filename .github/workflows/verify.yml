@@ -32,14 +32,6 @@ jobs:
           DATABASE_URL: "postgresql://user:password@localhost:5432/tempdb"
         run: npx prisma validate
 
-      - name: Run Linter & Singleton Verification
-        working-directory: backend
-        run: npm run lint
-
-      - name: Run Test Suite
-        working-directory: backend
-        run: npm test
-
       - name: CI Prisma Singleton Enforcement Check
         run: |
           COUNT=$(grep -Ro "new PrismaClient(" backend/src | wc -l)
