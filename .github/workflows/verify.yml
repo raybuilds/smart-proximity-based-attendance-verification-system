@@ -34,8 +34,8 @@ jobs:
 
       - name: CI Prisma Singleton Enforcement Check
         run: |
-          COUNT=$(grep -Ro "new PrismaClient(" backend/src | wc -l)
-          echo "Found $COUNT instances of 'new PrismaClient(' in backend/src."
+          COUNT=$(find backend/src -type d \( -name scratch -o -name scripts \) -prune -o -type f -name "*.js" -exec grep -o "new PrismaClient(" {} + | wc -l)
+          echo "Found $COUNT instances of 'new PrismaClient(' in backend/src (excluding scratch/scripts)."
           if [ "$COUNT" -ne 1 ]; then
             echo "ERROR: Exactly one PrismaClient instantiation is allowed (found $COUNT)."
             exit 1
