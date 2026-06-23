@@ -2,10 +2,8 @@ name: Render Backend Warm-Up
 
 on:
   schedule:
-    # Run every 10 minutes, Monday through Saturday, between 2:00 AM and 1:59 PM UTC
-    # (7:30 AM to 7:29 PM IST)
-    - cron: '*/10 2-13 * * 1-6'
-  workflow_dispatch: # Allow manual trigger
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
 
 jobs:
   warm_up:
@@ -14,4 +12,6 @@ jobs:
     steps:
       - name: Ping API Health
         run: |
-          curl -s -f -I -H "Accept-Encoding: gzip" https://raybuilds-proximity-attendance.onrender.com/api/health || echo "Warming ping completed or fallback"
+          echo "Running at $(date -u)"
+          RESPONSE=$(curl -s -f -H "Accept-Encoding: gzip" https://raybuilds-proximity-attendance.onrender.com/api/health)
+          echo "Response: $RESPONSE"
