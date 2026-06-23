@@ -28,6 +28,8 @@ jobs:
 
       - name: Run Schema Validation
         working-directory: backend
+        env:
+          DATABASE_URL: "postgresql://user:password@localhost:5432/tempdb"
         run: npx prisma validate
 
       - name: Run Linter & Singleton Verification
