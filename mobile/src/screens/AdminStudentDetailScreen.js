@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
   ActivityIndicator,
   Alert
 } from "react-native";
