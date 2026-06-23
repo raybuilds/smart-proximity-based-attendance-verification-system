@@ -424,7 +424,8 @@ export default function DashboardScreen({ navigation }) {
       {/* Bottom spacer */}
       <View style={{ height: SPACING.lg }} />
     </ScrollView>
-  );
+  </FadeInContainer>
+);
 }
 
 const styles = StyleSheet.create({
