@@ -10,7 +10,7 @@ function normalizeInputString(val) {
 }
 
 async function getEligibleStudentCount(course) {
-  if (!course.department && !course.semester && !course.section) {
+  if (!course.department && !course.year && !course.section) {
     return prisma.student.count();
   }
 
@@ -21,8 +21,8 @@ async function getEligibleStudentCount(course) {
       mode: "insensitive",
     };
   }
-  if (course.semester) {
-    where.semester = course.semester;
+  if (course.year) {
+    where.year = course.year;
   }
   if (course.section) {
     where.section = {
@@ -67,7 +67,7 @@ async function createCourse(userId, data) {
 
   const dept = normalizeInputString(data.department);
   const sec = normalizeInputString(data.section);
-  const sem = data.semester !== undefined ? (data.semester || null) : null;
+  const sem = data.year !== undefined ? (data.year || null) : null;
   const courseCode = normalizeInputString(data.code);
 
   const course = await prisma.course.create({
@@ -76,7 +76,7 @@ async function createCourse(userId, data) {
       code: courseCode,
       teacherId: teacher.id,
       department: dept,
-      semester: sem,
+      year: sem,
       section: sec,
     },
   });
@@ -112,7 +112,7 @@ async function getCourses(userId, includeArchived = false) {
 
   const coursesWithCounts = await Promise.all(
     courses.map(async (course) => {
-      const cacheKey = `${course.department || ""}-${course.semester || ""}-${course.section || ""}`;
+      const cacheKey = `${course.department || ""}-${course.year || ""}-${course.section || ""}`;
       
       if (countCache[cacheKey] === undefined) {
         countCache[cacheKey] = await getEligibleStudentCount(course);
@@ -179,10 +179,10 @@ async function updateCourse(userId, courseId, data) {
     // Prevent eligibility changes during active sessions
     const dept = normalizeInputString(data.department);
     const sec = normalizeInputString(data.section);
-    const sem = data.semester !== undefined ? (data.semester || null) : course.semester;
+    const sem = data.year !== undefined ? (data.year || null) : course.year;
 
     const deptChanged = dept !== course.department;
-    const semChanged = sem !== course.semester;
+    const semChanged = sem !== course.year;
     const secChanged = sec !== course.section;
 
     if (deptChanged || semChanged || secChanged) {
@@ -223,14 +223,14 @@ async function updateCourse(userId, courseId, data) {
         name: trimmedName,
         code: normalizeInputString(data.code),
         department: dept,
-        semester: sem,
+        year: sem,
         section: sec,
       },
     });
 
     if (deptChanged || semChanged || secChanged) {
       const { backfillCourseStudents } = require("../attendance/backfill.service");
-      await backfillCourseStudents(tx, courseId, { department: dept, semester: sem, section: sec });
+      await backfillCourseStudents(tx, courseId, { department: dept, year: sem, section: sec });
     }
 
     return updatedCourse;

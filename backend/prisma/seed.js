@@ -67,13 +67,13 @@ async function main() {
           update: {
             rollNumber: "CSE2026001",
             department: "Computer Science",
-            semester: 6,
+            year: 6,
             section: "A",
           },
           create: {
             rollNumber: "CSE2026001",
             department: "Computer Science",
-            semester: 6,
+            year: 6,
             section: "A",
           },
         },
@@ -88,7 +88,7 @@ async function main() {
         create: {
           rollNumber: "CSE2026001",
           department: "Computer Science",
-          semester: 6,
+          year: 6,
           section: "A",
         },
       },

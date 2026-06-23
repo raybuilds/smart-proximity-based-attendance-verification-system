@@ -25,12 +25,12 @@ function getSessionRules(session) {
   // Priority 1: Snapshots
   if (
     session.departmentSnapshot !== null ||
-    session.semesterSnapshot !== null ||
+    session.yearSnapshot !== null ||
     session.sectionSnapshot !== null
   ) {
     return {
       department: session.departmentSnapshot,
-      semester: session.semesterSnapshot,
+      year: session.yearSnapshot,
       section: session.sectionSnapshot,
     };
   }
@@ -39,7 +39,7 @@ function getSessionRules(session) {
   if (session.course) {
     return {
       department: session.course.department,
-      semester: session.course.semester,
+      year: session.course.year,
       section: session.course.section,
     };
   }
@@ -47,7 +47,7 @@ function getSessionRules(session) {
   // Priority 3: No rules
   return {
     department: null,
-    semester: null,
+    year: null,
     section: null,
   };
 }
@@ -56,7 +56,7 @@ function validateCourseEligibility(student, session) {
   const rules = getSessionRules(session);
 
   // If no eligibility rules are set, anyone is allowed (legacy course / no rules)
-  if (!rules.department && !rules.semester && !rules.section) {
+  if (!rules.department && !rules.year && !rules.section) {
     return true;
   }
 
@@ -64,8 +64,8 @@ function validateCourseEligibility(student, session) {
   if (
     !student ||
     !student.department ||
-    student.semester === null ||
-    student.semester === undefined ||
+    student.year === null ||
+    student.year === undefined ||
     !student.section
   ) {
     logEligibilityAudit({
@@ -98,14 +98,14 @@ function validateCourseEligibility(student, session) {
     }
   }
 
-  // Check Semester
-  if (rules.semester) {
-    if (student.semester !== rules.semester) {
+  // Check Year
+  if (rules.year) {
+    if (student.year !== rules.year) {
       logEligibilityAudit({
         studentId: student.userId,
         courseId: session.courseId,
         sessionId: session.id,
-        reason: "Semester mismatch",
+        reason: "Year mismatch",
       });
       
       const error = new Error("You are not eligible to mark attendance for this course. Please contact your instructor if you believe this is incorrect.");

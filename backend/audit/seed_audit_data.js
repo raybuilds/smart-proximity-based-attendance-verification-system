@@ -81,7 +81,7 @@ async function seedData() {
         name: `LOADTEST_${auditRunId}_COURSE_1`,
         teacherId: teacher1.teacherProfileId,
         department: 'CS',
-        semester: 6,
+        year: 6,
         section: 'A'
       }
     });
@@ -102,7 +102,7 @@ async function seedData() {
         sessionCode,
         isActive: true,
         departmentSnapshot: 'CS',
-        semesterSnapshot: 6,
+        yearSnapshot: 6,
         sectionSnapshot: 'A',
         teacherSSID: 'LOADTEST_WIFI',
         teacherBSSID: '00:11:22:33:44:55'
@@ -130,7 +130,7 @@ async function seedData() {
 
     console.log(`Seeded SessionQRCode successfully with nonce: ${manifest.qrNonce}`);
 
-    // 5. Seed 100 Students (matching course department/semester/section)
+    // 5. Seed 100 Students (matching course department/year/section)
     for (let i = 1; i <= 100; i++) {
       const email = `loadtest_${auditRunId.toLowerCase()}_student_${String(i).padStart(3, '0')}@attendance.local`;
       const name = `Student ${i} ${auditRunId}`;
@@ -146,7 +146,7 @@ async function seedData() {
             create: {
               rollNumber,
               department: 'CS',
-              semester: 6,
+              year: 6,
               section: 'A'
             }
           }

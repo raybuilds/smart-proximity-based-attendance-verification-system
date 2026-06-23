@@ -5,10 +5,10 @@ const { prisma } = require("../../config/database");
  * they are added to a course or register.
  *
  * @param {object} tx - Prisma transaction client context
- * @param {object} student - Student database object { userId, department, semester, section }
+ * @param {object} student - Student database object { userId, department, year, section }
  */
 async function backfillStudentAttendance(tx, student) {
-  if (!student.department || !student.semester || !student.section) {
+  if (!student.department || !student.year || !student.section) {
     return;
   }
 
@@ -20,17 +20,17 @@ async function backfillStudentAttendance(tx, student) {
         // Snapshot matches
         {
           departmentSnapshot: { equals: student.department, mode: "insensitive" },
-          semesterSnapshot: student.semester,
+          yearSnapshot: student.year,
           sectionSnapshot: { equals: student.section, mode: "insensitive" },
         },
         // Legacy/course matches when snapshots are null
         {
           departmentSnapshot: null,
-          semesterSnapshot: null,
+          yearSnapshot: null,
           sectionSnapshot: null,
           course: {
             department: { equals: student.department, mode: "insensitive" },
-            semester: student.semester,
+            year: student.year,
             section: { equals: student.section, mode: "insensitive" },
           },
         },
@@ -83,10 +83,10 @@ async function backfillStudentAttendance(tx, student) {
  *
  * @param {object} tx - Prisma transaction client context
  * @param {number} courseId - ID of the course
- * @param {object} newRules - { department, semester, section }
+ * @param {object} newRules - { department, year, section }
  */
 async function backfillCourseStudents(tx, courseId, newRules) {
-  if (!newRules.department || !newRules.semester || !newRules.section) {
+  if (!newRules.department || !newRules.year || !newRules.section) {
     return;
   }
 
@@ -94,7 +94,7 @@ async function backfillCourseStudents(tx, courseId, newRules) {
   const matchingStudents = await tx.student.findMany({
     where: {
       department: { equals: newRules.department, mode: "insensitive" },
-      semester: newRules.semester,
+      year: newRules.year,
       section: { equals: newRules.section, mode: "insensitive" },
     },
   });

@@ -24,7 +24,7 @@ export default function RegisterScreen({ navigation }) {
 
   // Conditionally rendered student fields
   const [rollNumber, setRollNumber] = useState("");
-  const [semester, setSemester] = useState("");
+  const [year, setYear] = useState("");
   const [section, setSection] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,23 +63,23 @@ export default function RegisterScreen({ navigation }) {
     if (role === "student") {
       const trimmedRoll = rollNumber.trim();
       const trimmedSection = section.trim();
-      const trimmedSemester = semester.trim();
+      const trimmedYear = year.trim();
 
-      if (!trimmedRoll || !trimmedSection || !trimmedSemester) {
+      if (!trimmedRoll || !trimmedSection || !trimmedYear) {
         setErrorMessage("Please fill in all student details.");
         return;
       }
 
-      const semNum = parseInt(trimmedSemester, 10);
+      const semNum = parseInt(trimmedYear, 10);
       if (isNaN(semNum) || semNum <= 0) {
-        setErrorMessage("Semester must be a positive number.");
+        setErrorMessage("Year must be a positive number.");
         return;
       }
 
       registrationData = {
         ...registrationData,
         rollNumber: trimmedRoll,
-        semester: semNum,
+        year: semNum,
         section: trimmedSection,
       };
     }
@@ -217,11 +217,11 @@ export default function RegisterScreen({ navigation }) {
                 <Layers size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   keyboardType="number-pad"
-                  placeholder="Semester (e.g. 6)"
+                  placeholder="Year (e.g. 6)"
                   placeholderTextColor={COLORS.textSecondary}
                   style={styles.input}
-                  value={semester}
-                  onChangeText={setSemester}
+                  value={year}
+                  onChangeText={setYear}
                 />
               </View>
 

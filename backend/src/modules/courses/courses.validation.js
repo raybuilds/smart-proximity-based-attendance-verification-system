@@ -1,5 +1,5 @@
 const { z } = require("zod");
-const { MIN_SEMESTER, MAX_SEMESTER } = require("../../constants/academic");
+const { MIN_YEAR } = require("../../constants/academic");
 
 const createCourseSchema = z.object({
   name: z
@@ -19,12 +19,12 @@ const createCourseSchema = z.object({
     .max(100, "Department cannot exceed 100 characters")
     .optional()
     .nullable(),
-  semester: z
+  year: z
     .preprocess((val) => {
       if (val === "" || val === undefined || val === null) return null;
       const parsed = parseInt(val, 10);
       return isNaN(parsed) ? val : parsed;
-    }, z.number().int().min(MIN_SEMESTER, `Semester must be at least ${MIN_SEMESTER}`).max(MAX_SEMESTER, `Semester cannot exceed ${MAX_SEMESTER}`).nullable())
+    }, z.number().int().min(MIN_YEAR, `Year must be at least ${MIN_YEAR}`).nullable())
     .optional(),
   section: z
     .string()
@@ -52,12 +52,12 @@ const updateCourseSchema = z.object({
     .max(100, "Department cannot exceed 100 characters")
     .optional()
     .nullable(),
-  semester: z
+  year: z
     .preprocess((val) => {
       if (val === "" || val === undefined || val === null) return null;
       const parsed = parseInt(val, 10);
       return isNaN(parsed) ? val : parsed;
-    }, z.number().int().min(MIN_SEMESTER, `Semester must be at least ${MIN_SEMESTER}`).max(MAX_SEMESTER, `Semester cannot exceed ${MAX_SEMESTER}`).nullable())
+    }, z.number().int().min(MIN_YEAR, `Year must be at least ${MIN_YEAR}`).nullable())
     .optional(),
   section: z
     .string()

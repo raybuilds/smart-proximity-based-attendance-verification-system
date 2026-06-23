@@ -259,7 +259,7 @@ export default function TeacherReportsScreen({ navigation, route }) {
           <FileText size={22} color={COLORS.primary} style={styles.titleIcon} />
           <Text style={styles.screenTitle}>Performance Report Center</Text>
         </View>
-        <Text style={styles.headerSubtitle}>Analyze semester course metrics and attendance records</Text>
+        <Text style={styles.headerSubtitle}>Analyze year course metrics and attendance records</Text>
       </View>
 
       {errorMessage ? (

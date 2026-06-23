@@ -115,7 +115,7 @@ export default function AdminTeacherDetailScreen({ route }) {
               ) : null}
             </View>
             <Text style={styles.courseMeta}>
-              Roster: {course.department} | Sem: {course.semester} | Sec: {course.section}
+              Roster: {course.department} | Sem: {course.year} | Sec: {course.section}
             </Text>
           </View>
         ))

@@ -14,7 +14,7 @@ export async function getAdminStudents(filters = {}) {
   const params = new URLSearchParams();
   if (filters.search) params.append("search", filters.search);
   if (filters.department) params.append("department", filters.department);
-  if (filters.semester) params.append("semester", filters.semester.toString());
+  if (filters.year) params.append("year", filters.year.toString());
   if (filters.section) params.append("section", filters.section);
 
   const queryString = params.toString();

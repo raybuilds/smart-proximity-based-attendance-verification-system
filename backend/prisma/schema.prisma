@@ -28,12 +28,12 @@ model Student {
   userId     Int      @unique
   rollNumber String   @unique
   department String
-  semester   Int
+  year       Int
   section    String
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([department, semester, section])
+  @@index([department, year, section])
 }
 
 model Teacher {
@@ -62,7 +62,7 @@ model AttendanceSession {
   courseId           Int?
   departmentSnapshot String?
   sectionSnapshot    String?
-  semesterSnapshot   Int?
+  yearSnapshot       Int?
   attendanceRecords  Attendance[]
   course             Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher            User            @relation("TeacherSessions", fields: [teacherId], references: [id], onDelete: Cascade)
@@ -129,7 +129,7 @@ model Course {
   department    String?
   isArchived    Boolean             @default(false)
   section       String?
-  semester      Int?
+  year          Int?
   code          String?
   sessions      AttendanceSession[]
   teacher       Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)

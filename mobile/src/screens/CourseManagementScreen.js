@@ -40,7 +40,7 @@ export default function CourseManagementScreen() {
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [department, setDepartment] = useState("");
-  const [semester, setSemester] = useState("");
+  const [year, setYear] = useState("");
   const [section, setSection] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -99,7 +99,7 @@ export default function CourseManagementScreen() {
       name: trimmed,
       code: courseCode.trim() || null,
       department: department.trim() || null,
-      semester: semester.trim() ? parseInt(semester, 10) : null,
+      year: year.trim() ? parseInt(year, 10) : null,
       section: section.trim() || null,
     };
 
@@ -120,7 +120,7 @@ export default function CourseManagementScreen() {
       setCourseName("");
       setCourseCode("");
       setDepartment("");
-      setSemester("");
+      setYear("");
       setSection("");
       
       const response = await getCourses(showArchived);
@@ -139,7 +139,7 @@ export default function CourseManagementScreen() {
     setCourseName(course.name);
     setCourseCode(course.code || "");
     setDepartment(course.department || "");
-    setSemester(course.semester ? course.semester.toString() : "");
+    setYear(course.year ? course.year.toString() : "");
     setSection(course.section || "");
     setErrorMessage("");
     setSuccessMessage("");
@@ -150,7 +150,7 @@ export default function CourseManagementScreen() {
     setCourseName("");
     setCourseCode("");
     setDepartment("");
-    setSemester("");
+    setYear("");
     setSection("");
     setErrorMessage("");
     setSuccessMessage("");
@@ -199,7 +199,7 @@ export default function CourseManagementScreen() {
 
   const livePreviewData = {
     department: department || null,
-    semester: semester ? parseInt(semester, 10) : null,
+    year: year ? parseInt(year, 10) : null,
     section: section || null,
   };
 
@@ -225,8 +225,8 @@ export default function CourseManagementScreen() {
               setCourseCode={setCourseCode}
               department={department}
               setDepartment={setDepartment}
-              semester={semester}
-              setSemester={setSemester}
+              year={year}
+              setYear={setYear}
               section={section}
               setSection={setSection}
               livePreviewData={livePreviewData}
@@ -365,8 +365,8 @@ const HeaderComponent = React.memo(({
   setCourseCode,
   department,
   setDepartment,
-  semester,
-  setSemester,
+  year,
+  setYear,
   section,
   setSection,
   livePreviewData,
@@ -435,15 +435,15 @@ const HeaderComponent = React.memo(({
             />
           </View>
           <View style={[styles.col, { marginHorizontal: SPACING.md }]}>
-            <Text style={styles.fieldLabel}>Semester</Text>
+            <Text style={styles.fieldLabel}>Year</Text>
             <TextInput
               placeholder="e.g. 6"
               placeholderTextColor={COLORS.textSecondary}
               keyboardType="number-pad"
               style={styles.input}
-              value={semester}
+              value={year}
               onChangeText={(text) => {
-                setSemester(text);
+                setYear(text);
                 if (errorMessage) setErrorMessage("");
                 if (successMessage) setSuccessMessage("");
               }}

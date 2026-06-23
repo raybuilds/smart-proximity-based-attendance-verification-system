@@ -26,11 +26,11 @@ async function getAdminRecentActivity(req, res, next) {
 
 async function getAdminStudents(req, res, next) {
   try {
-    const { search, department, semester, section } = req.query;
+    const { search, department, year, section } = req.query;
     const filters = {
       search,
       department,
-      semester: semester ? Number(semester) : undefined,
+      year: year ? Number(year) : undefined,
       section
     };
     const data = await adminService.getAdminStudents(filters);

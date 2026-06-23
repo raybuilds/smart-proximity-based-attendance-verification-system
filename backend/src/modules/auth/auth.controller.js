@@ -38,7 +38,7 @@ const registerSchema = z.object({
   }),
   rollNumber: z.string().optional(),
   department: z.string().trim().min(1, "Department is required"),
-  semester: z.number().optional(),
+  year: z.number().optional(),
   section: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.role === "student") {
@@ -49,11 +49,17 @@ const registerSchema = z.object({
         path: ["rollNumber"],
       });
     }
-    if (data.semester === undefined || data.semester === null) {
+    if (data.year === undefined || data.year === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Semester is required for students",
-        path: ["semester"],
+        message: "Year is required for students",
+        path: ["year"],
+      });
+    } else if (data.year < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Year must be greater than or equal to 1",
+        path: ["year"],
       });
     }
     if (!data.section || data.section.trim() === "") {

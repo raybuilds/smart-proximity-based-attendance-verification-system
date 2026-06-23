@@ -88,7 +88,7 @@ export default function AdminAtRiskScreen({ navigation }) {
         {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Bottom row: dept, semester, classes needed, risk badge */}
+        {/* Bottom row: dept, year, classes needed, risk badge */}
         <View style={styles.cardBottomRow}>
           <View style={styles.metaChipsRow}>
             {item.department ? (
@@ -97,9 +97,9 @@ export default function AdminAtRiskScreen({ navigation }) {
                 <Text style={styles.metaChipText}>{item.department}</Text>
               </View>
             ) : null}
-            {item.semester ? (
+            {item.year ? (
               <View style={styles.metaChip}>
-                <Text style={styles.metaChipText}>Sem {item.semester}</Text>
+                <Text style={styles.metaChipText}>Sem {item.year}</Text>
               </View>
             ) : null}
           </View>

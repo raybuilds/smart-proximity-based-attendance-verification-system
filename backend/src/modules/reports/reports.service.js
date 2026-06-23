@@ -29,7 +29,7 @@ async function getTeacherByUserId(userId) {
 
 // Helper to count eligible students using session snapshots
 async function getEligibleStudentCountForSession(session) {
-  if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
+  if (!session.departmentSnapshot && !session.yearSnapshot && !session.sectionSnapshot) {
     return prisma.student.count();
   }
   const where = {};
@@ -39,8 +39,8 @@ async function getEligibleStudentCountForSession(session) {
       mode: "insensitive",
     };
   }
-  if (session.semesterSnapshot) {
-    where.semester = session.semesterSnapshot;
+  if (session.yearSnapshot) {
+    where.year = session.yearSnapshot;
   }
   if (session.sectionSnapshot) {
     where.section = {
@@ -121,7 +121,7 @@ async function getTeacherDashboard(userId, range = "all") {
 
   const countCache = {};
   async function cachedStudentCount(sess) {
-    const key = `${sess.departmentSnapshot || ""}-${sess.semesterSnapshot || ""}-${sess.sectionSnapshot || ""}`;
+    const key = `${sess.departmentSnapshot || ""}-${sess.yearSnapshot || ""}-${sess.sectionSnapshot || ""}`;
     if (countCache[key] === undefined) {
       countCache[key] = await getEligibleStudentCountForSession(sess);
     }
@@ -452,14 +452,14 @@ async function getTeacherOverview(userId) {
 
   const totalCourses = courses.length;
 
-  // Find unique students matching (department, semester, section) of active courses
+  // Find unique students matching (department, year, section) of active courses
   const courseFilters = courses
     .map((c) => ({
       department: c.department,
-      semester: c.semester,
+      year: c.year,
       section: c.section,
     }))
-    .filter((f) => f.department && f.semester && f.section);
+    .filter((f) => f.department && f.year && f.section);
 
   let totalStudents = 0;
   if (courseFilters.length > 0) {
@@ -467,7 +467,7 @@ async function getTeacherOverview(userId) {
       where: {
         OR: courseFilters.map((f) => ({
           department: { equals: f.department, mode: "insensitive" },
-          semester: f.semester,
+          year: f.year,
           section: { equals: f.section, mode: "insensitive" },
         })),
       },
@@ -500,7 +500,7 @@ async function getTeacherOverview(userId) {
   const countCache = {};
 
   for (const session of sessions) {
-    const key = `${session.departmentSnapshot || ""}-${session.semesterSnapshot || ""}-${session.sectionSnapshot || ""}`;
+    const key = `${session.departmentSnapshot || ""}-${session.yearSnapshot || ""}-${session.sectionSnapshot || ""}`;
     if (countCache[key] === undefined) {
       countCache[key] = await getEligibleStudentCountForSession(session);
     }
@@ -518,7 +518,7 @@ async function getTeacherOverview(userId) {
   // Compute at-risk students (< 75% attendance within active courses)
   const atRiskSet = new Set();
   for (const course of courses) {
-    if (!course.department || !course.semester || !course.section) continue;
+    if (!course.department || !course.year || !course.section) continue;
 
     const courseSessions = sessions.filter((s) => s.courseId === course.id);
     const totalCourseSessions = courseSessions.length;
@@ -527,7 +527,7 @@ async function getTeacherOverview(userId) {
     const roster = await prisma.student.findMany({
       where: {
         department: { equals: course.department, mode: "insensitive" },
-        semester: course.semester,
+        year: course.year,
         section: { equals: course.section, mode: "insensitive" },
       },
     });
@@ -568,7 +568,7 @@ async function getTeacherOverview(userId) {
     let possible = 0;
 
     for (const session of courseSessions) {
-      const key = `${session.departmentSnapshot || ""}-${session.semesterSnapshot || ""}-${session.sectionSnapshot || ""}`;
+      const key = `${session.departmentSnapshot || ""}-${session.yearSnapshot || ""}-${session.sectionSnapshot || ""}`;
       const eligibleCount = countCache[key] !== undefined ? countCache[key] : await getEligibleStudentCountForSession(session);
       const presentRecCount = session.attendanceRecords.filter((r) => r.status !== "absent" && r.status !== "ABSENT").length;
       present += presentRecCount;
@@ -657,7 +657,7 @@ async function getStudentReports() {
         email: student.user.email,
         rollNumber: student.rollNumber,
         department: student.department,
-        semester: student.semester,
+        year: student.year,
         section: student.section,
         presentCount: attendanceCount,
         absentCount:
@@ -721,7 +721,7 @@ async function getStudentAttendanceHistory(
     verificationMethod: record.verificationMethod,
     courseName: record.session.course?.name || "Not Assigned",
     departmentSnapshot: record.session.departmentSnapshot,
-    semesterSnapshot: record.session.semesterSnapshot,
+    yearSnapshot: record.session.yearSnapshot,
     sectionSnapshot: record.session.sectionSnapshot,
   }));
 }
@@ -779,7 +779,7 @@ async function getTeacherCoursesReport(userId) {
       id: course.id,
       name: course.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       isArchived: course.isArchived,
       archivedAt: course.archivedAt,
@@ -835,7 +835,7 @@ async function getTeacherCourseDetailReport(userId, courseId) {
       id: course.id,
       name: course.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       isArchived: course.isArchived,
       archivedAt: course.archivedAt,
@@ -888,13 +888,13 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
   const sessions = course.sessions;
   const totalSessions = sessions.length;
 
-  // Query all students matching the course's department, semester, and section
+  // Query all students matching the course's department, year, and section
   let rosterStudents = [];
-  if (course.department && course.semester && course.section) {
+  if (course.department && course.year && course.section) {
     rosterStudents = await prisma.student.findMany({
       where: {
         department: { equals: course.department, mode: "insensitive" },
-        semester: course.semester,
+        year: course.year,
         section: { equals: course.section, mode: "insensitive" },
       },
       include: {
@@ -990,7 +990,7 @@ async function getTeacherCourseStudentsReport(userId, courseId) {
       id: course.id,
       name: course.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       isArchived: course.isArchived,
       archivedAt: course.archivedAt,
@@ -1154,7 +1154,7 @@ async function getStudentCourseAttendanceHistory(userId, courseId, studentId) {
       name: studentUser.name,
       rollNumber: studentUser.student ? studentUser.student.rollNumber : "N/A",
       department: studentUser.student ? studentUser.student.department : "N/A",
-      semester: studentUser.student ? studentUser.student.semester : 0,
+      year: studentUser.student ? studentUser.student.year : 0,
       section: studentUser.student ? studentUser.student.section : "N/A",
     },
     course: {
@@ -1329,7 +1329,7 @@ async function getStudentCoursesReport(studentUserId) {
   const rosterCourses = await prisma.course.findMany({
     where: {
       department: { equals: student.department, mode: "insensitive" },
-      semester: student.semester,
+      year: student.year,
       section: { equals: student.section, mode: "insensitive" },
     },
     include: {
@@ -1467,9 +1467,9 @@ async function getStudentCourseDetailReport(studentUserId, courseId) {
     throw error;
   }
 
-  const isRosterMatched = course.department && course.semester && course.section &&
+  const isRosterMatched = course.department && course.year && course.section &&
     course.department.toLowerCase() === student.department.toLowerCase() &&
-    course.semester === student.semester &&
+    course.year === student.year &&
     course.section.toLowerCase() === student.section.toLowerCase();
 
   const hasRecords = course.sessions.some(s => s.attendanceRecords.length > 0);

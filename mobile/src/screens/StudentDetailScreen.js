@@ -70,7 +70,7 @@ export default function StudentDetailScreen({
         </Text>
 
         <Text style={styles.text}>
-          Semester: {student.semester}
+          Year: {student.year}
         </Text>
 
         <Text style={styles.text}>

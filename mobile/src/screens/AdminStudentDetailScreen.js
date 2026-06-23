@@ -59,7 +59,7 @@ export default function AdminStudentDetailScreen({ route }) {
         <Text style={styles.profileMeta}>Roll Number: {profile.rollNumber}</Text>
         <Text style={styles.profileMeta}>Email: {profile.email}</Text>
         <Text style={styles.profileMeta}>Department: {profile.department}</Text>
-        <Text style={styles.profileMeta}>Semester: {profile.semester} | Section: {profile.section}</Text>
+        <Text style={styles.profileMeta}>Year: {profile.year} | Section: {profile.section}</Text>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Status: </Text>
           <View style={[styles.statusBadge, profile.isActive ? styles.badgeActive : styles.badgeInactive]}>

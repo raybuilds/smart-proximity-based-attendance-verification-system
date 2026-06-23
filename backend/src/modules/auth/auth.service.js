@@ -90,10 +90,10 @@ async function registerUser({
   role,
   rollNumber,
   department,
-  semester,
+  year,
   section,
 }) {
-  console.log("REGISTER SERVICE INCOMING:", { name, email, role, rollNumber, department, semester, section });
+  console.log("REGISTER SERVICE INCOMING:", { name, email, role, rollNumber, department, year, section });
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -159,7 +159,7 @@ async function registerUser({
                 create: {
                   rollNumber,
                   department,
-                  semester,
+                  year,
                   section,
                 },
               },

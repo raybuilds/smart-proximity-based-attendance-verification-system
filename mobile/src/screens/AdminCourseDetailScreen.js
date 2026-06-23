@@ -102,7 +102,7 @@ export default function AdminCourseDetailScreen({ route, navigation }) {
         <Text style={styles.courseName}>{course.name}</Text>
         <Text style={styles.teacherName}>Instructor: {teacher.name} ({teacher.email})</Text>
         <Text style={styles.metaText}>
-          Dept: {course.department} | Sem: {course.semester} | Sec: {course.section}
+          Dept: {course.department} | Sem: {course.year} | Sec: {course.section}
         </Text>
       </View>
 

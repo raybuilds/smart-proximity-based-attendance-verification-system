@@ -65,19 +65,19 @@ async function runTests() {
   const student = await prisma.student.findFirst({
     where: {
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
     },
     include: { user: true }
   });
   if (!student) {
-    console.error("ERROR: No student found matching course department/semester/section.");
+    console.error("ERROR: No student found matching course department/year/section.");
     process.exit(1);
   }
 
   console.log(`Teacher: ID ${teacher.userId} (${teacher.user.name})`);
   console.log(`Course:  ID ${course.id} (${course.name})`);
-  console.log(`Student: ID ${student.userId} (${student.user.name}), Dept: ${student.department}, Sem: ${student.semester}, Sec: ${student.section}`);
+  console.log(`Student: ID ${student.userId} (${student.user.name}), Dept: ${student.department}, Sem: ${student.year}, Sec: ${student.section}`);
 
   // Generate JWT token for the teacher
   const token = jwt.sign(
@@ -122,7 +122,7 @@ async function runTests() {
           startedAt: new Date(Date.now() - (3 - i) * 24 * 60 * 60 * 1000), // chronological spacing
           endedAt: new Date(),
           departmentSnapshot: course.department,
-          semesterSnapshot: course.semester,
+          yearSnapshot: course.year,
           sectionSnapshot: course.section,
         }
       });

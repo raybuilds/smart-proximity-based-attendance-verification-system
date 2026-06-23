@@ -107,7 +107,7 @@ export default function AdminArchivedCourseDetailScreen({ route, navigation }) {
         <Text style={styles.courseCode}>{course.code || "N/A"}</Text>
         <Text style={styles.courseName}>{course.name}</Text>
         <Text style={styles.metaText}>
-          Dept: {course.department} | Sem: {course.semester} | Sec: {course.section}
+          Dept: {course.department} | Sem: {course.year} | Sec: {course.section}
         </Text>
         <Text style={styles.archiveDateText}>Archived on: {archiveDateStr}</Text>
       </View>

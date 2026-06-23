@@ -59,7 +59,7 @@ export default function AdminCourseListScreen({ navigation }) {
             <Text style={styles.courseName}>{item.courseName}</Text>
             <Text style={styles.teacherName}>Instructor: {item.teacherName}</Text>
             <Text style={styles.metaText}>
-              Dept: {item.department} | Sem: {item.semester} | Sec: {item.section}
+              Dept: {item.department} | Sem: {item.year} | Sec: {item.section}
             </Text>
           </View>
           <View style={styles.sideInfo}>

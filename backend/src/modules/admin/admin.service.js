@@ -11,7 +11,7 @@ class AppError extends Error {
 
 // Helper to count eligible students using session snapshots
 async function getEligibleStudentCountForSession(session) {
-  if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
+  if (!session.departmentSnapshot && !session.yearSnapshot && !session.sectionSnapshot) {
     return prisma.student.count();
   }
   const where = {};
@@ -21,8 +21,8 @@ async function getEligibleStudentCountForSession(session) {
       mode: "insensitive",
     };
   }
-  if (session.semesterSnapshot) {
-    where.semester = session.semesterSnapshot;
+  if (session.yearSnapshot) {
+    where.year = session.yearSnapshot;
   }
   if (session.sectionSnapshot) {
     where.section = {
@@ -162,14 +162,14 @@ async function getAdminRecentActivity() {
 }
 
 async function getAdminStudents(filters = {}) {
-  const { search, department, semester, section } = filters;
+  const { search, department, year, section } = filters;
 
   const where = {};
   if (department) {
     where.department = { equals: department, mode: "insensitive" };
   }
-  if (semester) {
-    where.semester = Number(semester);
+  if (year) {
+    where.year = Number(year);
   }
   if (section) {
     where.section = { equals: section, mode: "insensitive" };
@@ -208,7 +208,7 @@ async function getAdminStudents(filters = {}) {
       name: student.user.name,
       rollNumber: student.rollNumber,
       department: student.department,
-      semester: student.semester,
+      year: student.year,
       section: student.section,
       overallAttendance,
       isActive: student.user.isActive
@@ -240,7 +240,7 @@ async function getAdminStudentDetail(studentId) {
       email: student.user.email,
       rollNumber: student.rollNumber,
       department: student.department,
-      semester: student.semester,
+      year: student.year,
       section: student.section,
       isActive: student.user.isActive
     },
@@ -270,11 +270,11 @@ async function getAdminTeachers() {
     // Unique students in their active courses
     const studentIds = new Set();
     for (const course of teacher.courses) {
-      if (!course.isArchived && course.department && course.semester && course.section) {
+      if (!course.isArchived && course.department && course.year && course.section) {
         const students = await prisma.student.findMany({
           where: {
             department: { equals: course.department, mode: "insensitive" },
-            semester: course.semester,
+            year: course.year,
             section: { equals: course.section, mode: "insensitive" },
           }
         });
@@ -375,7 +375,7 @@ async function getAdminTeacherDetail(teacherId) {
       code: c.code,
       name: c.name,
       department: c.department,
-      semester: c.semester,
+      year: c.year,
       section: c.section,
       isArchived: c.isArchived
     })),
@@ -418,11 +418,11 @@ async function getAdminCourses() {
   const list = [];
   for (const course of courses) {
     let studentCount = 0;
-    if (course.department && course.semester && course.section) {
+    if (course.department && course.year && course.section) {
       studentCount = await prisma.student.count({
         where: {
           department: { equals: course.department, mode: "insensitive" },
-          semester: course.semester,
+          year: course.year,
           section: { equals: course.section, mode: "insensitive" }
         }
       });
@@ -450,7 +450,7 @@ async function getAdminCourses() {
       courseName: course.name,
       teacherName: course.teacher.user.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       studentCount,
       attendancePercentage,
@@ -482,11 +482,11 @@ async function getAdminCourseDetail(courseId) {
   const totalSessions = course.sessions.length;
 
   let studentCount = 0;
-  if (course.department && course.semester && course.section) {
+  if (course.department && course.year && course.section) {
     studentCount = await prisma.student.count({
       where: {
         department: { equals: course.department, mode: "insensitive" },
-        semester: course.semester,
+        year: course.year,
         section: { equals: course.section, mode: "insensitive" }
       }
     });
@@ -513,11 +513,11 @@ async function getAdminCourseDetail(courseId) {
   });
 
   let defaulters = [];
-  if (totalSessions > 0 && course.department && course.semester && course.section) {
+  if (totalSessions > 0 && course.department && course.year && course.section) {
     const students = await prisma.student.findMany({
       where: {
         department: { equals: course.department, mode: "insensitive" },
-        semester: course.semester,
+        year: course.year,
         section: { equals: course.section, mode: "insensitive" }
       },
       include: { user: true }
@@ -578,7 +578,7 @@ async function getAdminCourseDetail(courseId) {
       code: course.code,
       name: course.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       isArchived: course.isArchived
     },
@@ -730,7 +730,7 @@ async function getAdminAtRisk() {
           studentId: s.id,
           name: s.user.name,
           department: s.department,
-          semester: s.semester,
+          year: s.year,
           attendancePercentage: report.overallAttendancePercentage,
           classesNeededFor75
         });
@@ -962,11 +962,11 @@ async function getArchivedCourseDetail(courseId) {
   const totalSessions = course.sessions.length;
 
   let studentCount = 0;
-  if (course.department && course.semester && course.section) {
+  if (course.department && course.year && course.section) {
     studentCount = await prisma.student.count({
       where: {
         department: { equals: course.department, mode: "insensitive" },
-        semester: course.semester,
+        year: course.year,
         section: { equals: course.section, mode: "insensitive" }
       }
     });
@@ -1025,7 +1025,7 @@ async function getArchivedCourseDetail(courseId) {
       code: course.code,
       name: course.name,
       department: course.department,
-      semester: course.semester,
+      year: course.year,
       section: course.section,
       isArchived: course.isArchived,
       archivedAt: course.archivedAt

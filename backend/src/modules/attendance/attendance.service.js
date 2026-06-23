@@ -47,7 +47,7 @@ async function getTeacherActiveSession(teacherId) {
           id: true,
           name: true,
           department: true,
-          semester: true,
+          year: true,
           section: true,
         },
       },
@@ -108,7 +108,7 @@ async function startSession(userId, courseId, rssiThreshold) {
       }
 
       // Prevent starting sessions for empty eligibility groups
-      if (course.department || course.semester || course.section) {
+      if (course.department || course.year || course.section) {
         const where = {};
         if (course.department) {
           where.department = {
@@ -116,8 +116,8 @@ async function startSession(userId, courseId, rssiThreshold) {
             mode: "insensitive",
           };
         }
-        if (course.semester) {
-          where.semester = course.semester;
+        if (course.year) {
+          where.year = course.year;
         }
         if (course.section) {
           where.section = {
@@ -193,7 +193,7 @@ async function startSession(userId, courseId, rssiThreshold) {
           rssiThreshold: rssiThreshold ? parseInt(rssiThreshold, 10) : -70,
           isActive: true,
           departmentSnapshot: course.department,
-          semesterSnapshot: course.semester,
+          yearSnapshot: course.year,
           sectionSnapshot: course.section,
         },
         include: {
@@ -203,7 +203,7 @@ async function startSession(userId, courseId, rssiThreshold) {
               id: true,
               name: true,
               department: true,
-              semester: true,
+              year: true,
               section: true,
             },
           },
@@ -280,7 +280,7 @@ async function endSession(teacherId) {
           id: true,
           name: true,
           department: true,
-          semester: true,
+          year: true,
           section: true,
         },
       },
@@ -332,7 +332,7 @@ async function getActiveSessionStats(teacherId) {
 
   // Count eligible students
   let enrolledCount = 0;
-  if (!session.departmentSnapshot && !session.semesterSnapshot && !session.sectionSnapshot) {
+  if (!session.departmentSnapshot && !session.yearSnapshot && !session.sectionSnapshot) {
     enrolledCount = await prisma.student.count();
   } else {
     const where = {};
@@ -342,8 +342,8 @@ async function getActiveSessionStats(teacherId) {
         mode: "insensitive",
       };
     }
-    if (session.semesterSnapshot) {
-      where.semester = session.semesterSnapshot;
+    if (session.yearSnapshot) {
+      where.year = session.yearSnapshot;
     }
     if (session.sectionSnapshot) {
       where.section = {

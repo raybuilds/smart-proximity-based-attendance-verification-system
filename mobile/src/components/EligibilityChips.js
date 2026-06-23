@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 export default function EligibilityChips({ eligibility, isArchived }) {
   const containerStyle = [styles.container];
   
-  if (!eligibility || (!eligibility.department && !eligibility.semester && !eligibility.section)) {
+  if (!eligibility || (!eligibility.department && !eligibility.year && !eligibility.section)) {
     return (
       <View style={containerStyle}>
         <View style={[styles.chip, styles.fallbackChip]}>
@@ -21,7 +21,7 @@ export default function EligibilityChips({ eligibility, isArchived }) {
 
   const chips = [];
   if (eligibility.department) chips.push({ label: eligibility.department });
-  if (eligibility.semester) chips.push({ label: `Sem ${eligibility.semester}` });
+  if (eligibility.year) chips.push({ label: `Sem ${eligibility.year}` });
   if (eligibility.section) chips.push({ label: `Sec ${eligibility.section}` });
 
   return (

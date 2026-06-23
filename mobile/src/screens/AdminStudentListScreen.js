@@ -19,7 +19,7 @@ export default function AdminStudentListScreen({ navigation }) {
   const [filters, setFilters] = useState({
     search: "",
     department: "",
-    semester: "",
+    year: "",
     section: ""
   });
 
@@ -125,7 +125,7 @@ export default function AdminStudentListScreen({ navigation }) {
           </View>
           <View style={styles.detailChip}>
             <Layers size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-            <Text style={styles.detailText}>Sem {item.semester}</Text>
+            <Text style={styles.detailText}>Sem {item.year}</Text>
           </View>
           <View style={styles.detailChip}>
             <Text style={styles.detailText}>Sec {item.section}</Text>
@@ -176,8 +176,8 @@ export default function AdminStudentListScreen({ navigation }) {
           placeholder="Sem"
           placeholderTextColor={COLORS.textSecondary}
           keyboardType="numeric"
-          value={filters.semester}
-          onChangeText={(text) => setFilters((prev) => ({ ...prev, semester: text }))}
+          value={filters.year}
+          onChangeText={(text) => setFilters((prev) => ({ ...prev, year: text }))}
         />
         <TextInput
           style={styles.filterInput}
