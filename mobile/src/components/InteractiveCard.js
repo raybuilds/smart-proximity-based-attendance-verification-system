@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
 import { Animated, Pressable, StyleSheet } from "react-native";
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export default function InteractiveCard({ children, onPress, style, disabled }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -22,7 +24,7 @@ export default function InteractiveCard({ children, onPress, style, disabled }) 
   };
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -33,6 +35,6 @@ export default function InteractiveCard({ children, onPress, style, disabled }) 
       ]}
     >
       {children}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
