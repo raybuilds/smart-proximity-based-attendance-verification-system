@@ -5,12 +5,15 @@ import {
   Text,
   View,
   Pressable,
-  ActivityIndicator,
   RefreshControl
 } from "react-native";
-import { BookOpen, ChevronRight, User, Layers, AlertCircle, BookMarked, Radio } from "lucide-react-native";
+import { BookOpen } from "lucide-react-native";
 import { getAdminCourses } from "../services/admin";
-import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS } from "../utils/theme";
+import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import FadeInContainer from "../components/FadeInContainer";
+import InteractiveCard from "../components/InteractiveCard";
+import SkeletonCard from "../components/SkeletonCard";
+import EmptyState from "../components/EmptyState";
 
 export default function AdminCourseListScreen({ navigation }) {
   const [courses, setCourses] = useState([]);
@@ -49,7 +52,7 @@ export default function AdminCourseListScreen({ navigation }) {
 
   const renderCourseItem = ({ item }) => {
     return (
-      <Pressable
+      <InteractiveCard
         style={styles.card}
         onPress={() => navigation.navigate("AdminCourseDetail", { id: item.courseId })}
       >
@@ -74,14 +77,17 @@ export default function AdminCourseListScreen({ navigation }) {
             ) : null}
           </View>
         </View>
-      </Pressable>
+      </InteractiveCard>
     );
   };
 
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <SkeletonCard height={96} marginVertical={8} />
+        <SkeletonCard height={96} marginVertical={8} />
+        <SkeletonCard height={96} marginVertical={8} />
+        <SkeletonCard height={96} marginVertical={8} />
       </View>
     );
   }
@@ -100,7 +106,7 @@ export default function AdminCourseListScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <FadeInContainer style={styles.container}>
       <FlatList
         data={courses}
         keyExtractor={(item) => item.courseId.toString()}
@@ -110,20 +116,20 @@ export default function AdminCourseListScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No courses found</Text>
-          </View>
+          <EmptyState
+            Icon={BookOpen}
+            title="No Courses Yet"
+            description="Create a course to begin managing attendance."
+          />
         }
       />
-    </View>
+    </FadeInContainer>
   );
 }
 
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: COLORS.background,
     padding: 16
   },
@@ -232,17 +238,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#EF4444"
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#64748b",
-    fontFamily: TYPOGRAPHY.body.fontFamily
-  },
   errorCard: {
     backgroundColor: "#FEE2E2",
     borderRadius: LAYOUT.cardRadius,
@@ -260,7 +255,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: LAYOUT.buttonRadius,
     paddingVertical: 10,
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
+    alignItems: "center"
   },
   retryButtonText: {
     color: "#FFFFFF",

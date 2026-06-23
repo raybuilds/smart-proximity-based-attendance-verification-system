@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { BookOpen, AlertTriangle, ShieldCheck, Inbox } from "lucide-react-native";
+import { AlertTriangle, Inbox } from "lucide-react-native";
 import { getStudentCourses } from "../services/reports";
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BADGES, LAYOUT, FONTS } from "../utils/theme";
+import FadeInContainer from "../components/FadeInContainer";
+import InteractiveCard from "../components/InteractiveCard";
+import SkeletonCard from "../components/SkeletonCard";
+import EmptyState from "../components/EmptyState";
 
 export default function AttendanceHistoryScreen({ navigation }) {
   const [data, setData] = useState(null);
@@ -36,7 +38,9 @@ export default function AttendanceHistoryScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <SkeletonCard height={120} marginVertical={12} />
+        <SkeletonCard height={96} marginVertical={12} />
+        <SkeletonCard height={96} marginVertical={12} />
       </View>
     );
   }
@@ -48,11 +52,11 @@ export default function AttendanceHistoryScreen({ navigation }) {
   const renderHeader = () => (
     <View>
       {/* Top Summary Card */}
-      <View style={styles.summaryCard}>
+      <InteractiveCard style={styles.summaryCard} onPress={() => {}}>
         <Text style={styles.summaryTitle}>Overall Attendance</Text>
         <Text style={styles.summaryValue}>{overallAttendancePercentage}%</Text>
         <Text style={styles.summaryFooter}>Courses Enrolled: {courses.length}</Text>
-      </View>
+      </InteractiveCard>
 
       {/* At Risk Quick View */}
       {atRiskCourses.length > 0 && (
@@ -62,7 +66,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
             <Text style={styles.sectionTitle}>At Risk Quick View</Text>
           </View>
           {atRiskCourses.map((item) => (
-            <Pressable
+            <InteractiveCard
               key={item.courseId}
               style={[styles.quickViewCard, styles.borderError]}
               onPress={() =>
@@ -82,7 +86,7 @@ export default function AttendanceHistoryScreen({ navigation }) {
               <Text style={styles.recoveryText}>
                 Need {item.classesNeededFor75} consecutive classes to reach 75%
               </Text>
-            </Pressable>
+            </InteractiveCard>
           ))}
         </View>
       )}
@@ -92,110 +96,94 @@ export default function AttendanceHistoryScreen({ navigation }) {
   );
 
   return (
-    <FlatList
-      data={courses}
-      keyExtractor={(item) => item.courseId.toString()}
-      contentContainerStyle={[styles.container, courses.length === 0 && { flexGrow: 1 }]}
-      ListHeaderComponent={renderHeader}
-      renderItem={({ item }) => {
-        let badgeStyle = BADGES.success;
-        let badgeText = "SAFE";
-        let cardBorderStyle = styles.borderSafe;
-        let percentageTextStyle = styles.textSafe;
+    <FadeInContainer style={{ flex: 1 }}>
+      <FlatList
+        data={courses}
+        keyExtractor={(item) => item.courseId.toString()}
+        contentContainerStyle={[styles.container, courses.length === 0 && { flexGrow: 1 }]}
+        ListHeaderComponent={renderHeader}
+        renderItem={({ item }) => {
+          let badgeStyle = BADGES.success;
+          let badgeText = "SAFE";
+          let cardBorderStyle = styles.borderSafe;
+          let percentageTextStyle = styles.textSafe;
 
-        if (item.riskLevel === "warning") {
-          badgeStyle = BADGES.warning;
-          badgeText = "WARNING";
-          cardBorderStyle = styles.borderWarning;
-          percentageTextStyle = styles.textWarning;
-        } else if (item.riskLevel === "atRisk") {
-          badgeStyle = BADGES.danger;
-          badgeText = "AT RISK";
-          cardBorderStyle = styles.borderError;
-          percentageTextStyle = styles.textError;
+          if (item.riskLevel === "warning") {
+            badgeStyle = BADGES.warning;
+            badgeText = "WARNING";
+            cardBorderStyle = styles.borderWarning;
+            percentageTextStyle = styles.textWarning;
+          } else if (item.riskLevel === "atRisk") {
+            badgeStyle = BADGES.danger;
+            badgeText = "AT RISK";
+            cardBorderStyle = styles.borderError;
+            percentageTextStyle = styles.textError;
+          }
+
+          return (
+            <InteractiveCard
+              style={[styles.courseCard, cardBorderStyle]}
+              onPress={() =>
+                navigation.navigate("StudentCourseAttendance", {
+                  courseId: item.courseId,
+                })
+              }
+            >
+              <View style={styles.row}>
+                <Text style={styles.courseTitle} numberOfLines={2}>
+                  {item.courseCode ? `${item.courseCode} - ${item.courseName}` : item.courseName}
+                </Text>
+                <View style={[styles.badge, badgeStyle]}>
+                  <Text style={[styles.badgeText, { color: badgeStyle.color }]}>{badgeText}</Text>
+                </View>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.detailLabel}>Attendance</Text>
+                  <Text style={[styles.detailValue, percentageTextStyle]}>
+                    {item.attendancePercentage}%
+                  </Text>
+                </View>
+                <View style={{ flex: 1, alignItems: "flex-end" }}>
+                  <Text style={styles.detailLabel}>Present</Text>
+                  <Text style={styles.detailValue}>
+                    {item.presentCount} / {item.totalSessions}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.cardFooter}>
+                {item.attendancePercentage < 75 ? (
+                  <Text style={styles.recoveryFooterText}>
+                    Need {item.classesNeededFor75} more consecutive classes to reach 75%
+                  </Text>
+                ) : (
+                  <Text style={styles.safeFooterText}>
+                    Attendance Requirement Met
+                  </Text>
+                )}
+              </View>
+            </InteractiveCard>
+          );
+        }}
+        ListEmptyComponent={
+          <EmptyState
+            Icon={Inbox}
+            title="No Courses Found"
+            description="You are not enrolled in any attendance tracking courses yet."
+          />
         }
-
-        return (
-          <Pressable
-            style={[styles.courseCard, cardBorderStyle]}
-            onPress={() =>
-              navigation.navigate("StudentCourseAttendance", {
-                courseId: item.courseId,
-              })
-            }
-          >
-            <View style={styles.row}>
-              <Text style={styles.courseTitle} numberOfLines={2}>
-                {item.courseCode ? `${item.courseCode} - ${item.courseName}` : item.courseName}
-              </Text>
-              <View style={[styles.badge, badgeStyle]}>
-                <Text style={[styles.badgeText, { color: badgeStyle.color }]}>{badgeText}</Text>
-              </View>
-            </View>
-
-            <View style={styles.detailsRow}>
-              <View>
-                <Text style={styles.detailLabel}>Attendance</Text>
-                <Text style={[styles.detailValue, percentageTextStyle]}>
-                  {item.attendancePercentage}%
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.detailLabel}>Present</Text>
-                <Text style={styles.detailValue}>
-                  {item.presentCount} / {item.totalSessions}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.cardFooter}>
-              {item.attendancePercentage < 75 ? (
-                <Text style={styles.recoveryFooterText}>
-                  Need {item.classesNeededFor75} more consecutive classes to reach 75%
-                </Text>
-              ) : (
-                <Text style={styles.safeFooterText}>
-                  Attendance Requirement Met
-                </Text>
-              )}
-            </View>
-          </Pressable>
-        );
-      }}
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Inbox size={48} color={COLORS.primary} strokeWidth={1.5} />
-          </View>
-          <Text style={styles.emptyHeading}>No courses available yet</Text>
-          <Text style={styles.emptySubheading}>Courses will appear here when:</Text>
-          
-          <View style={styles.emptyBulletsBox}>
-            <Text style={styles.emptyBullet}>
-              • A teacher creates a course matching your profile
-            </Text>
-            <Text style={styles.emptyBullet}>
-              • You attend your first class
-            </Text>
-          </View>
-
-          {courses.length === 0 && overallAttendancePercentage === 100 && (
-            <Text style={styles.emptyCaption}>
-              You're all set. Once your first course becomes available, it will appear here automatically.
-            </Text>
-          )}
-        </View>
-      }
-    />
+      />
+    </FadeInContainer>
   );
 }
 
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: COLORS.background,
+    padding: 16
   },
   container: {
     padding: SPACING.base,
@@ -363,59 +351,5 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontWeight: "600",
     fontFamily: FONTS.body,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: 40,
-  },
-  emptyIconContainer: {
-    marginBottom: SPACING.base,
-    backgroundColor: COLORS.primaryLight,
-    padding: SPACING.base,
-    borderRadius: RADIUS.full,
-  },
-  emptyHeading: {
-    fontSize: TYPOGRAPHY.sizes.sectionTitle,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    fontFamily: FONTS.heading,
-    textAlign: "center",
-    marginBottom: SPACING.xs,
-  },
-  emptySubheading: {
-    fontSize: TYPOGRAPHY.sizes.body,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
-    fontFamily: FONTS.body,
-    textAlign: "center",
-    marginBottom: SPACING.sm,
-  },
-  emptyBulletsBox: {
-    alignSelf: "stretch",
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.base,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.base,
-  },
-  emptyBullet: {
-    fontSize: TYPOGRAPHY.sizes.body,
-    color: COLORS.text,
-    fontFamily: FONTS.body,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  emptyCaption: {
-    fontSize: TYPOGRAPHY.sizes.metadata,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.body,
-    textAlign: "center",
-    lineHeight: 18,
-    fontStyle: "italic",
-    paddingHorizontal: 12,
   },
 });

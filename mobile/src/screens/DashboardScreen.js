@@ -26,6 +26,10 @@ import { useAuth } from "../context/AuthContext";
 import { getProtectedProfile } from "../services/auth";
 import { getStudentSelfReport, getStudentCourses } from "../services/reports";
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BUTTON_VARIANTS, BADGES, LAYOUT, FONTS } from "../utils/theme";
+import FadeInContainer from "../components/FadeInContainer";
+import InteractiveCard from "../components/InteractiveCard";
+import SkeletonCard from "../components/SkeletonCard";
+import AnimatedNumber from "../components/AnimatedNumber";
 
 export default function DashboardScreen({ navigation }) {
   const { user, signOut } = useAuth();
@@ -119,180 +123,194 @@ export default function DashboardScreen({ navigation }) {
   const presentCount = attendanceReport?.presentCount ?? 0;
   const classesNeeded = Math.max(0, (3 * totalSessions) - (4 * presentCount));
 
-  return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── 1. Welcome Header ── */}
-      <View style={styles.header}>
-        <View style={styles.headerIconWrap}>
-          <GraduationCap size={30} color={COLORS.textInverse} />
-        </View>
-        <Text style={styles.headerGreeting}>Welcome back,</Text>
-        <Text style={styles.headerName}>{user?.name ?? "Student"}</Text>
-        <Text style={styles.headerSubtitle}>
-          {user?.role === "student"
-            ? "Student Success Portal"
-            : "Academic Staff Portal"}
-        </Text>
+  if (isRefreshing && !attendanceReport) {
+    return (
+      <View style={[styles.scrollView, { padding: 24 }]}>
+        <SkeletonCard height={100} marginVertical={12} />
+        <SkeletonCard height={240} marginVertical={12} />
+        <SkeletonCard height={80} marginVertical={12} />
       </View>
+    );
+  }
 
-      {/* ── 2. Attendance Hero Card (student only) ── */}
-      {user?.role === "student" && attendanceReport ? (
-        <View style={styles.heroCard}>
-          <Text style={styles.heroCardTitle}>Attendance Overview</Text>
+  return (
+    <FadeInContainer style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── 1. Welcome Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerIconWrap}>
+            <GraduationCap size={30} color={COLORS.textInverse} />
+          </View>
+          <Text style={styles.headerGreeting}>Welcome back,</Text>
+          <Text style={styles.headerName}>{user?.name ?? "Student"}</Text>
+          <Text style={styles.headerSubtitle}>
+            {user?.role === "student"
+              ? "Student Success Portal"
+              : "Academic Staff Portal"}
+          </Text>
+        </View>
 
-          {/* Percentage Ring */}
-          <View style={styles.ringContainer}>
-            <View
-              style={[
-                styles.ringOuter,
-                {
-                  borderColor: isHealthy
-                    ? COLORS.primary
-                    : COLORS.error,
-                },
-              ]}
-            >
-              <View style={styles.ringInner}>
-                <Text
-                  style={[
-                    styles.percentageText,
-                    { color: isHealthy ? COLORS.primary : COLORS.error },
-                  ]}
+        {/* ── 2. Attendance Hero Card (student only) ── */}
+        {user?.role === "student" && attendanceReport ? (
+          <InteractiveCard style={styles.heroCard} onPress={() => {}}>
+            <Text style={styles.heroCardTitle}>Attendance Overview</Text>
+
+            {/* Percentage Ring */}
+            <View style={styles.ringContainer}>
+              <View
+                style={[
+                  styles.ringOuter,
+                  {
+                    borderColor: isHealthy
+                      ? COLORS.primary
+                      : COLORS.error,
+                  },
+                ]}
+              >
+                <View style={styles.ringInner}>
+                  <AnimatedNumber
+                    value={attendanceReport.attendancePercentage}
+                    style={[
+                      styles.percentageText,
+                      { color: isHealthy ? COLORS.primary : COLORS.error },
+                    ]}
+                  />
+                  <Text style={styles.percentageLabel}>Attendance</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Stat Row */}
+            <View style={styles.statRow}>
+              <View style={[styles.statChip, styles.statChipPresent]}>
+                <CheckCircle size={16} color={COLORS.success} />
+                <Text style={styles.statChipValue}>
+                  {attendanceReport.presentCount}
+                </Text>
+                <Text style={styles.statChipLabel}>Present</Text>
+              </View>
+
+              <View style={[styles.statChip, styles.statChipAbsent]}>
+                <XCircle size={16} color={COLORS.error} />
+                <Text style={styles.statChipValue}>
+                  {attendanceReport.absentCount}
+                </Text>
+                <Text style={styles.statChipLabel}>Absent</Text>
+              </View>
+
+              <View style={[styles.statChip, styles.statChipTotal]}>
+                <CalendarDays size={16} color={COLORS.info} />
+                <Text style={styles.statChipValue}>
+                  {attendanceReport.totalSessions}
+                </Text>
+                <Text style={styles.statChipLabel}>Total</Text>
+              </View>
+            </View>
+          </InteractiveCard>
+        ) : null}
+
+        {/* ── 3. Attendance Status Card (student only) ── */}
+        {user?.role === "student" && percentage !== null ? (
+          <InteractiveCard style={styles.statusCard} onPress={() => {}}>
+            <Text style={styles.statusCardLabel}>Attendance Status</Text>
+            {percentage >= 85 ? (
+              <View style={styles.statusIndicatorRow}>
+                <CheckCircle size={20} color={COLORS.success} style={styles.statusIcon} />
+                <Text style={[styles.statusText, { color: COLORS.success }]}>Good Standing</Text>
+              </View>
+            ) : percentage >= 75 ? (
+              <View style={styles.statusIndicatorRow}>
+                <Clock size={20} color={COLORS.warning} style={styles.statusIcon} />
+                <Text style={[styles.statusText, { color: COLORS.warning }]}>Monitor Attendance</Text>
+              </View>
+            ) : (
+              <View style={styles.statusIndicatorRow}>
+                <XCircle size={20} color={COLORS.error} style={styles.statusIcon} />
+                <Text style={[styles.statusText, { color: COLORS.error }]}>Attendance Warning</Text>
+              </View>
+            )}
+          </InteractiveCard>
+        ) : null}
+
+        {/* ── 4. Attendance Recovery Card (student only) ── */}
+        {user?.role === "student" && attendanceReport ? (
+          <InteractiveCard style={[styles.recoveryCard, !isHealthy && styles.recoveryCardWarning]} onPress={() => {}}>
+            <View style={styles.recoveryCardHeader}>
+              <Shield size={18} color={isHealthy ? COLORS.success : COLORS.warning} style={styles.recoveryHeaderIcon} />
+              <Text style={styles.recoveryCardTitle}>Attendance Recovery</Text>
+            </View>
+            {isHealthy ? (
+              <View style={styles.recoverySafeRow}>
+                <Text style={styles.recoverySafeText}>
+                  You are currently above the required threshold.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.recoveryStatsContainer}>
+                <View style={styles.recoveryStatRow}>
+                  <Text style={styles.recoveryStatLabel}>Current Attendance</Text>
+                  <Text style={[styles.recoveryStatValue, { color: COLORS.error }]}>{percentage}%</Text>
+                </View>
+                <View style={styles.recoveryStatRow}>
+                  <Text style={styles.recoveryStatLabel}>Target Attendance</Text>
+                  <Text style={styles.recoveryStatValue}>75%</Text>
+                </View>
+                <View style={styles.recoveryDividerLine} />
+                <View style={styles.recoveryStatRow}>
+                  <Text style={styles.recoveryNeedLabel}>Classes Needed To Reach Target</Text>
+                  <Text style={styles.recoveryNeedValue}>
+                    {classesNeeded} Consecutive {classesNeeded === 1 ? "Class" : "Classes"}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </InteractiveCard>
+        ) : null}
+
+        {/* ── 5. Course Performance Section (student only) ── */}
+        {user?.role === "student" && coursesReport?.courses ? (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeading}>Course Performance</Text>
+            {coursesReport.courses.map((course) => {
+              const coursePct = course.attendancePercentage;
+              let badgeStyle = BADGES.success;
+              let badgeText = "Excellent";
+              
+              if (coursePct < 75) {
+                badgeStyle = BADGES.danger;
+                badgeText = "Warning";
+              } else if (coursePct < 85) {
+                badgeStyle = BADGES.warning;
+                badgeText = "Good";
+              }
+
+              return (
+                <InteractiveCard
+                  key={course.courseId}
+                  style={styles.courseRowCard}
+                  onPress={() => navigation.navigate("AttendanceHistory")}
                 >
-                  {attendanceReport.attendancePercentage}%
-                </Text>
-                <Text style={styles.percentageLabel}>Attendance</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Stat Row */}
-          <View style={styles.statRow}>
-            <View style={[styles.statChip, styles.statChipPresent]}>
-              <CheckCircle size={16} color={COLORS.success} />
-              <Text style={styles.statChipValue}>
-                {attendanceReport.presentCount}
-              </Text>
-              <Text style={styles.statChipLabel}>Present</Text>
-            </View>
-
-            <View style={[styles.statChip, styles.statChipAbsent]}>
-              <XCircle size={16} color={COLORS.error} />
-              <Text style={styles.statChipValue}>
-                {attendanceReport.absentCount}
-              </Text>
-              <Text style={styles.statChipLabel}>Absent</Text>
-            </View>
-
-            <View style={[styles.statChip, styles.statChipTotal]}>
-              <CalendarDays size={16} color={COLORS.info} />
-              <Text style={styles.statChipValue}>
-                {attendanceReport.totalSessions}
-              </Text>
-              <Text style={styles.statChipLabel}>Total</Text>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {/* ── 3. Attendance Status Card (student only) ── */}
-      {user?.role === "student" && percentage !== null ? (
-        <View style={styles.statusCard}>
-          <Text style={styles.statusCardLabel}>Attendance Status</Text>
-          {percentage >= 85 ? (
-            <View style={styles.statusIndicatorRow}>
-              <CheckCircle size={20} color={COLORS.success} style={styles.statusIcon} />
-              <Text style={[styles.statusText, { color: COLORS.success }]}>Good Standing</Text>
-            </View>
-          ) : percentage >= 75 ? (
-            <View style={styles.statusIndicatorRow}>
-              <Clock size={20} color={COLORS.warning} style={styles.statusIcon} />
-              <Text style={[styles.statusText, { color: COLORS.warning }]}>Monitor Attendance</Text>
-            </View>
-          ) : (
-            <View style={styles.statusIndicatorRow}>
-              <XCircle size={20} color={COLORS.error} style={styles.statusIcon} />
-              <Text style={[styles.statusText, { color: COLORS.error }]}>Attendance Warning</Text>
-            </View>
-          )}
-        </View>
-      ) : null}
-
-      {/* ── 4. Attendance Recovery Card (student only) ── */}
-      {user?.role === "student" && attendanceReport ? (
-        <View style={[styles.recoveryCard, !isHealthy && styles.recoveryCardWarning]}>
-          <View style={styles.recoveryCardHeader}>
-            <Shield size={18} color={isHealthy ? COLORS.success : COLORS.warning} style={styles.recoveryHeaderIcon} />
-            <Text style={styles.recoveryCardTitle}>Attendance Recovery</Text>
-          </View>
-          {isHealthy ? (
-            <View style={styles.recoverySafeRow}>
-              <Text style={styles.recoverySafeText}>
-                You are currently above the required threshold.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.recoveryStatsContainer}>
-              <View style={styles.recoveryStatRow}>
-                <Text style={styles.recoveryStatLabel}>Current Attendance</Text>
-                <Text style={[styles.recoveryStatValue, { color: COLORS.error }]}>{percentage}%</Text>
-              </View>
-              <View style={styles.recoveryStatRow}>
-                <Text style={styles.recoveryStatLabel}>Target Attendance</Text>
-                <Text style={styles.recoveryStatValue}>75%</Text>
-              </View>
-              <View style={styles.recoveryDividerLine} />
-              <View style={styles.recoveryStatRow}>
-                <Text style={styles.recoveryNeedLabel}>Classes Needed To Reach Target</Text>
-                <Text style={styles.recoveryNeedValue}>
-                  {classesNeeded} Consecutive {classesNeeded === 1 ? "Class" : "Classes"}
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-      ) : null}
-
-      {/* ── 5. Course Performance Section (student only) ── */}
-      {user?.role === "student" && coursesReport?.courses ? (
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionHeading}>Course Performance</Text>
-          {coursesReport.courses.map((course) => {
-            const coursePct = course.attendancePercentage;
-            let badgeStyle = BADGES.success;
-            let badgeText = "Excellent";
-            
-            if (coursePct < 75) {
-              badgeStyle = BADGES.danger;
-              badgeText = "Warning";
-            } else if (coursePct < 85) {
-              badgeStyle = BADGES.warning;
-              badgeText = "Good";
-            }
-
-            return (
-              <View key={course.courseId} style={styles.courseRowCard}>
-                <View style={styles.courseInfo}>
-                  <Text style={styles.courseNameText}>{course.courseName}</Text>
-                  <Text style={styles.courseCodeText}>{course.courseCode}</Text>
-                </View>
-                <View style={styles.courseBadgeCol}>
-                  <Text style={styles.coursePctText}>{coursePct}%</Text>
-                  <View style={[styles.courseBadge, badgeStyle]}>
-                    <Text style={[styles.courseBadgeText, { color: badgeStyle.color }]}>
-                      {badgeText}
-                    </Text>
+                  <View style={styles.courseInfo}>
+                    <Text style={styles.courseNameText}>{course.courseName}</Text>
+                    <Text style={styles.courseCodeText}>{course.courseCode}</Text>
                   </View>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      ) : null}
+                  <View style={styles.courseBadgeCol}>
+                    <Text style={styles.coursePctText}>{coursePct}%</Text>
+                    <View style={[styles.courseBadge, badgeStyle]}>
+                      <Text style={[styles.courseBadgeText, { color: badgeStyle.color }]}>
+                        {badgeText}
+                      </Text>
+                    </View>
+                  </View>
+                </InteractiveCard>
+              );
+            })}
+          </View>
+        ) : null}
 
       {/* ── 6. Quick Actions ── */}
       {user?.role === "student" ? (

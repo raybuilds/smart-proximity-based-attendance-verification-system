@@ -1,6 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -32,6 +31,10 @@ import {
   Award,
   ChevronRight,
 } from "lucide-react-native";
+import FadeInContainer from "../components/FadeInContainer";
+import InteractiveCard from "../components/InteractiveCard";
+import SkeletonCard from "../components/SkeletonCard";
+import AnimatedNumber from "../components/AnimatedNumber";
 
 export default function TeacherDashboardScreen({ navigation }) {
   const { user, signOut } = useAuth();
@@ -163,242 +166,247 @@ export default function TeacherDashboardScreen({ navigation }) {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => loadDashboardData({ isPull: true })}
-          tintColor={COLORS.primary}
-          colors={[COLORS.primary]}
-        />
-      }
-    >
-      {/* Welcome Header */}
-      <View style={styles.headerSection}>
-        <View style={styles.headerIconWrap}>
-          <BookOpen size={28} color={COLORS.primary} strokeWidth={1.8} />
+    <FadeInContainer style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadDashboardData({ isPull: true })}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
+        {/* Welcome Header */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerIconWrap}>
+            <BookOpen size={28} color={COLORS.primary} strokeWidth={1.8} />
+          </View>
+          <Text style={styles.screenTitle}>Teaching Command Center</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Welcome, {user?.name || "Teacher"}
+          </Text>
+          <Text style={styles.welcomeCaption}>
+            Manage your courses and attendance sessions
+          </Text>
         </View>
-        <Text style={styles.screenTitle}>Teaching Command Center</Text>
-        <Text style={styles.welcomeSubtitle}>
-          Welcome, {user?.name || "Teacher"}
-        </Text>
-        <Text style={styles.welcomeCaption}>
-          Manage your courses and attendance sessions
-        </Text>
-      </View>
 
-      {/* Active Session Card */}
-      {overview?.activeSession ? (
-        <Pressable
-          style={styles.activeSessionCard}
-          onPress={handleActiveSessionPress}
-        >
-          <View style={styles.activeSessionAccent} />
-          <View style={styles.activeSessionBody}>
-            <View style={styles.activeSessionHeader}>
-              <View style={styles.activeSessionTitleRow}>
-                <Activity size={18} color={COLORS.primary} strokeWidth={2} />
-                <Text style={styles.activeSessionTitle}>Live Session Active</Text>
-              </View>
-              <View style={[styles.liveBadge, BADGES.success]}>
-                <View style={styles.pulseDot} />
-                <Text style={[styles.liveBadgeText, { color: COLORS.success }]}>LIVE</Text>
-              </View>
-            </View>
-
-            <Text style={styles.activeSessionCourse}>
-              {overview.activeSession.courseName}
-            </Text>
-            <Text style={styles.activeSessionCode}>
-              {overview.activeSession.courseCode}
-            </Text>
-
-            <View style={styles.activeSessionMeta}>
-              <View style={styles.activeSessionMetaItem}>
-                <Users size={14} color={COLORS.textSecondary} strokeWidth={1.8} />
-                <Text style={styles.activeSessionMetaText}>
-                  {overview.activeSession.presentCount} / {overview.activeSession.eligibleCount} Present
-                </Text>
-              </View>
-              <View style={styles.activeSessionMetaItem}>
-                <Clock size={14} color={COLORS.textSecondary} strokeWidth={1.8} />
-                <Text style={styles.activeSessionMetaText}>
-                  {getStartedAgoText(overview.activeSession.startedAt)}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.activeSessionFooter}>
-              <Text style={styles.activeSessionLink}>
-                Tap to view QR / Monitor attendance
-              </Text>
-              <ChevronRight size={16} color={COLORS.primary} strokeWidth={2} />
-            </View>
-          </View>
-        </Pressable>
-      ) : (
-        <View style={styles.inactiveSessionCard}>
-          <View style={styles.inactiveSessionIconWrap}>
-            <Activity size={20} color={COLORS.textSecondary} strokeWidth={1.8} />
-          </View>
-          <Text style={styles.inactiveSessionText}>No active session running</Text>
-        </View>
-      )}
-
-      {/* Error Card */}
-      {errorMessage ? (
-        <View style={styles.errorCard}>
-          <AlertCircle size={20} color={COLORS.error} strokeWidth={1.8} />
-          <View style={styles.errorCardContent}>
-            <Text style={styles.errorTitleText}>Unable to load data</Text>
-            <Text style={styles.errorMessageText}>{errorMessage}</Text>
-          </View>
-          <Pressable
-            style={[
-              styles.retryButton,
-              (isLoading || refreshing) && styles.buttonDisabled,
-            ]}
-            onPress={() => loadDashboardData()}
-            disabled={isLoading || refreshing}
+        {/* Active Session Card */}
+        {overview?.activeSession ? (
+          <InteractiveCard
+            style={styles.activeSessionCard}
+            onPress={handleActiveSessionPress}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <View style={styles.activeSessionAccent} />
+            <View style={styles.activeSessionBody}>
+              <View style={styles.activeSessionHeader}>
+                <View style={styles.activeSessionTitleRow}>
+                  <Activity size={18} color={COLORS.primary} strokeWidth={2} />
+                  <Text style={styles.activeSessionTitle}>Live Session Active</Text>
+                </View>
+                <View style={[styles.liveBadge, BADGES.success]}>
+                  <View style={styles.pulseDot} />
+                  <Text style={[styles.liveBadgeText, { color: COLORS.success }]}>LIVE</Text>
+                </View>
+              </View>
+
+              <Text style={styles.activeSessionCourse}>
+                {overview.activeSession.courseName}
+              </Text>
+              <Text style={styles.activeSessionCode}>
+                {overview.activeSession.courseCode}
+              </Text>
+
+              <View style={styles.activeSessionMeta}>
+                <View style={styles.activeSessionMetaItem}>
+                  <Users size={14} color={COLORS.textSecondary} strokeWidth={1.8} />
+                  <Text style={styles.activeSessionMetaText}>
+                    {overview.activeSession.presentCount} / {overview.activeSession.eligibleCount} Present
+                  </Text>
+                </View>
+                <View style={styles.activeSessionMetaItem}>
+                  <Clock size={14} color={COLORS.textSecondary} strokeWidth={1.8} />
+                  <Text style={styles.activeSessionMetaText}>
+                    {getStartedAgoText(overview.activeSession.startedAt)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.activeSessionFooter}>
+                <Text style={styles.activeSessionLink}>
+                  Tap to view QR / Monitor attendance
+                </Text>
+                <ChevronRight size={16} color={COLORS.primary} strokeWidth={2} />
+              </View>
+            </View>
+          </InteractiveCard>
+        ) : (
+          <View style={styles.inactiveSessionCard}>
+            <View style={styles.inactiveSessionIconWrap}>
+              <Activity size={20} color={COLORS.textSecondary} strokeWidth={1.8} />
+            </View>
+            <Text style={styles.inactiveSessionText}>No active session running</Text>
+          </View>
+        )}
+
+        {/* Error Card */}
+        {errorMessage ? (
+          <View style={styles.errorCard}>
+            <AlertCircle size={20} color={COLORS.error} strokeWidth={1.8} />
+            <View style={styles.errorCardContent}>
+              <Text style={styles.errorTitleText}>Unable to load data</Text>
+              <Text style={styles.errorMessageText}>{errorMessage}</Text>
+            </View>
+            <Pressable
+              style={[
+                styles.retryButton,
+                (isLoading || refreshing) && styles.buttonDisabled,
+              ]}
+              onPress={() => loadDashboardData()}
+              disabled={isLoading || refreshing}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Primary Action */}
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate("StartSession")}
+        >
+          <PlayCircle size={20} color={COLORS.textInverse} strokeWidth={2} />
+          <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
+        </Pressable>
+
+        {/* Secondary Actions */}
+        <View style={styles.navigationSection}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("TeacherReports")}
+          >
+            <FileText size={18} color={COLORS.primary} strokeWidth={1.8} />
+            <Text style={styles.secondaryButtonText}>Attendance Records & Reports</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("CourseManagement")}
+          >
+            <Settings size={18} color={COLORS.primary} strokeWidth={1.8} />
+            <Text style={styles.secondaryButtonText}>Manage Courses & Sections</Text>
           </Pressable>
         </View>
-      ) : null}
 
-      {/* Primary Action */}
-      <Pressable
-        style={styles.primaryButton}
-        onPress={() => navigation.navigate("StartSession")}
-      >
-        <PlayCircle size={20} color={COLORS.textInverse} strokeWidth={2} />
-        <Text style={styles.primaryButtonText}>Start Attendance Session</Text>
-      </Pressable>
+        {/* Teaching Statistics */}
+        {isLoading && !overview ? (
+          <View style={{ paddingVertical: 16 }}>
+            <SkeletonCard height={80} marginVertical={8} />
+            <SkeletonCard height={80} marginVertical={8} />
+            <SkeletonCard height={80} marginVertical={8} />
+          </View>
+        ) : overview ? (
+          <View style={styles.statsSection}>
+            <Text style={styles.statsSectionTitle}>My Teaching Statistics</Text>
+            <View style={styles.statsGrid}>
 
-      {/* Secondary Actions */}
-      <View style={styles.navigationSection}>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("TeacherReports")}
-        >
-          <FileText size={18} color={COLORS.primary} strokeWidth={1.8} />
-          <Text style={styles.secondaryButtonText}>Attendance Records & Reports</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("CourseManagement")}
-        >
-          <Settings size={18} color={COLORS.primary} strokeWidth={1.8} />
-          <Text style={styles.secondaryButtonText}>Manage Courses & Sections</Text>
-        </Pressable>
-      </View>
-
-      {/* Teaching Statistics */}
-      {isLoading && !overview ? (
-        <View style={styles.loaderBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loaderText}>Loading statistics...</Text>
-        </View>
-      ) : overview ? (
-        <View style={styles.statsSection}>
-          <Text style={styles.statsSectionTitle}>My Teaching Statistics</Text>
-          <View style={styles.statsGrid}>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <BookMarked size={16} color={COLORS.primary} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statLabel}>My Courses</Text>
-              <Text style={styles.statValue}>{overview.totalCourses}</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <Users size={16} color={COLORS.primary} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statLabel}>My Students</Text>
-              <Text style={styles.statValue}>{overview.totalStudents}</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <Activity size={16} color={COLORS.primary} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statLabel}>Sessions Conducted</Text>
-              <Text style={styles.statValue}>{overview.totalSessions}</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <BarChart2 size={16} color={COLORS.success} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statLabel}>Average Attendance</Text>
-              <Text style={[styles.statValue, styles.statValueGreen]}>
-                {overview.attendancePercentage}%
-              </Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={[styles.statIconWrap, overview.atRiskStudents > 0 && styles.statIconWrapError]}>
-                <AlertTriangle
-                  size={16}
-                  color={overview.atRiskStudents > 0 ? COLORS.error : COLORS.primary}
-                  strokeWidth={1.8}
-                />
-              </View>
-              <Text style={styles.statLabel}>At-Risk Students</Text>
-              <Text style={[
-                styles.statValue,
-                overview.atRiskStudents > 0 && styles.statValueError,
-              ]}>
-                {overview.atRiskStudents}
-              </Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <Edit3 size={16} color={COLORS.primary} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statLabel}>Manual Corrections</Text>
-              <Text style={styles.statValue}>{overview.manualCorrections}</Text>
-            </View>
-
-            <View style={[styles.statCard, styles.statCardFull]}>
-              <View style={styles.statCardFullInner}>
+              <InteractiveCard style={styles.statCard} onPress={() => navigation.navigate("CourseManagement")}>
                 <View style={styles.statIconWrap}>
-                  <Award size={16} color={COLORS.warning} strokeWidth={1.8} />
+                  <BookMarked size={16} color={COLORS.primary} strokeWidth={1.8} />
                 </View>
-                <Text style={styles.statLabel}>Best Course</Text>
-              </View>
-              {overview.bestCourse ? (
-                <View style={styles.bestCourseDetails}>
-                  <Text style={styles.bestCourseName}>{overview.bestCourse.name}</Text>
-                  <View style={styles.bestCourseMeta}>
-                    <Text style={styles.bestCourseCode}>{overview.bestCourse.code}</Text>
-                    <View style={[styles.bestCoursePercentBadge, BADGES.success]}>
-                      <Text style={[styles.bestCoursePercent, { color: COLORS.success }]}>
-                        {overview.bestCourse.attendancePercentage}%
-                      </Text>
+                <Text style={styles.statLabel}>My Courses</Text>
+                <AnimatedNumber value={overview.totalCourses} style={styles.statValue} />
+              </InteractiveCard>
+
+              <InteractiveCard style={styles.statCard} onPress={() => {}}>
+                <View style={styles.statIconWrap}>
+                  <Users size={16} color={COLORS.primary} strokeWidth={1.8} />
+                </View>
+                <Text style={styles.statLabel}>My Students</Text>
+                <AnimatedNumber value={overview.totalStudents} style={styles.statValue} />
+              </InteractiveCard>
+
+              <InteractiveCard style={styles.statCard} onPress={() => navigation.navigate("TeacherReports")}>
+                <View style={styles.statIconWrap}>
+                  <Activity size={16} color={COLORS.primary} strokeWidth={1.8} />
+                </View>
+                <Text style={styles.statLabel}>Sessions Conducted</Text>
+                <AnimatedNumber value={overview.totalSessions} style={styles.statValue} />
+              </InteractiveCard>
+
+              <InteractiveCard style={styles.statCard} onPress={() => navigation.navigate("TeacherReports")}>
+                <View style={styles.statIconWrap}>
+                  <BarChart2 size={16} color={COLORS.success} strokeWidth={1.8} />
+                </View>
+                <Text style={styles.statLabel}>Average Attendance</Text>
+                <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+                  <AnimatedNumber value={overview.attendancePercentage} style={[styles.statValue, styles.statValueGreen]} />
+                  <Text style={[styles.statValue, styles.statValueGreen, { fontSize: 16 }]}>%</Text>
+                </View>
+              </InteractiveCard>
+
+              <InteractiveCard style={styles.statCard} onPress={() => {}}>
+                <View style={[styles.statIconWrap, overview.atRiskStudents > 0 && styles.statIconWrapError]}>
+                  <AlertTriangle
+                    size={16}
+                    color={overview.atRiskStudents > 0 ? COLORS.error : COLORS.primary}
+                    strokeWidth={1.8}
+                  />
+                </View>
+                <Text style={styles.statLabel}>At-Risk Students</Text>
+                <AnimatedNumber
+                  value={overview.atRiskStudents}
+                  style={[
+                    styles.statValue,
+                    overview.atRiskStudents > 0 && styles.statValueError,
+                  ]}
+                />
+              </InteractiveCard>
+
+              <InteractiveCard style={styles.statCard} onPress={() => {}}>
+                <View style={styles.statIconWrap}>
+                  <Edit3 size={16} color={COLORS.primary} strokeWidth={1.8} />
+                </View>
+                <Text style={styles.statLabel}>Manual Corrections</Text>
+                <AnimatedNumber value={overview.manualCorrections} style={styles.statValue} />
+              </InteractiveCard>
+
+              <InteractiveCard style={[styles.statCard, styles.statCardFull]} onPress={() => {}}>
+                <View style={styles.statCardFullInner}>
+                  <View style={styles.statIconWrap}>
+                    <Award size={16} color={COLORS.warning} strokeWidth={1.8} />
+                  </View>
+                  <Text style={styles.statLabel}>Best Course</Text>
+                </View>
+                {overview.bestCourse ? (
+                  <View style={styles.bestCourseDetails}>
+                    <Text style={styles.bestCourseName}>{overview.bestCourse.name}</Text>
+                    <View style={styles.bestCourseMeta}>
+                      <Text style={styles.bestCourseCode}>{overview.bestCourse.code}</Text>
+                      <View style={[styles.bestCoursePercentBadge, BADGES.success]}>
+                        <Text style={[styles.bestCoursePercent, { color: COLORS.success }]}>
+                          {overview.bestCourse.attendancePercentage}%
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ) : (
-                <Text style={styles.statValue}>N/A</Text>
-              )}
+                ) : (
+                  <Text style={styles.statValue}>N/A</Text>
+                )}
+              </InteractiveCard>
+
             </View>
-
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      {/* Logout */}
-      <Pressable style={styles.logoutButton} onPress={signOut}>
-        <LogOut size={18} color={COLORS.textInverse} strokeWidth={2} />
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </Pressable>
-    </ScrollView>
+        {/* Logout */}
+        <Pressable style={styles.logoutButton} onPress={signOut}>
+          <LogOut size={18} color={COLORS.textInverse} strokeWidth={2} />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </Pressable>
+      </ScrollView>
+    </FadeInContainer>
   );
 }
 

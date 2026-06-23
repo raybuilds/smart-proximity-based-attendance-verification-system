@@ -10,6 +10,11 @@ import {
 } from "react-native";
 import { getAdminTeachers, toggleUserStatus } from "../services/admin";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import InteractiveCard from "../components/InteractiveCard";
+import FadeInContainer from "../components/FadeInContainer";
+import SkeletonCard from "../components/SkeletonCard";
+import EmptyState from "../components/EmptyState";
+import { GraduationCap } from "lucide-react-native";
 
 export default function AdminTeacherListScreen({ navigation }) {
   const [teachers, setTeachers] = useState([]);
@@ -66,7 +71,7 @@ export default function AdminTeacherListScreen({ navigation }) {
 
   const renderTeacherItem = ({ item }) => {
     return (
-      <Pressable
+      <InteractiveCard
         style={styles.card}
         onPress={() => navigation.navigate("AdminTeacherDetail", { id: item.id })}
       >
@@ -100,16 +105,18 @@ export default function AdminTeacherListScreen({ navigation }) {
             <Text style={styles.statLabel}>Corrections</Text>
           </View>
         </View>
-      </Pressable>
+      </InteractiveCard>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <FadeInContainer style={styles.container}>
       {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+        <ScrollView style={{ flex: 1 }}>
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+        </ScrollView>
       ) : (
         <FlatList
           data={teachers}
@@ -117,13 +124,15 @@ export default function AdminTeacherListScreen({ navigation }) {
           renderItem={renderTeacherItem}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No teachers found.</Text>
-            </View>
+            <EmptyState
+              Icon={GraduationCap}
+              title="No Teachers Found"
+              description="Registered teachers will appear in this oversight directory."
+            />
           }
         />
       )}
-    </View>
+    </FadeInContainer>
   );
 }
 

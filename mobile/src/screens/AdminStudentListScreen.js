@@ -12,6 +12,10 @@ import {
 import { getAdminStudents, toggleUserStatus } from "../services/admin";
 import { COLORS, TYPOGRAPHY, LAYOUT, SHADOWS } from "../utils/theme";
 import { Search, ChevronRight, Users, BookOpen, Hash, Layers } from "lucide-react-native";
+import InteractiveCard from "../components/InteractiveCard";
+import FadeInContainer from "../components/FadeInContainer";
+import SkeletonCard from "../components/SkeletonCard";
+import EmptyState from "../components/EmptyState";
 
 export default function AdminStudentListScreen({ navigation }) {
   const [students, setStudents] = useState([]);
@@ -79,8 +83,8 @@ export default function AdminStudentListScreen({ navigation }) {
 
   const renderStudentItem = ({ item }) => {
     return (
-      <Pressable
-        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      <InteractiveCard
+        style={styles.card}
         onPress={() => navigation.navigate("AdminStudentDetail", { id: item.id })}
       >
         {/* Card Header: Name + Status Badge */}
@@ -125,7 +129,7 @@ export default function AdminStudentListScreen({ navigation }) {
           </View>
           <View style={styles.detailChip}>
             <Layers size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-            <Text style={styles.detailText}>Sem {item.year}</Text>
+            <Text style={styles.detailText}>Year {item.year}</Text>
           </View>
           <View style={styles.detailChip}>
             <Text style={styles.detailText}>Sec {item.section}</Text>
@@ -144,12 +148,12 @@ export default function AdminStudentListScreen({ navigation }) {
             {item.overallAttendance}%
           </Text>
         </View>
-      </Pressable>
+      </InteractiveCard>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <FadeInContainer style={styles.container}>
       {/* Search Bar */}
       <View style={styles.searchWrapper}>
         <Search size={18} color={COLORS.textSecondary} style={styles.searchIcon} />
@@ -173,7 +177,7 @@ export default function AdminStudentListScreen({ navigation }) {
         />
         <TextInput
           style={styles.filterInput}
-          placeholder="Sem"
+          placeholder="Year"
           placeholderTextColor={COLORS.textSecondary}
           keyboardType="numeric"
           value={filters.year}
@@ -199,10 +203,11 @@ export default function AdminStudentListScreen({ navigation }) {
       )}
 
       {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading students…</Text>
-        </View>
+        <ScrollView style={{ flex: 1 }}>
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+          <SkeletonCard height={120} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+        </ScrollView>
       ) : (
         <FlatList
           data={students}
@@ -210,19 +215,15 @@ export default function AdminStudentListScreen({ navigation }) {
           renderItem={renderStudentItem}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <Users size={36} color={COLORS.border} />
-              </View>
-              <Text style={styles.emptyTitle}>No Students Found</Text>
-              <Text style={styles.emptyText}>
-                Try adjusting your search or filter criteria.
-              </Text>
-            </View>
+            <EmptyState
+              Icon={Users}
+              title="No Students Found"
+              description="Adjust your search or filter criteria to find students."
+            />
           }
         />
       )}
-    </View>
+    </FadeInContainer>
   );
 }
 

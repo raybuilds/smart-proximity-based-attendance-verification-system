@@ -29,6 +29,10 @@ import {
   AlertCircle,
   Clock
 } from "lucide-react-native";
+import InteractiveCard from "../components/InteractiveCard";
+import FadeInContainer from "../components/FadeInContainer";
+import SkeletonCard from "../components/SkeletonCard";
+import AnimatedNumber from "../components/AnimatedNumber";
 
 export default function AdminDashboardScreen({ navigation }) {
   const { signOut, user } = useAuth();
@@ -67,135 +71,156 @@ export default function AdminDashboardScreen({ navigation }) {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading dashboard…</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.headerCard}>
+          <View style={styles.headerIconWrap}>
+            <Shield size={32} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerTitle}>Institutional Oversight</Text>
+          <Text style={styles.headerSubtitle}>
+            Admin: {user?.name || "Administrator"}
+          </Text>
+        </View>
+        <Text style={styles.sectionTitle}>Overview</Text>
+        <View style={styles.gridRow}>
+          <SkeletonCard height={100} marginVertical={4} borderRadius={LAYOUT.cardRadius} />
+          <View style={{ width: 16 }} />
+          <SkeletonCard height={100} marginVertical={4} borderRadius={LAYOUT.cardRadius} />
+        </View>
+        <View style={styles.gridRow}>
+          <SkeletonCard height={100} marginVertical={4} borderRadius={LAYOUT.cardRadius} />
+          <View style={{ width: 16 }} />
+          <SkeletonCard height={100} marginVertical={4} borderRadius={LAYOUT.cardRadius} />
+        </View>
+        <Text style={styles.sectionTitle}>Status Notes</Text>
+        <SkeletonCard height={150} marginVertical={6} borderRadius={LAYOUT.cardRadius} />
+      </ScrollView>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
-      }
-    >
-      {/* Welcome Header Card */}
-      <View style={styles.headerCard}>
-        <View style={styles.headerIconWrap}>
-          <Shield size={32} color="#FFFFFF" />
+    <FadeInContainer style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+      >
+        {/* Welcome Header Card */}
+        <View style={styles.headerCard}>
+          <View style={styles.headerIconWrap}>
+            <Shield size={32} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerTitle}>Institutional Oversight</Text>
+          <Text style={styles.headerSubtitle}>
+            Admin: {user?.name || "Administrator"}
+          </Text>
         </View>
-        <Text style={styles.headerTitle}>Institutional Oversight</Text>
-        <Text style={styles.headerSubtitle}>
-          Admin: {user?.name || "Administrator"}
-        </Text>
-      </View>
 
-      {/* Error Card */}
-      {error ? (
-        <View style={styles.errorCard}>
-          <AlertCircle size={18} color={COLORS.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {dashboard ? (
-        <>
-          {/* Primary Metrics Grid 2x2 */}
-          <Text style={styles.sectionTitle}>Overview</Text>
-          <View style={styles.gridRow}>
-            <Pressable
-              style={styles.statCard}
-              onPress={() => navigation.navigate("AdminStudentList")}
-            >
-              <View style={styles.statIconWrap}>
-                <Users size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statNum}>{dashboard.totalStudents}</Text>
-              <Text style={styles.statLabel}>Students</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.statCard}
-              onPress={() => navigation.navigate("AdminTeacherList")}
-            >
-              <View style={styles.statIconWrap}>
-                <GraduationCap size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statNum}>{dashboard.totalTeachers}</Text>
-              <Text style={styles.statLabel}>Teachers</Text>
-            </Pressable>
+        {/* Error Card */}
+        {error ? (
+          <View style={styles.errorCard}>
+            <AlertCircle size={18} color={COLORS.error} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
+        ) : null}
 
-          <View style={styles.gridRow}>
-            <Pressable
-              style={styles.statCard}
-              onPress={() => navigation.navigate("AdminCourseList")}
-            >
-              <View style={styles.statIconWrap}>
-                <BookOpen size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statNum}>{dashboard.activeCourses}</Text>
-              <Text style={styles.statLabel}>Active Courses</Text>
-            </Pressable>
+        {dashboard ? (
+          <>
+            {/* Primary Metrics Grid 2x2 */}
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={styles.gridRow}>
+              <InteractiveCard
+                style={styles.statCard}
+                onPress={() => navigation.navigate("AdminStudentList")}
+              >
+                <View style={styles.statIconWrap}>
+                  <Users size={20} color={COLORS.primary} />
+                </View>
+                <AnimatedNumber value={dashboard.totalStudents} style={styles.statNum} />
+                <Text style={styles.statLabel}>Students</Text>
+              </InteractiveCard>
 
-            <Pressable
-              style={styles.statCard}
-              onPress={() => navigation.navigate("AdminLiveSessions")}
-            >
-              <View style={styles.statIconWrap}>
-                <Activity size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statNum}>{dashboard.activeSessions}</Text>
-              <Text style={styles.statLabel}>Active Sessions</Text>
-            </Pressable>
-          </View>
+              <InteractiveCard
+                style={styles.statCard}
+                onPress={() => navigation.navigate("AdminTeacherList")}
+              >
+                <View style={styles.statIconWrap}>
+                  <GraduationCap size={20} color={COLORS.primary} />
+                </View>
+                <AnimatedNumber value={dashboard.totalTeachers} style={styles.statNum} />
+                <Text style={styles.statLabel}>Teachers</Text>
+              </InteractiveCard>
+            </View>
 
-          {/* Status Notes */}
-          <Text style={styles.sectionTitle}>Status Notes</Text>
-          <View style={styles.noteCard}>
-            <Pressable
-              style={styles.noteRow}
-              onPress={() => navigation.navigate("AdminAtRisk")}
-            >
-              <View style={styles.noteLeftGroup}>
-                <XCircle size={18} color={COLORS.error} />
-                <Text style={styles.noteLabel}>At-Risk Students (&lt;75%)</Text>
-              </View>
-              <Text style={[styles.noteValue, { color: COLORS.error }]}>
-                {dashboard.atRiskStudents}
-              </Text>
-            </Pressable>
+            <View style={styles.gridRow}>
+              <InteractiveCard
+                style={styles.statCard}
+                onPress={() => navigation.navigate("AdminCourseList")}
+              >
+                <View style={styles.statIconWrap}>
+                  <BookOpen size={20} color={COLORS.primary} />
+                </View>
+                <AnimatedNumber value={dashboard.activeCourses} style={styles.statNum} />
+                <Text style={styles.statLabel}>Active Courses</Text>
+              </InteractiveCard>
 
-            <View style={styles.noteDivider} />
+              <InteractiveCard
+                style={styles.statCard}
+                onPress={() => navigation.navigate("AdminLiveSessions")}
+              >
+                <View style={styles.statIconWrap}>
+                  <Activity size={20} color={COLORS.primary} />
+                </View>
+                <AnimatedNumber value={dashboard.activeSessions} style={styles.statNum} />
+                <Text style={styles.statLabel}>Active Sessions</Text>
+              </InteractiveCard>
+            </View>
 
-            <Pressable
-              style={styles.noteRow}
-              onPress={() => navigation.navigate("AdminAuditCenter")}
-            >
-              <View style={styles.noteLeftGroup}>
-                <Edit size={18} color={COLORS.primary} />
-                <Text style={styles.noteLabel}>Manual Corrections</Text>
-              </View>
-              <Text style={styles.noteValue}>{dashboard.manualCorrections}</Text>
-            </Pressable>
+            {/* Status Notes */}
+            <Text style={styles.sectionTitle}>Status Notes</Text>
+            <View style={styles.noteCard}>
+              <InteractiveCard
+                style={styles.noteRow}
+                onPress={() => navigation.navigate("AdminAtRisk")}
+              >
+                <View style={styles.noteLeftGroup}>
+                  <XCircle size={18} color={COLORS.error} />
+                  <Text style={styles.noteLabel}>At-Risk Students (&lt;75%)</Text>
+                </View>
+                <Text style={[styles.noteValue, { color: COLORS.error }]}>
+                  {dashboard.atRiskStudents}
+                </Text>
+              </InteractiveCard>
 
-            <View style={styles.noteDivider} />
+              <View style={styles.noteDivider} />
 
-            <Pressable
-              style={styles.noteRow}
-              onPress={() => navigation.navigate("AdminAnalytics")}
-            >
-              <View style={styles.noteLeftGroup}>
-                <TrendingUp size={18} color={COLORS.primary} />
-                <Text style={styles.noteLabel}>Avg Attendance Today</Text>
-              </View>
-              <Text style={styles.noteValue}>{dashboard.attendanceToday}%</Text>
-            </Pressable>
-          </View>
-        </>
-      ) : null}
+              <InteractiveCard
+                style={styles.noteRow}
+                onPress={() => navigation.navigate("AdminAuditCenter")}
+              >
+                <View style={styles.noteLeftGroup}>
+                  <Edit size={18} color={COLORS.primary} />
+                  <Text style={styles.noteLabel}>Manual Corrections</Text>
+                </View>
+                <Text style={styles.noteValue}>{dashboard.manualCorrections}</Text>
+              </InteractiveCard>
+
+              <View style={styles.noteDivider} />
+
+              <InteractiveCard
+                style={styles.noteRow}
+                onPress={() => navigation.navigate("AdminAnalytics")}
+              >
+                <View style={styles.noteLeftGroup}>
+                  <TrendingUp size={18} color={COLORS.primary} />
+                  <Text style={styles.noteLabel}>Avg Attendance Today</Text>
+                </View>
+                <Text style={styles.noteValue}>{dashboard.attendanceToday}%</Text>
+              </InteractiveCard>
+            </View>
+          </>
+        ) : null}
 
       {/* Management Controls */}
       <Text style={styles.sectionTitle}>Management Controls</Text>
@@ -359,7 +384,8 @@ export default function AdminDashboardScreen({ navigation }) {
         <LogOut size={18} color="#FFFFFF" />
         <Text style={styles.logoutButtonText}>Logout</Text>
       </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </FadeInContainer>
   );
 }
 

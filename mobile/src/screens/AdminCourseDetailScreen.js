@@ -5,12 +5,16 @@ import {
   Text,
   View,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
   Alert
 } from "react-native";
+import { BookOpen, Calendar, ShieldCheck, AlertCircle } from "lucide-react-native";
 import { getAdminCourseDetail, archiveCourse } from "../services/admin";
 import { COLORS, TYPOGRAPHY, LAYOUT } from "../utils/theme";
+import FadeInContainer from "../components/FadeInContainer";
+import InteractiveCard from "../components/InteractiveCard";
+import SkeletonCard from "../components/SkeletonCard";
+import EmptyState from "../components/EmptyState";
 
 export default function AdminCourseDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -69,7 +73,13 @@ export default function AdminCourseDetailScreen({ route, navigation }) {
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <SkeletonCard height={120} marginVertical={8} />
+        <View style={styles.gridRow}>
+          <SkeletonCard height={80} marginVertical={8} borderRadius={8} />
+          <View style={{ width: 8 }} />
+          <SkeletonCard height={80} marginVertical={8} borderRadius={8} />
+        </View>
+        <SkeletonCard height={150} marginVertical={8} />
       </View>
     );
   }
@@ -90,146 +100,152 @@ export default function AdminCourseDetailScreen({ route, navigation }) {
   const { course, teacher, stats, sessions, defaulters, corrections } = data;
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
-      }
-    >
-      {/* Course Summary Header */}
-      <View style={styles.headerBlock}>
-        <Text style={styles.courseCode}>{course.code || "N/A"}</Text>
-        <Text style={styles.courseName}>{course.name}</Text>
-        <Text style={styles.teacherName}>Instructor: {teacher.name} ({teacher.email})</Text>
-        <Text style={styles.metaText}>
-          Dept: {course.department} | Sem: {course.year} | Sec: {course.section}
-        </Text>
-      </View>
+    <FadeInContainer style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+      >
+        {/* Course Summary Header */}
+        <View style={styles.headerBlock}>
+          <Text style={styles.courseCode}>{course.code || "N/A"}</Text>
+          <Text style={styles.courseName}>{course.name}</Text>
+          <Text style={styles.teacherName}>Instructor: {teacher.name} ({teacher.email})</Text>
+          <Text style={styles.metaText}>
+            Dept: {course.department} | Sem: {course.year} | Sec: {course.section}
+          </Text>
+        </View>
 
-      <Pressable style={styles.archiveButton} onPress={handleArchive}>
-        <Text style={styles.archiveButtonText}>Archive Course</Text>
-      </Pressable>
+        <Pressable style={styles.archiveButton} onPress={handleArchive}>
+          <Text style={styles.archiveButtonText}>Archive Course</Text>
+        </Pressable>
 
-      {/* Aggregate Stats Cards */}
-      <View style={styles.gridRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNum}>{stats.averageAttendance}%</Text>
-          <Text style={styles.statLabel}>Avg Attendance</Text>
+        {/* Aggregate Stats Cards */}
+        <View style={styles.gridRow}>
+          <InteractiveCard style={styles.statCard} onPress={() => {}}>
+            <Text style={styles.statNum}>{stats.averageAttendance}%</Text>
+            <Text style={styles.statLabel}>Avg Attendance</Text>
+          </InteractiveCard>
+          <InteractiveCard style={styles.statCard} onPress={() => {}}>
+            <Text style={styles.statNum}>{stats.totalSessions}</Text>
+            <Text style={styles.statLabel}>Total Classes</Text>
+          </InteractiveCard>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNum}>{stats.totalSessions}</Text>
-          <Text style={styles.statLabel}>Total Classes</Text>
+        <View style={styles.gridRow}>
+          <InteractiveCard style={styles.statCard} onPress={() => {}}>
+            <Text style={styles.statNum}>{stats.totalStudents}</Text>
+            <Text style={styles.statLabel}>Enrolled Students</Text>
+          </InteractiveCard>
+          <InteractiveCard style={styles.statCard} onPress={() => {}}>
+            <Text style={styles.statNum}>{stats.manualCorrections}</Text>
+            <Text style={styles.statLabel}>Manual Edits</Text>
+          </InteractiveCard>
         </View>
-      </View>
-      <View style={styles.gridRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNum}>{stats.totalStudents}</Text>
-          <Text style={styles.statLabel}>Enrolled Students</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNum}>{stats.manualCorrections}</Text>
-          <Text style={styles.statLabel}>Manual Edits</Text>
-        </View>
-      </View>
 
-      {/* Sessions Conducted */}
-      <Text style={styles.sectionTitle}>Recent Sessions (Max 20)</Text>
-      {sessions.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>No sessions conducted yet</Text>
-        </View>
-      ) : (
-        <View style={styles.listCard}>
-          {sessions.map((s, idx) => {
-            const dateStr = new Date(s.startedAt).toLocaleDateString([], {
-              month: "short",
-              day: "numeric",
-              year: "numeric"
-            });
-            const timeStr = new Date(s.startedAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit"
-            });
-            return (
+        {/* Sessions Conducted */}
+        <Text style={styles.sectionTitle}>Recent Sessions (Max 20)</Text>
+        {sessions.length === 0 ? (
+          <EmptyState
+            Icon={Calendar}
+            title="No Sessions Conducted"
+            description="No attendance sessions have been logged for this course."
+          />
+        ) : (
+          <View style={styles.listCard}>
+            {sessions.map((s, idx) => {
+              const dateStr = new Date(s.startedAt).toLocaleDateString([], {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+              });
+              const timeStr = new Date(s.startedAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+              });
+              return (
+                <View
+                  key={s.sessionId}
+                  style={[styles.listItem, idx === sessions.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <View>
+                    <Text style={styles.itemTitle}>{dateStr} - {timeStr}</Text>
+                    <Text style={styles.itemSubtitle}>Attendance Count: {s.attendanceCount}</Text>
+                  </View>
+                  <Text style={styles.itemValue}>{s.attendancePercentage}%</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Defaulters list */}
+        <Text style={styles.sectionTitle}>Defaulters List (&lt;75% Attendance)</Text>
+        {defaulters.length === 0 ? (
+          <EmptyState
+            Icon={AlertCircle}
+            title="No Defaulters"
+            description="All students have maintained acceptable attendance above 75%."
+          />
+        ) : (
+          <View style={styles.listCard}>
+            {defaulters.map((d, idx) => (
               <View
-                key={s.sessionId}
-                style={[styles.listItem, idx === sessions.length - 1 && { borderBottomWidth: 0 }]}
+                key={d.studentId}
+                style={[styles.listItem, idx === defaulters.length - 1 && { borderBottomWidth: 0 }]}
               >
                 <View>
-                  <Text style={styles.itemTitle}>{dateStr} - {timeStr}</Text>
-                  <Text style={styles.itemSubtitle}>Attendance Count: {s.attendanceCount}</Text>
+                  <Text style={styles.itemTitle}>{d.name}</Text>
+                  <Text style={styles.itemSubtitle}>
+                    Classes needed for 75%: {d.classesNeededFor75}
+                  </Text>
                 </View>
-                <Text style={styles.itemValue}>{s.attendancePercentage}%</Text>
+                <Text style={[styles.itemValue, { color: COLORS.error }]}>{d.attendancePercentage}%</Text>
               </View>
-            );
-          })}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
 
-      {/* Defaulters list */}
-      <Text style={styles.sectionTitle}>Defaulters List (&lt;75% Attendance)</Text>
-      {defaulters.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>No defaulters detected</Text>
-        </View>
-      ) : (
-        <View style={styles.listCard}>
-          {defaulters.map((d, idx) => (
-            <View
-              key={d.studentId}
-              style={[styles.listItem, idx === defaulters.length - 1 && { borderBottomWidth: 0 }]}
-            >
-              <View>
-                <Text style={styles.itemTitle}>{d.name}</Text>
-                <Text style={styles.itemSubtitle}>
-                  Classes needed for 75%: {d.classesNeededFor75}
-                </Text>
-              </View>
-              <Text style={[styles.itemValue, { color: COLORS.error }]}>{d.attendancePercentage}%</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Manual Corrections list */}
-      <Text style={styles.sectionTitle}>Recent Manual Corrections (Max 20)</Text>
-      {corrections.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>No manual corrections logged</Text>
-        </View>
-      ) : (
-        <View style={styles.listCard}>
-          {corrections.map((c, idx) => {
-            const timeStr = new Date(c.correctedOn).toLocaleDateString([], {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            });
-            return (
-              <View
-                key={idx}
-                style={[styles.listItem, idx === corrections.length - 1 && { borderBottomWidth: 0 }]}
-              >
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={styles.itemTitle}>{c.studentName}</Text>
-                  <Text style={styles.itemSubtitle}>Reason: {c.reason || "Not specified"}</Text>
+        {/* Manual Corrections list */}
+        <Text style={styles.sectionTitle}>Recent Manual Corrections (Max 20)</Text>
+        {corrections.length === 0 ? (
+          <EmptyState
+            Icon={ShieldCheck}
+            title="No Corrections Logged"
+            description="All records are based on automated proximity verification."
+          />
+        ) : (
+          <View style={styles.listCard}>
+            {corrections.map((c, idx) => {
+              const timeStr = new Date(c.correctedOn).toLocaleDateString([], {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              });
+              return (
+                <View
+                  key={idx}
+                  style={[styles.listItem, idx === corrections.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={styles.itemTitle}>{c.studentName}</Text>
+                    <Text style={styles.itemSubtitle}>Reason: {c.reason || "Not specified"}</Text>
+                  </View>
+                  <Text style={styles.timeLabel}>{timeStr}</Text>
                 </View>
-                <Text style={styles.timeLabel}>{timeStr}</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-    </ScrollView>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </FadeInContainer>
   );
 }
 
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: COLORS.background,
     padding: 16
   },
@@ -305,6 +321,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text,
     fontFamily: TYPOGRAPHY.body.fontFamily,
+    opacity: 0.8,
     marginTop: 4,
     textAlign: "center"
   },
@@ -315,14 +332,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginTop: 16,
     marginBottom: 8
-  },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.cardRadius,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 16,
-    marginBottom: 10
   },
   listCard: {
     backgroundColor: COLORS.surface,
@@ -362,12 +371,6 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 11,
     color: "#64748b",
-    fontFamily: TYPOGRAPHY.body.fontFamily
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#64748b",
-    fontSize: 14,
     fontFamily: TYPOGRAPHY.body.fontFamily
   },
   errorCard: {
